@@ -164,7 +164,8 @@ class DatasetProcessor:
                 ch_name_path = alias_checking[0]
         
         # Create output directory
-        output_dir = os.path.join(args.output_dir, ch_name_path)
+        relative_path = os.path.split(psg_fname.relative_to(args.data_dir))
+        output_dir = os.path.join(args.output_dir, relative_path,ch_name_path)
         os.makedirs(output_dir, exist_ok=True)
         
         # Generate safe filename
