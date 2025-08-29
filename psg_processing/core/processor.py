@@ -29,11 +29,12 @@ class DatasetProcessor:
     handling file processing, signal cleaning, and output generation.
     """
     
-    def __init__(self):
+    def __init__(self, override=False):
         self.logging_manager = LoggingManager()
         self.logger = None
-        
-    def prepare_files(self, args, channels, channel_types, psg_fnames, ann_fnames, 
+        self.override = override
+
+    def prepare_files(self, args, channels, channel_types, psg_fnames, ann_fnames,
                      ann_parse, ann_label, get_filter_freq, alias_mapping=None, epoch_duration=30):
         """
         Main function to prepare dataset files for processing.
@@ -49,6 +50,7 @@ class DatasetProcessor:
             get_filter_freq: Function to get filter frequencies
             alias_mapping: Optional channel name mapping
             epoch_duration: Duration of each epoch in seconds (default: 30)
+            override: Whether to override existing files or skip processing them (default: False - skipping)
         """        
         # Set up logger and initialize components
         self.logger = self.logging_manager.setup_logger()
@@ -104,7 +106,7 @@ class DatasetProcessor:
         )
         
         # Skip if file already exists
-        if self._output_file_exists(output_dir, filename):
+        if not self.override and self._output_file_exists(output_dir, filename):
             return
         
         # Setup logging for this channel
