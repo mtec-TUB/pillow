@@ -92,41 +92,31 @@ Examples:
     
     args = parser.parse_args()
 
-    try:
-        # Get the processor for this dataset
-        processor_class = get_processor(args.dataset)
-        processor = processor_class()
+    # Get the processor for this dataset
+    processor_class = get_processor(args.dataset)
+    processor = processor_class()
+    
+    print(f"Processing dataset: {args.dataset}")
+    print(f"Using processor: {processor_class.__name__}")
+    
+    # Set up paths if not manually specified
+    if not args.data_dir or not args.ann_dir or not args.output_dir:
+        data_dir, ann_dir = processor.dataset_paths()
         
-        print(f"Processing dataset: {args.dataset}")
-        print(f"Using processor: {processor_class.__name__}")
-        
-        # Set up paths if not manually specified
-        if not args.data_dir or not args.ann_dir or not args.output_dir:
-            data_dir, ann_dir = processor.dataset_paths()
-            
-            if not args.data_dir:
-                args.data_dir = os.path.join(args.base_data_dir, data_dir)
-            if not args.ann_dir:
-                args.ann_dir = os.path.join(args.base_data_dir, ann_dir)
-            if not args.output_dir:
-                args.output_dir = os.path.join(args.base_data_dir, args.dataset, f"{args.dataset}_harmonized", "100Hz_filt", "npz")
-        
-        print(f"Data directory: {args.data_dir}")
-        print(f"Annotation directory: {args.ann_dir}")
-        print(f"Output directory: {args.output_dir}")
-        
-        # Process the dataset
-        processor.process(args)
-        
-    except ValueError as e:
-        print(f"Error: {e}")
-        print("Available datasets:")
-        for dataset in DatasetRegistry.list_datasets():
-            print(f"  - {dataset}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error during processing: {e}")
-        sys.exit(1)
+        if not args.data_dir:
+            args.data_dir = os.path.join(args.base_data_dir, data_dir)
+        if not args.ann_dir:
+            args.ann_dir = os.path.join(args.base_data_dir, ann_dir)
+        if not args.output_dir:
+            args.output_dir = os.path.join(args.base_data_dir, processor.dataset_name, f"{args.dataset}_harmonized_test", "100Hz_filt", "npz")
+    
+    print(f"Data directory: {args.data_dir}")
+    print(f"Annotation directory: {args.ann_dir}")
+    print(f"Output directory: {args.output_dir}")
+    
+    # Process the dataset
+    processor.process(args)
+
 
 if __name__ == "__main__":
     main()
