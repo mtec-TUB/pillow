@@ -19,14 +19,14 @@ def main():
         description="Process sleep datasets for harmonization",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
-Available datasets:
-{', '.join(DatasetRegistry.list_datasets())}
-
-Examples:
-  python process_dataset.py --dataset ABC --data_dir /path/to/ABC/data --output_dir /path/to/output --action prepare
-  python process_dataset.py --dataset MESA --data_dir /path/to/MESA/data --action get_channel_names
-  python process_dataset.py --dataset SOF --data_dir /path/to/SOF/data --action get_channel_types
-        """
+                    Available datasets:
+                    {', '.join(DatasetRegistry.list_datasets())}
+                    
+                    Examples:
+                      python process_dataset.py --dataset ABC --data_dir /path/to/ABC/data --output_dir /path/to/output --action prepare
+                      python process_dataset.py --dataset MESA --data_dir /path/to/MESA/data --action get_channel_names
+                      python process_dataset.py --dataset SOF --data_dir /path/to/SOF/data --action get_channel_types
+                            """
     )
     
     # Required arguments
@@ -94,7 +94,7 @@ Examples:
     
     # Set up paths if not manually specified
     if not args.data_dir or not args.ann_dir or not args.output_dir:
-        data_dir, ann_dir = processor.dataset_paths()
+        data_dir, ann_dir = processor.dataset_paths
         
         if not args.data_dir:
             data_dir = os.path.join(args.base_data_dir, data_dir)
