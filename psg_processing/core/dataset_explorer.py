@@ -34,12 +34,13 @@ class Dataset_Explorer:
         # Setup logger with StreamHandler (console only)
         self.logger = LoggingManager.setup_logger(level=log_level)
 
-    def get_files(self, args, psg_ext="*.edf", ann_ext="*.xml", ann_ext2=None):
+    def get_files(self, data_dir, ann_dir, psg_ext="*.edf", ann_ext="*.xml", ann_ext2=None):
         """
         Discover and collect PSG signal files and annotation files.
         
         Args:
-            args: Arguments object containing data_dir and ann_dir paths
+            data_dir: PSG data directory
+            ann_dir: PSG Annotation directory
             psg_ext (str): File extension pattern for PSG files (default: "*.edf")
             ann_ext (str): File extension pattern for annotation files (default: "*.xml")  
             ann_ext2 (str, optional): Second annotation file extension pattern
@@ -48,8 +49,8 @@ class Dataset_Explorer:
             tuple: (psg_filenames, annotation_filenames) arrays
         """
         # Discover PSG signal files
-        self.logger.info(f"Searching for signal files: {os.path.join(args.data_dir, psg_ext)}")
-        self.psg_fnames = glob.glob(os.path.join(args.data_dir, psg_ext), recursive=True)
+        self.logger.info(f"Searching for signal files: {os.path.join(data_dir, psg_ext)}")
+        self.psg_fnames = glob.glob(os.path.join(data_dir, psg_ext), recursive=True)
         self.psg_fnames.sort()
         self.logger.info(f"Found {len(self.psg_fnames)} signal files")
         
@@ -59,13 +60,13 @@ class Dataset_Explorer:
             return self.psg_fnames, None
         
         # Discover annotation files
-        self.logger.info(f"Searching for annotation files: {os.path.join(args.ann_dir, ann_ext)}")
-        self.ann_fnames = glob.glob(os.path.join(args.ann_dir, ann_ext), recursive=True)
+        self.logger.info(f"Searching for annotation files: {os.path.join(ann_dir, ann_ext)}")
+        self.ann_fnames = glob.glob(os.path.join(ann_dir, ann_ext), recursive=True)
         
         # Add second annotation extension if provided
         if ann_ext2:
-            self.logger.info(f"Searching for additional annotation files: {os.path.join(args.ann_dir, ann_ext2)}")
-            ann_fnames2 = glob.glob(os.path.join(args.ann_dir, ann_ext2), recursive=True)
+            self.logger.info(f"Searching for additional annotation files: {os.path.join(ann_dir, ann_ext2)}")
+            ann_fnames2 = glob.glob(os.path.join(ann_dir, ann_ext2), recursive=True)
             self.ann_fnames.extend(ann_fnames2)
             self.logger.info(f"Found {len(ann_fnames2)} additional annotation files")
 

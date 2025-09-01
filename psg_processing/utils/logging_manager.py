@@ -26,7 +26,7 @@ class LoggingManager:
                 logger.removeHandler(handler)
 
     @staticmethod
-    def setup_channel_file_logging(logger, output_dir, log_filename):
+    def setup_channel_file_logging(logger, output_dir):
         """
         Set up or update the file handler for channel-specific logging.
         Keeps the console handler unchanged.
@@ -39,7 +39,7 @@ class LoggingManager:
         Returns:
             Path to the created log file
         """
-        log_file_path = os.path.join(output_dir, log_filename)
+        log_file_path = os.path.join(output_dir, "processing.log")
 
         # Remove any existing file handlers but keep console handlers
         LoggingManager.cleanup_file_handlers(logger)

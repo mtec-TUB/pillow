@@ -78,13 +78,6 @@ Examples:
     )
     
     parser.add_argument(
-        "--log_file", 
-        type=str,
-        default="dataset_processing.log",
-        help="Log file name"
-    )
-    
-    parser.add_argument(
         "--overwrite",
         action="store_true",
         help="Overwrite existing files"
@@ -104,18 +97,18 @@ Examples:
         data_dir, ann_dir = processor.dataset_paths()
         
         if not args.data_dir:
-            args.data_dir = os.path.join(args.base_data_dir, data_dir)
+            data_dir = os.path.join(args.base_data_dir, data_dir)
         if not args.ann_dir:
-            args.ann_dir = os.path.join(args.base_data_dir, ann_dir)
+            ann_dir = os.path.join(args.base_data_dir, ann_dir)
         if not args.output_dir:
-            args.output_dir = os.path.join(args.base_data_dir, processor.dataset_name, f"{args.dataset}_harmonized_test", "100Hz_filt", "npz")
+            output_dir = os.path.join(args.base_data_dir, processor.dataset_name, f"{args.dataset}_harmonized_test", "100Hz_filt", "npz")
     
-    print(f"Data directory: {args.data_dir}")
-    print(f"Annotation directory: {args.ann_dir}")
-    print(f"Output directory: {args.output_dir}")
+    print(f"Data directory: {data_dir}")
+    print(f"Annotation directory: {ann_dir}")
+    print(f"Output directory: {output_dir}")
     
     # Process the dataset
-    processor.process(args)
+    processor.process(args.action, data_dir, ann_dir, output_dir, args.resample, args.overwrite)
 
 
 if __name__ == "__main__":

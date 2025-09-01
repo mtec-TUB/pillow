@@ -31,19 +31,23 @@ class DatasetProcessor:
     handling file processing, signal cleaning, and output generation.
     """
     
-    def __init__(self, keep_folder_structure=True, overwrite=False):
+    def __init__(self, overwrite=False):
         self.logging_manager = LoggingManager()
         self.logger = None
-        self.keep_folder_structure = keep_folder_structure
         self.overwrite = overwrite
 
-    def prepare_files(self, args, dataset_processor, epoch_duration=30):
+    def prepare_files(self, dataset_processor, data_dir, ann_dir, output_dir,
+                    resample, overwrite, epoch_duration=30):
         """
         Main function to prepare dataset files for processing.
         
         Args:
-            args: Command line arguments
             dataset_processor: Instance of BaseDatasetProcessor containing all dataset-specific logic
+            data_dir: PSG data directory
+            ann_dir: PSG Annotation directory
+            output_dir: Output directory for processed files
+            resample: Resample frequency (given in Hz, or None)
+            overwrite: Wether to overwrite existing processed files or skip them
             epoch_duration: Duration of each epoch in seconds (default: 30)
         """        
         # Set up logger and initialize components
@@ -52,13 +56,13 @@ class DatasetProcessor:
 
         # Get files using dataset-specific extensions
         explorer = Dataset_Explorer()
-        psg_fnames, ann_fnames = explorer.get_files(args, **dataset_processor.file_extensions)
+        psg_fnames, ann_fnames = explorer.get_files(data_dir, ann_dir, **dataset_processor.file_extensions)
         
         # Process each file
         for i, psg_fname in enumerate(psg_fnames):
             self._process_single_file(
                 i, psg_fname, ann_fnames[i] if ann_fnames is not None else None,
-                args, dataset_processor, file_factory, epoch_duration
+                data_dir, output_dir, resample, dataset_processor, file_factory, epoch_duration
             )
         
         # Finalize processing
@@ -66,7 +70,7 @@ class DatasetProcessor:
         self.logger.info("DATASET PREPARATION COMPLETED")
         self.logging_manager.cleanup_file_handlers(self.logger)
     
-    def _process_single_file(self, file_index, psg_fname, ann_fname, args, 
+    def _process_single_file(self, file_index, psg_fname, ann_fname, data_dir, output_dir, resample, 
                            dataset_processor, file_factory, epoch_duration):
         """Process a single PSG file for all specified channels."""
         
@@ -85,18 +89,19 @@ class DatasetProcessor:
         # Process each channel for this file
         for channel in dataset_processor.channel_names:
             self._process_single_channel(
-                file_index, psg_fname, channel, handler, args,
+                file_index, psg_fname, channel, handler, data_dir, output_dir, resample,
                 dataset_processor, ann_stage_events, ann_Startdatetime, epoch_duration
             )
     
-    def _process_single_channel(self, file_index, psg_fname, channel, handler, args,
+    def _process_single_channel(self, file_index, psg_fname, channel, handler, data_dir, output_dir, resample,
                               dataset_processor, ann_stage_events, ann_Startdatetime, epoch_duration):
         """Process a single channel from a single file."""
         
         # Setup channel processing environment
         ch_type = self._get_channel_type(channel, dataset_processor.channel_types)
         output_dir, filename = self._setup_channel_output(
-            channel, psg_fname, args, dataset_processor.alias_mapping
+            dataset_processor.keep_folder_structure, channel, psg_fname, data_dir, output_dir,
+            dataset_processor.alias_mapping
         )
         
         # Skip if file already exists
@@ -105,8 +110,7 @@ class DatasetProcessor:
         
         # Setup logging for this channel
         self.logging_manager.setup_channel_file_logging(
-            self.logger, output_dir, args.log_file
-        )
+            self.logger, output_dir)
         
         self.logger.info(f"\n--- Processing file {file_index+1} ---")
         self.logger.info(f"Signal file: {psg_fname}")
@@ -122,7 +126,7 @@ class DatasetProcessor:
             
             # Process the signal (resample, filter, clean)
             processed_data = self._process_signal_data(
-                signal_data, channel, ch_type, args.resample, 
+                signal_data, channel, ch_type, resample, 
                 dataset_processor.filt_freq, dataset_processor.ann_label, epoch_duration
             )
             
@@ -149,7 +153,7 @@ class DatasetProcessor:
                 return ch_type
         return "digital"  # Default fallback
     
-    def _setup_channel_output(self, channel, psg_fname, args, alias_mapping):
+    def _setup_channel_output(self, keep_folder_structure, channel, psg_fname, data_dir, output_dir, alias_mapping):
         """Setup output directory and filename for a channel."""
         
         # Handle channel name aliasing
@@ -163,12 +167,12 @@ class DatasetProcessor:
         ch_name_path = re.sub(r"[\/]", "_", ch_name_path)
         
         # Create output directory
-        if self.keep_folder_structure:
-            relative_path = os.path.split(Path(psg_fname).relative_to(args.data_dir))[0]
+        if keep_folder_structure:
+            relative_path = os.path.split(Path(psg_fname).relative_to(data_dir))[0]
         else:
             relative_path = ""
 
-        output_dir = os.path.join(args.output_dir, relative_path,ch_name_path)
+        output_dir = os.path.join(output_dir, relative_path,ch_name_path)
         os.makedirs(output_dir, exist_ok=True)
         
         # Generate safe filename
