@@ -5,6 +5,7 @@ Main dataset processor for PSG data preparation.
 import os
 import re
 import numpy as np
+from pathlib import Path
 
 from ..file_handlers import FileHandlerFactory
 from ..utils.logging_manager import LoggingManager
@@ -29,10 +30,11 @@ class DatasetProcessor:
     handling file processing, signal cleaning, and output generation.
     """
     
-    def __init__(self, override=False):
+    def __init__(self, keep_folder_structure=True, overwrite=False):
         self.logging_manager = LoggingManager()
         self.logger = None
-        self.override = override
+        self.keep_folder_structure = keep_folder_structure
+        self.overwrite = overwrite
 
     def prepare_files(self, args, channels, channel_types, psg_fnames, ann_fnames,
                      ann_parse, ann_label, get_filter_freq, alias_mapping=None, epoch_duration=30):
@@ -50,7 +52,7 @@ class DatasetProcessor:
             get_filter_freq: Function to get filter frequencies
             alias_mapping: Optional channel name mapping
             epoch_duration: Duration of each epoch in seconds (default: 30)
-            override: Whether to override existing files or skip processing them (default: False - skipping)
+            overwrite: Whether to overwrite existing files or skip processing them (default: False - skipping)
         """        
         # Set up logger and initialize components
         self.logger = self.logging_manager.setup_logger()
@@ -106,7 +108,7 @@ class DatasetProcessor:
         )
         
         # Skip if file already exists
-        if not self.override and self._output_file_exists(output_dir, filename):
+        if not self.overwrite and self._output_file_exists(output_dir, filename):
             return
         
         # Setup logging for this channel
@@ -140,11 +142,11 @@ class DatasetProcessor:
                 processed_data, output_dir, filename, channel, epoch_duration
             )
             
-        except (ValueError, KeyboardInterrupt):
+        except (Exception, ValueError, KeyboardInterrupt):
             raise
-        except Exception as e:
-            self.logger.error(f"Error processing {channel} in {psg_fname}: {e}")
-            return
+        # except Exception as e:
+        #     self.logger.error(f"Error processing {channel} in {psg_fname}: {e}")
+        #     return
         
         self.logger.info("=" * 40)
     
@@ -164,9 +166,16 @@ class DatasetProcessor:
             alias_checking = [key for key, aliases in alias_mapping.items() if channel in aliases]
             if alias_checking:
                 ch_name_path = alias_checking[0]
+                
+        # replace slash in folder names to avoid nester output structure
+        ch_name_path = re.sub(r"[\/]", "_", ch_name_path)
         
         # Create output directory
-        relative_path = os.path.split(psg_fname.relative_to(args.data_dir))
+        if self.keep_folder_structure:
+            relative_path = os.path.split(Path(psg_fname).relative_to(args.data_dir))[0]
+        else:
+            relative_path = ""
+
         output_dir = os.path.join(args.output_dir, relative_path,ch_name_path)
         os.makedirs(output_dir, exist_ok=True)
         
