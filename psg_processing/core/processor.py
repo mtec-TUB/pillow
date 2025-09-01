@@ -10,6 +10,7 @@ from pathlib import Path
 from ..file_handlers import FileHandlerFactory
 from ..utils.logging_manager import LoggingManager
 from .signal_processor import SignalProcessor
+from .dataset_explorer import Dataset_Explorer
 
 # Sleep stage labels mapping
 STAGE_DICT = {
@@ -36,34 +37,28 @@ class DatasetProcessor:
         self.keep_folder_structure = keep_folder_structure
         self.overwrite = overwrite
 
-    def prepare_files(self, args, channels, channel_types, psg_fnames, ann_fnames,
-                     ann_parse, ann_label, get_filter_freq, alias_mapping=None, epoch_duration=30):
+    def prepare_files(self, args, dataset_processor, epoch_duration=30):
         """
         Main function to prepare dataset files for processing.
         
         Args:
             args: Command line arguments
-            channels: List of channel names to process
-            channel_types: Dictionary mapping channels to types (analog/digital)
-            psg_fnames: List of signal file paths
-            ann_fnames: List of annotation file paths
-            ann_parse: Function to parse annotations
-            ann_label: Function to generate labels
-            get_filter_freq: Function to get filter frequencies
-            alias_mapping: Optional channel name mapping
+            dataset_processor: Instance of BaseDatasetProcessor containing all dataset-specific logic
             epoch_duration: Duration of each epoch in seconds (default: 30)
-            overwrite: Whether to overwrite existing files or skip processing them (default: False - skipping)
         """        
         # Set up logger and initialize components
         self.logger = self.logging_manager.setup_logger()
         file_factory = FileHandlerFactory()
+
+        # Get files using dataset-specific extensions
+        explorer = Dataset_Explorer()
+        psg_fnames, ann_fnames = explorer.get_files(args, **dataset_processor.file_extensions)
         
         # Process each file
         for i, psg_fname in enumerate(psg_fnames):
             self._process_single_file(
                 i, psg_fname, ann_fnames[i] if ann_fnames is not None else None,
-                args, channels, channel_types, ann_parse, ann_label, 
-                get_filter_freq, file_factory, alias_mapping, epoch_duration
+                args, dataset_processor, file_factory, epoch_duration
             )
         
         # Finalize processing
@@ -71,9 +66,8 @@ class DatasetProcessor:
         self.logger.info("DATASET PREPARATION COMPLETED")
         self.logging_manager.cleanup_file_handlers(self.logger)
     
-    def _process_single_file(self, file_index, psg_fname, ann_fname, args, channels, 
-                           channel_types, ann_parse, ann_label, get_filter_freq, 
-                           file_factory, alias_mapping, epoch_duration):
+    def _process_single_file(self, file_index, psg_fname, ann_fname, args, 
+                           dataset_processor, file_factory, epoch_duration):
         """Process a single PSG file for all specified channels."""
         
         # Get file handler and validate format
@@ -83,28 +77,26 @@ class DatasetProcessor:
             return
         
         # Load annotations before (same for all channels)
-        ann_stage_events, ann_Startdatetime = ann_parse(ann_fname, epoch_duration)
+        ann_stage_events, ann_Startdatetime = dataset_processor.ann_parse(ann_fname, epoch_duration)
 
         if ann_stage_events == []:
             return
         
         # Process each channel for this file
-        for channel in channels:
+        for channel in dataset_processor.channel_names:
             self._process_single_channel(
                 file_index, psg_fname, channel, handler, args,
-                channel_types, ann_stage_events, ann_Startdatetime,
-                ann_label, get_filter_freq, alias_mapping, epoch_duration
+                dataset_processor, ann_stage_events, ann_Startdatetime, epoch_duration
             )
     
     def _process_single_channel(self, file_index, psg_fname, channel, handler, args,
-                              channel_types, ann_stage_events, ann_Startdatetime,
-                              ann_label, get_filter_freq, alias_mapping, epoch_duration):
+                              dataset_processor, ann_stage_events, ann_Startdatetime, epoch_duration):
         """Process a single channel from a single file."""
         
         # Setup channel processing environment
-        ch_type = self._get_channel_type(channel, channel_types)
+        ch_type = self._get_channel_type(channel, dataset_processor.channel_types)
         output_dir, filename = self._setup_channel_output(
-            channel, psg_fname, args, alias_mapping
+            channel, psg_fname, args, dataset_processor.alias_mapping
         )
         
         # Skip if file already exists
@@ -131,7 +123,7 @@ class DatasetProcessor:
             # Process the signal (resample, filter, clean)
             processed_data = self._process_signal_data(
                 signal_data, channel, ch_type, args.resample, 
-                get_filter_freq, ann_label, epoch_duration
+                dataset_processor.filt_freq, dataset_processor.ann_label, epoch_duration
             )
             
             if processed_data is None:
