@@ -3,7 +3,7 @@
 Unified dataset processor for sleep datasets.
 This replaces all individual prepare_*.py scripts.
 """
-
+import os
 import argparse
 import sys
 from pathlib import Path
@@ -36,81 +36,98 @@ Examples:
         choices=DatasetRegistry.list_datasets(),
         help="Dataset to process"
     )
+
+    parser.add_argument(
+        "--base_data_dir", 
+        type=str,
+        default="/media/linda/Elements/sleep_data",  # Your current base path
+        help="Base directory where all sleep datasets are stored"
+    )
     
     parser.add_argument(
         "--data_dir", 
-        required=True,
-        help="Directory containing the dataset files"
+        type=str,
+        help="Specific data directory (overrides automatic path generation)"
+    )
+
+    parser.add_argument(
+        "--ann_dir", 
+        type=str,
+        help="Specific annotation directory (overrides automatic path generation)"
+    )
+    
+    parser.add_argument(
+        "--output_dir", 
+        type=str,
+        help="Specific output directory (overrides automatic path generation)"
     )
     
     parser.add_argument(
         "--action", 
-        required=True,
-        choices=["prepare", "get_channel_names", "get_channel_types"],
+        type=str,
+        default="prepare",
+        choices=['prepare', 'get_channel_names', 'get_channel_types'],
         help="Action to perform"
     )
     
-    # Optional arguments
     parser.add_argument(
-        "--output_dir", 
-        help="Output directory for processed files (required for 'prepare' action)"
+        "--resample", 
+        type=str,
+        default="100",
+        help="Resample frequency (Hz) or 'None'"
     )
     
     parser.add_argument(
-        "--ann_dir",
-        help="Annotation directory (if different from data_dir)"
+        "--log_file", 
+        type=str,
+        default="dataset_processing.log",
+        help="Log file name"
     )
     
     parser.add_argument(
-        "--select_ch", 
-        nargs='+',
-        help="Specific channels to process (default: all available channels)"
-    )
-    
-    parser.add_argument(
-        "--overwrite", 
+        "--overwrite",
         action="store_true",
-        help="Overwrite existing output files"
+        help="Overwrite existing files"
     )
     
-    parser.add_argument(
-        "--verbose", 
-        action="store_true",
-        help="Enable verbose logging"
-    )
-
     args = parser.parse_args()
-    
-    # Validation
-    if args.action == "prepare" and not args.output_dir:
-        parser.error("--output_dir is required when action is 'prepare'")
-    
-    # Get the appropriate processor
+
     try:
+        # Get the processor for this dataset
         processor_class = get_processor(args.dataset)
         processor = processor_class()
-    except ValueError as e:
-        print(f"Error: {e}")
-        return 1
-    
-    # Set up logging level
-    if args.verbose:
-        import logging
-        logging.getLogger().setLevel(logging.DEBUG)
-    
-    try:
+        
+        print(f"Processing dataset: {args.dataset}")
+        print(f"Using processor: {processor_class.__name__}")
+        
+        # Set up paths if not manually specified
+        if not args.data_dir or not args.ann_dir or not args.output_dir:
+            data_dir, ann_dir = processor.dataset_paths()
+            
+            if not args.data_dir:
+                args.data_dir = os.path.join(args.base_data_dir, data_dir)
+            if not args.ann_dir:
+                args.ann_dir = os.path.join(args.base_data_dir, ann_dir)
+            if not args.output_dir:
+                args.output_dir = os.path.join(args.base_data_dir, args.dataset, f"{args.dataset}_harmonized", "100Hz_filt", "npz")
+        
+        print(f"Data directory: {args.data_dir}")
+        print(f"Annotation directory: {args.ann_dir}")
+        print(f"Output directory: {args.output_dir}")
+        
         # Process the dataset
         processor.process(args)
-        print(f"Successfully processed {args.dataset} dataset")
-        return 0
         
+    except ValueError as e:
+        print(f"Error: {e}")
+        print("Available datasets:")
+        for dataset in DatasetRegistry.list_datasets():
+            print(f"  - {dataset}")
+        sys.exit(1)
     except Exception as e:
-        print(f"Error processing {args.dataset} dataset: {e}")
-        if args.verbose:
-            import traceback
-            traceback.print_exc()
-        return 1
-
+        print(f"Error during processing: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
+
