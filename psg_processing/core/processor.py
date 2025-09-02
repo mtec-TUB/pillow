@@ -56,8 +56,8 @@ class DatasetProcessor:
             file_factory = FileHandlerFactory()
     
             # Get files using dataset-specific extensions
-            explorer = Dataset_Explorer()
-            psg_fnames, ann_fnames = explorer.get_files(data_dir, ann_dir, **dataset_processor.file_extensions)
+            explorer = Dataset_Explorer(data_dir, ann_dir, **dataset_processor.file_extensions)
+            psg_fnames, ann_fnames = explorer.get_files()
             
             # Process each file
             for i, psg_fname in enumerate(psg_fnames):
@@ -171,7 +171,7 @@ class DatasetProcessor:
         else:
             relative_path = ""
 
-        output_dir = os.path.join(output_dir, relative_path,ch_name_path)
+        output_dir = os.path.join(output_dir, relative_path, "npz", ch_name_path)
         os.makedirs(output_dir, exist_ok=True)
         
         # Generate safe filename

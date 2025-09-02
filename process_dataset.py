@@ -104,7 +104,7 @@ def main():
             if args.resample == "None":
                 output_dir = os.path.join(args.base_data_dir, processor.dataset_name, f"{args.dataset}_harmonized_test", "orig", "npz")
             else:
-                output_dir = os.path.join(args.base_data_dir, processor.dataset_name, f"{args.dataset}_harmonized_test", f"{args.resample}Hz_filt", "npz")
+                output_dir = os.path.join(args.base_data_dir, processor.dataset_name, f"{args.dataset}_harmonized_test", f"{args.resample}Hz_filt")
     
     print(f"Data directory: {data_dir}")
     print(f"Annotation directory: {ann_dir}")
