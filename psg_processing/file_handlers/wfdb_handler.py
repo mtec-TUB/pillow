@@ -39,7 +39,7 @@ class WFDBHandler(FileHandler):
             print(f"Error reading WFDB signal from {filepath}: {e}")
         return None
     
-    def get_signal_info(self, logger, filepath, epoch_duration, channel):
+    def get_signal_data(self, logger, filepath, epoch_duration, channel):
         """Get complete WFDB signal information for processing."""
         try:
             psg_fname, ext = os.path.splitext(filepath)

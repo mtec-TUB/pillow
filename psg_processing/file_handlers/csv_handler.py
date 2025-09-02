@@ -32,7 +32,7 @@ class CSVHandler(FileHandler):
             print(f"Error reading CSV signal from {filepath}: {e}")
         return None
     
-    def get_signal_info(self, logger, filepath, epoch_duration, channel, ann_parse):
+    def get_signal_data(self, logger, filepath, epoch_duration, channel, ann_parse):
         """Get complete CSV signal information for processing."""
         try:
             sampling_rate = 64

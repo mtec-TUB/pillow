@@ -37,7 +37,7 @@ class EDFHandler(FileHandler):
             print(f"Error reading EDF signal from {filepath}: {e}")
         return None
     
-    def get_signal_info(self, logger, filepath, epoch_duration, channel):
+    def get_signal_data(self, logger, filepath, epoch_duration, channel):
         """Get complete EDF signal information for processing."""
         try:
             psg_f = pyedflib.EdfReader(filepath)

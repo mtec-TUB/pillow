@@ -50,7 +50,7 @@ class H5Handler(FileHandler):
             print(f"Error reading H5 signal from {filepath}: {e}")
         return None
     
-    def get_signal_info(self, logger, filepath, epoch_duration, channel):
+    def get_signal_data(self, logger, filepath, epoch_duration, channel):
         """Get complete H5 signal information for processing."""
         sampling_rate = 250
         try:
