@@ -49,28 +49,33 @@ class DatasetProcessor:
             resample: Resample frequency (given in Hz, or None)
             overwrite: Wether to overwrite existing processed files or skip them
             epoch_duration: Duration of each epoch in seconds (default: 30)
-        """        
-        # Set up logger and initialize components
-        self.logger = self.logging_manager.setup_logger()
-        file_factory = FileHandlerFactory()
-
-        # Get files using dataset-specific extensions
-        explorer = Dataset_Explorer()
-        psg_fnames, ann_fnames = explorer.get_files(data_dir, ann_dir, **dataset_processor.file_extensions)
-        
-        # Process each file
-        for i, psg_fname in enumerate(psg_fnames):
-            self._process_single_file(
-                i, psg_fname, ann_fnames[i] if ann_fnames is not None else None,
-                data_dir, output_dir, resample, dataset_processor, file_factory, epoch_duration
-            )
-        
-        # Finalize processing
-        self.logger.info("\n" + "=" * 60)
-        self.logger.info("DATASET PREPARATION COMPLETED")
-        self.logging_manager.cleanup_file_handlers(self.logger)
+        """      
+        try:
+            # Set up logger and initialize components
+            self.logger = self.logging_manager.setup_logger()
+            file_factory = FileHandlerFactory()
     
-    def _process_single_file(self, file_index, psg_fname, ann_fname, data_dir, output_dir, resample, 
+            # Get files using dataset-specific extensions
+            explorer = Dataset_Explorer()
+            psg_fnames, ann_fnames = explorer.get_files(data_dir, ann_dir, **dataset_processor.file_extensions)
+            
+            # Process each file
+            for i, psg_fname in enumerate(psg_fnames):
+                self.logger.info(f"\n--- Processing file {i+1} ---")
+                self._process_single_file(
+                    psg_fname, ann_fnames[i] if ann_fnames is not None else None,
+                    data_dir, output_dir, resample, dataset_processor, file_factory, epoch_duration
+                )
+            
+            # Finalize processing
+            self.logger.info("\n" + "=" * 60)
+            self.logger.info("DATASET PREPARATION COMPLETED")
+            self.logging_manager.cleanup_file_handlers(self.logger)
+        except KeyboardInterrupt:
+            self.logger.info("Stopped processing")
+            
+    
+    def _process_single_file(self, psg_fname, ann_fname, data_dir, output_dir, resample, 
                            dataset_processor, file_factory, epoch_duration):
         """Process a single PSG file for all specified channels."""
         
@@ -89,11 +94,11 @@ class DatasetProcessor:
         # Process each channel for this file
         for channel in dataset_processor.channel_names:
             self._process_single_channel(
-                file_index, psg_fname, channel, handler, data_dir, output_dir, resample,
+                psg_fname, ann_fname, channel, handler, data_dir, output_dir, resample,
                 dataset_processor, ann_stage_events, ann_Startdatetime, epoch_duration
             )
     
-    def _process_single_channel(self, file_index, psg_fname, channel, handler, data_dir, output_dir, resample,
+    def _process_single_channel(self, psg_fname, ann_fname, channel, handler, data_dir, output_dir, resample,
                               dataset_processor, ann_stage_events, ann_Startdatetime, epoch_duration):
         """Process a single channel from a single file."""
         
@@ -109,41 +114,35 @@ class DatasetProcessor:
             return
         
         # Setup logging for this channel
-        self.logging_manager.setup_channel_file_logging(
-            self.logger, output_dir)
+        self.logging_manager.setup_channel_file_logging(self.logger, output_dir)
         
-        self.logger.info(f"\n--- Processing file {file_index+1} ---")
         self.logger.info(f"Signal file: {psg_fname}")
         
-        try:
-            # Extract and process signal
-            signal_data = self._extract_signal_data(
-                handler, psg_fname, channel, epoch_duration, ann_stage_events, ann_Startdatetime
-            )
-            
-            if signal_data is None:
-                return
-            
-            # Process the signal (resample, filter, clean)
-            processed_data = self._process_signal_data(
-                signal_data, channel, ch_type, resample, 
-                dataset_processor.filt_freq, dataset_processor.ann_label, epoch_duration
-            )
-            
-            if processed_data is None:
-                return
-            
-            # Save processed data
-            self._save_processed_data(
-                processed_data, output_dir, filename, channel, epoch_duration
-            )
-            
-        except (Exception, ValueError, KeyboardInterrupt):
-            raise
-        # except Exception as e:
-        #     self.logger.error(f"Error processing {channel} in {psg_fname}: {e}")
-        #     return
+         # Extract and process signal
+        signal_data = self._extract_signal_data(
+            handler, psg_fname, channel, epoch_duration, ann_stage_events, ann_Startdatetime
+        )
         
+        if signal_data is None:
+            return
+        
+        signal_data['psg_fname'] = psg_fname
+        signal_data['ann_fname'] = ann_fname
+        
+        # Process the signal (resample, filter, clean)
+        processed_data = self._process_signal_data(
+            signal_data, channel, ch_type, resample, 
+            dataset_processor, epoch_duration
+        )
+        
+        if processed_data is None:
+            return
+        
+        # Save processed data
+        self._save_processed_data(
+            processed_data, output_dir, filename, channel, epoch_duration
+        )
+
         self.logger.info("=" * 40)
     
     def _get_channel_type(self, channel, channel_types):
@@ -194,30 +193,33 @@ class DatasetProcessor:
                            ann_stage_events, ann_Startdatetime):
         """Extract signal data using the appropriate handler."""
                
-        signal_info = handler.get_signal_info(self.logger, psg_fname, epoch_duration, channel)
+        signal_data = handler.get_signal_data(self.logger, psg_fname, epoch_duration, channel)
         
-        if signal_info is None:
+        if signal_data is None:
             return None
         
-        # Handle start datetime fallback
-        if signal_info['start_datetime'] is None:
-            signal_info['start_datetime'] = ann_Startdatetime
+        # Handle start datetime fallback (take time from annotation file)
+        if signal_data['start_datetime'] is None:
+            signal_data['start_datetime'] = ann_Startdatetime
         
         # Add pre-loaded annotations
-        signal_info['ann_stage_events'] = ann_stage_events
+        signal_data['ann_stage_events'] = ann_stage_events
         
-        self.logger.info(f"Start datetime: {signal_info['start_datetime']}")
-        self.logger.info(f"File duration: {signal_info['file_duration']} sec, {signal_info['file_duration']/3600:.2f} h")
+        self.logger.info(f"Start datetime: {signal_data['start_datetime']}")
+        self.logger.info(f"File duration: {signal_data['file_duration']} sec, {signal_data['file_duration']/3600:.2f} h")
         
-        return signal_info
+        return signal_data
     
     def _process_signal_data(self, signal_data, channel, ch_type, resample_freq, 
-                           get_filter_freq, ann_label, epoch_duration):
+                           dataset_processor, epoch_duration):
         """Process signal data through the complete pipeline."""
         
         signal = signal_data['signal']
         sampling_rate = signal_data['sampling_rate']
         n_epoch_samples = signal_data['n_epoch_samples']
+        
+        channel_groups = dataset_processor.channel_groups
+        ann_label = dataset_processor.ann_label
         
         # Check signal length
         n_epochs = len(signal) // n_epoch_samples
@@ -231,7 +233,7 @@ class DatasetProcessor:
         # Resample and filter
         signal_processor = SignalProcessor(self.logger)
         signal, sampling_rate = signal_processor.resample_filter_signal(
-            signal, channel, ch_type, sampling_rate, resample_freq, get_filter_freq
+            signal, channel, ch_type, channel_groups, sampling_rate, resample_freq
         )
         
         # Reshape into epochs
@@ -239,15 +241,13 @@ class DatasetProcessor:
         n_epochs = len(signal) // n_epoch_samples
         signals = signal.reshape(-1, n_epoch_samples)
         
-        # Generate and align labels
+        # Generate and align labels (some datasets handle different length of signal and label data)
         labels = ann_label(self.logger, signal_data['ann_stage_events'], epoch_duration)
-        signals, labels = self._align_signals_and_labels(signals, labels, signal_data['file_duration'])
+        
+        signals, labels = dataset_processor.alignment(self.logger, signal_data['psg_fname'], signal_data['ann_fname'], signals, labels)
         
         # Clean signal data
-        x = signals.astype(np.float32)
-        y = labels.astype(np.int32)
-        
-        assert len(x) == len(y), f"Length mismatch: signal={len(x)}, labels={len(y)}"
+        x, y = signals.astype(np.float32), labels.astype(np.int32)
         
         x, y = self._clean_signal(x, y, STAGE_DICT)
         if x is None:
@@ -261,19 +261,7 @@ class DatasetProcessor:
             'file_duration': signal_data['file_duration'],
             'n_all_epochs': n_epochs
         }
-    
-    def _align_signals_and_labels(self, signals, labels, file_duration):
-        """Align signals and labels, handling dataset-specific issues."""
-        
-        # Remove annotations longer than signals
-        labels = labels[:len(signals)]
-        
-        # Handle dataset-specific label/signal mismatches
-        # Note: This logic could be moved to dataset-specific handlers in the future
-        if len(labels) < len(signals):
-            signals = signals[:len(labels)]
-        
-        return signals, labels
+
     
     def _clean_signal(self, x, y, stage_dict):
         """
@@ -287,7 +275,6 @@ class DatasetProcessor:
         Returns:
             Tuple of (cleaned_x, cleaned_y) or (None, None) if no sleep detected
         """
-        
         if self.logger:
             self.logger.info(f"Starting signal cleaning - Input shape: x={x.shape}, y={y.shape}")
         
@@ -329,15 +316,16 @@ class DatasetProcessor:
         select_idx = np.arange(start_idx, end_idx + 1)
         
         if self.logger:
-            self.logger.info(f"  Data before selection: {x.shape}, {y.shape}")
+            self.logger.info(f"  Data before sleep selection: {x.shape}, {y.shape}")
         
         x = x[select_idx]
         y = y[select_idx]
         
         if self.logger:
-            self.logger.info(f"  Data after selection: {x.shape}, {y.shape}")
+            self.logger.info(f"  Data after sleep selection: {x.shape}, {y.shape}")
         
         return x, y
+
 
     def _save_processed_data(self, processed_data, output_dir, filename, channel, epoch_duration):
         """Save processed data to file."""
