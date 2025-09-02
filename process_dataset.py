@@ -23,8 +23,8 @@ def main():
                     {', '.join(DatasetRegistry.list_datasets())}
                     
                     Examples:
-                      python process_dataset.py --dataset ABC --data_dir /path/to/ABC/data --output_dir /path/to/output --action prepare
-                      python process_dataset.py --dataset MESA --data_dir /path/to/MESA/data --action get_channel_names
+                      python process_dataset.py --dataset ABC --data_dir /path/to/ABC/polysomnograpy --output_dir /path/to/output --action prepare --resample None
+                      python process_dataset.py --dataset MESA --data_dir /path/to/MESA/ --action get_channel_names
                       python process_dataset.py --dataset SOF --data_dir /path/to/SOF/data --action get_channel_types
                             """
     )
@@ -94,14 +94,17 @@ def main():
     
     # Set up paths if not manually specified
     if not args.data_dir or not args.ann_dir or not args.output_dir:
-        data_dir, ann_dir = processor.dataset_paths
+        data_dir, ann_dir = processor.dataset_paths()
         
         if not args.data_dir:
             data_dir = os.path.join(args.base_data_dir, data_dir)
         if not args.ann_dir:
             ann_dir = os.path.join(args.base_data_dir, ann_dir)
         if not args.output_dir:
-            output_dir = os.path.join(args.base_data_dir, processor.dataset_name, f"{args.dataset}_harmonized_test", "100Hz_filt", "npz")
+            if args.resample == "None":
+                output_dir = os.path.join(args.base_data_dir, processor.dataset_name, f"{args.dataset}_harmonized_test", "orig", "npz")
+            else:
+                output_dir = os.path.join(args.base_data_dir, processor.dataset_name, f"{args.dataset}_harmonized_test", f"{args.resample}Hz_filt", "npz")
     
     print(f"Data directory: {data_dir}")
     print(f"Annotation directory: {ann_dir}")
