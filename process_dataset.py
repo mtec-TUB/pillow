@@ -89,7 +89,6 @@ def main():
     processor = processor_class()
 
     print(f"Processing dataset: {args.dataset}")
-    print(f"Using processor: {processor_class.__name__}")
 
     # Set up paths if not manually specified
     if not args.data_dir or not args.ann_dir or not args.output_dir:
