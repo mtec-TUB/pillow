@@ -64,7 +64,7 @@ class DatasetProcessor:
 
             # Process each file
             for i, psg_fname in enumerate(psg_fnames):
-                self.logger.info(f"\n--- Processing file {i+1} ---")
+                self.logger.info(f"\n--- Processing file {i+1}/{len(psg_fnames)} ---")
                 self._process_single_file(
                     psg_fname,
                     ann_fnames[i] if ann_fnames is not None else None,
@@ -434,5 +434,7 @@ class DatasetProcessor:
             save_dict["y2"] = y[:, 1]
 
         output_path = os.path.join(output_dir, filename)
+        
+        print(output_path)
         np.savez(output_path, **save_dict)
         self.logger.info(f"Successfully saved: {filename}")

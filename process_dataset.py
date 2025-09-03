@@ -4,6 +4,7 @@ Unified dataset processor for sleep datasets.
 This replaces all individual prepare_*.py scripts.
 """
 import os
+from typing import List
 import argparse
 import sys
 from pathlib import Path
@@ -69,9 +70,16 @@ def main():
         choices=["prepare", "get_channel_names", "get_channel_types"],
         help="Action to perform",
     )
-
+    
     parser.add_argument("--resample", type=str, default="100", help="Resample frequency (Hz) or 'None'")
 
+    parser.add_argument(
+        "--channels", 
+        nargs='+',
+        default=[], # all
+        help="List of desired channel names to process"
+    )    
+    
     parser.add_argument("--overwrite", action="store_true", help="Overwrite existing files")
 
     args = parser.parse_args()
@@ -96,15 +104,14 @@ def main():
                 output_dir = os.path.join(
                     args.base_data_dir,
                     processor.dataset_name,
-                    f"{args.dataset}_harmonized_test",
+                    f"{args.dataset}_harmonized",
                     "orig",
-                    "npz",
                 )
             else:
                 output_dir = os.path.join(
                     args.base_data_dir,
                     processor.dataset_name,
-                    f"{args.dataset}_harmonized_test",
+                    f"{args.dataset}_harmonized",
                     f"{args.resample}Hz_filt",
                 )
 
@@ -113,7 +120,7 @@ def main():
     print(f"Output directory: {output_dir}")
 
     # Process the dataset
-    processor.process(args.action, data_dir, ann_dir, output_dir, args.resample, args.overwrite)
+    processor.process(args.action, data_dir, ann_dir, output_dir, args.resample, args.channels, args.overwrite)
 
 
 if __name__ == "__main__":
