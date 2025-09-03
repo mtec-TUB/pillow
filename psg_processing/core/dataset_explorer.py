@@ -163,14 +163,19 @@ class Dataset_Explorer:
         channel_types = {"analog": [], "digital": []}
         total_channels = len(self.ch_names)
 
-        for channel_idx, channel in enumerate(
-            tqdm(self.ch_names, desc="Analyzing channels", unit="channel")
-        ):
+        # Main progress bar for channels
+        channel_progress = tqdm(
+            self.ch_names, 
+            desc="Analyzing channels", 
+            unit="channel",
+            leave=True,
+            ncols=100
+        )
+
+        for channel_idx, channel in enumerate(channel_progress):
             try:
-                self.logger.info(
-                    f"\nChannel [{channel_idx+1}/{total_channels}]: {channel}"
-                )
-                self.logger.info("─" * 60)
+                # Update main progress bar description to show current channel
+                channel_progress.set_description(f"Analyzing: {channel[:20]}")
 
                 # Check multiple files to determine channel type
                 is_analog_found = False
@@ -205,12 +210,9 @@ class Dataset_Explorer:
 
                     if not self._is_digital(signal):
                         # If any file shows analog signal, classify as analog
-                        file_progress.close()  # Close the progress bar before printing
-                        self.logger.info(
-                            f"\n  Found analog signal! Channel classified as ANALOG"
-                        )
-                        self.logger.info(f"     (Checked {files_checked} files)")
+                        file_progress.close()
                         channel_types["analog"].append(channel)
+                        channel_progress.set_postfix_str(f"ANALOG ({files_checked} files)")
                         is_analog_found = True
                         break
 
@@ -218,19 +220,14 @@ class Dataset_Explorer:
                 if not file_progress.disable:
                     file_progress.close()
 
-                self.logger.info(
-                    f"  Complete! ({files_checked} files contained this channel)"
-                )
-
                 # If no analog signals found, classify as digital
                 if not is_analog_found:
-                    self.logger.info(
-                        f"  All signals digital. Channel classified as DIGITAL"
-                    )
                     channel_types["digital"].append(channel)
+                    channel_progress.set_postfix_str(f"DIGITAL ({files_checked} files)")
 
             except KeyboardInterrupt:
                 # Handle user interruption gracefully
+                channel_progress.close()
                 self.logger.warning(f"\n\nKeyboard interrupt detected!")
                 self.logger.warning(
                     f"   Classifying '{channel}' as DIGITAL and continuing..."
@@ -249,15 +246,33 @@ class Dataset_Explorer:
                             "Analysis stopped by user. Returning partial results..."
                         )
                         break
+                    
+                    # Restart the progress bar
+                    remaining_channels = list(self.ch_names)[channel_idx+1:]
+                    channel_progress = tqdm(
+                        remaining_channels,
+                        desc="Analyzing channels",
+                        unit="channel", 
+                        leave=True,
+                        ncols=100
+                    )
                     self.logger.info("Continuing with analysis...\n")
                 except KeyboardInterrupt:
                     self.logger.info("\nAnalysis stopped completely by user.")
                     break
 
             except Exception as e:
-                self.logger.error(f"\nError analyzing channel {channel}: {e}")
-                self.logger.warning(f"   Defaulting to DIGITAL classification")
+                channel_progress.set_postfix_str(f"ERROR - defaulting to DIGITAL")
                 channel_types["digital"].append(channel)  # Default to digital on error
+
+        # Close the main progress bar
+        if 'channel_progress' in locals():
+            channel_progress.close()
+
+        # Print final summary
+        self.logger.info(f"\nAnalysis complete!")
+        self.logger.info(f"Analog channels: {len(channel_types['analog'])}")
+        self.logger.info(f"Digital channels: {len(channel_types['digital'])}")
 
         return channel_types
 
