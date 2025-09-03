@@ -151,14 +151,12 @@ class Dataset_Explorer:
         Returns:
             dict: Dictionary with 'analog' and 'digital' keys containing lists of channels
         """
-        self.logger.info("\nAnalyzing channel types (digital vs analog)...")
+        self.logger.info("Analyzing channel types (digital vs analog)...")
         self.logger.info(
             f"Found {len(self.ch_names)} channels to analyze across {len(self.psg_fnames)} files"
         )
-        self.logger.info(
-            "\nTIP: Press Ctrl+C during any channel analysis to skip remaining files"
-        )
-        self.logger.info("    and classify that channel as DIGITAL immediately.\n")
+        self.logger.info("TIP: Press Ctrl+C during any channel analysis to skip remaining files \
+                and classify that channel as DIGITAL immediately.\n")
 
         channel_types = {"analog": [], "digital": []}
         total_channels = len(self.ch_names)
@@ -169,7 +167,7 @@ class Dataset_Explorer:
             desc="Analyzing channels", 
             unit="channel",
             leave=True,
-            ncols=100
+            ncols=None
         )
 
         for channel_idx, channel in enumerate(channel_progress):
@@ -187,7 +185,7 @@ class Dataset_Explorer:
                     desc="  Checking files",
                     unit="file",
                     leave=False,
-                    ncols=80,
+                    ncols=None,
                 )
 
                 for psg_fname in file_progress:
@@ -254,7 +252,7 @@ class Dataset_Explorer:
                         desc="Analyzing channels",
                         unit="channel", 
                         leave=True,
-                        ncols=100
+                        ncols=None
                     )
                     self.logger.info("Continuing with analysis...\n")
                 except KeyboardInterrupt:
