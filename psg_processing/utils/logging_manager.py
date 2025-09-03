@@ -9,11 +9,11 @@ import logging
 class LoggingManager:
     """
     A class to manage all logging operations for PSG dataset processing.
-    
+
     This class centralizes logging setup, file handler management, and
     provides clean interfaces for different logging scenarios.
     """
-    
+
     @staticmethod
     def cleanup_file_handlers(logger):
         """
@@ -47,8 +47,7 @@ class LoggingManager:
         # Add new file handler for this channel
         file_handler = logging.FileHandler(log_file_path)
         formatter = logging.Formatter(
-            "%(asctime)s - %(levelname)s - %(message)s",
-            datefmt='%Y-%m-%d %H:%M:%S'
+            "%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
         )
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
@@ -59,33 +58,32 @@ class LoggingManager:
     def setup_logger(level=logging.INFO):
         """
         Create a logger with both console and optional file output.
-        
+
         Args:
             name: Logger name (usually module name or dataset name)
             log_file: Optional path to log file. If None, only console logging
             level: Logging level (default: INFO)
-        
+
         Returns:
             Configured logger instance
         """
         logger = logging.getLogger()
-        
+
         # Avoid adding handlers multiple times
         if logger.hasHandlers():
             logger.handlers.clear()
-        
+
         logger.setLevel(level)
-        
+
         # Create detailed formatter
         formatter = logging.Formatter(
-            fmt='%(asctime)s - %(levelname)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
+            fmt="%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
         )
-        
+
         # Console handler
         console_handler = logging.StreamHandler()
         console_handler.setLevel(level)
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
-        
+
         return logger

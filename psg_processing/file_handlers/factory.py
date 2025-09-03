@@ -10,22 +10,22 @@ from .wfdb_handler import WFDBHandler
 
 class FileHandlerFactory:
     """Factory class to get the appropriate file handler."""
-    
+
     def __init__(self):
         self.handlers = {
-            '.edf': EDFHandler(),
-            '.h5': H5Handler(),
-            '.csv': CSVHandler(),
-            '.hea': WFDBHandler()
+            ".edf": EDFHandler(),
+            ".h5": H5Handler(),
+            ".csv": CSVHandler(),
+            ".hea": WFDBHandler(),
         }
-    
+
     def get_handler(self, filepath):
         """Get the appropriate handler for a file."""
         for ext, handler in self.handlers.items():
             if handler.supports_format(filepath):
                 return handler
         return None
-    
+
     def get_file_type(self, filepath):
         """Get the file type identifier."""
         handler = self.get_handler(filepath)

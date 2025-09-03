@@ -10,10 +10,10 @@ from .wfdb_handler import WFDBHandler
 from .factory import FileHandlerFactory
 
 __all__ = [
-    'FileHandler',
-    'EDFHandler', 
-    'H5Handler',
-    'CSVHandler',
-    'WFDBHandler',
-    'FileHandlerFactory'
+    "FileHandler",
+    "EDFHandler",
+    "H5Handler",
+    "CSVHandler",
+    "WFDBHandler",
+    "FileHandlerFactory",
 ]
