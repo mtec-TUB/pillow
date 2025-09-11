@@ -27,7 +27,7 @@ class SignalProcessor:
         """
         self.logger = logger
 
-    # Standard filter frequency mappings for different signal types
+    # Standard filter frequency mappings for different signal groups
     FILTER_FREQUENCIES = {
         "eeg_eog": [0.3, 35],  # EEG and EOG channels: 0.3-35 Hz
         "emg": [10, None],  # EMG channels: 10+ Hz (high-pass)

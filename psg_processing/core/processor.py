@@ -317,9 +317,10 @@ class DatasetProcessor:
         n_epochs = len(signal) // n_epoch_samples
         signals = signal.reshape(-1, n_epoch_samples)
 
-        # Generate and align labels (some datasets handle different length of signal and label data)
+        # Generate labels 
         labels = ann_label(self.logger, signal_data["ann_stage_events"], epoch_duration)
 
+        # Align labels (some datasets handle different length of signal and label data)
         signals, labels = dataset_processor.alignment(
             self.logger,
             signal_data["psg_fname"],
