@@ -54,7 +54,7 @@ class DatasetProcessor:
         try:
             # Set up logger and initialize components
             self.logger = self.logging_manager.setup_logger()
-            file_factory = FileHandlerFactory()
+            file_factory = FileHandlerFactory(logger=self.logger)
 
             # Get files using dataset-specific extensions
             explorer = Dataset_Explorer(

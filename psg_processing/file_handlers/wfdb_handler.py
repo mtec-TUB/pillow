@@ -22,7 +22,10 @@ class WFDBHandler(FileHandler):
             record = wfdb.rdheader(psg_fname_no_ext)
             return record.sig_name
         except Exception as e:
-            print(f"Error reading WFDB file {filepath}: {e}")
+            if self.logger:
+                self.logger.error(f"Error reading WFDB file {filepath}: {e}")
+            else:
+                print(f"Error reading WFDB file {filepath}: {e}")
             return []
 
     def read_signal(self, filepath, channel):
@@ -36,7 +39,10 @@ class WFDBHandler(FileHandler):
                 select_ch_idx = record.sig_name.index(channel)
                 return signal[select_ch_idx]
         except Exception as e:
-            print(f"Error reading WFDB signal from {filepath}: {e}")
+            if self.logger:
+                self.logger.error(f"Error reading WFDB signal from {filepath}: {e}")
+            else:
+                print(f"Error reading WFDB signal from {filepath}: {e}")
         return None
 
     def get_signal_data(self, logger, filepath, epoch_duration, channel):
@@ -72,4 +78,4 @@ class WFDBHandler(FileHandler):
             }
         except Exception as e:
             logger.error(f"Error processing WFDB file {filepath}: {e}")
-            return None
+            raise

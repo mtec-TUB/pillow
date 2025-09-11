@@ -35,7 +35,10 @@ class H5Handler(FileHandler):
                 )
                 return [data[0] for data in dataset]
         except Exception as e:
-            print(f"Error reading H5 file {filepath}: {e}")
+            if self.logger:
+                self.logger.error(f"Error reading H5 file {filepath}: {e}")
+            else:
+                print(f"Error reading H5 file {filepath}: {e}")
             return []
 
     def read_signal(self, filepath, channel):
@@ -51,7 +54,10 @@ class H5Handler(FileHandler):
                     select_ch_idx = signal_labels.index(channel)
                     return dataset[select_ch_idx][1]
         except Exception as e:
-            print(f"Error reading H5 signal from {filepath}: {e}")
+            if self.logger:
+                self.logger.error(f"Error reading H5 signal from {filepath}: {e}")
+            else:
+                print(f"Error reading H5 signal from {filepath}: {e}")
         return None
 
     def get_signal_data(self, logger, filepath, epoch_duration, channel):
@@ -91,4 +97,4 @@ class H5Handler(FileHandler):
                 }
         except Exception as e:
             logger.error(f"Error processing H5 file {filepath}: {e}")
-            return None
+            raise

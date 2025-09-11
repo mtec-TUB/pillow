@@ -19,7 +19,10 @@ class CSVHandler(FileHandler):
             dataset = pd.read_csv(filepath, sep=",", header=0, nrows=1)
             return list(dataset.columns)
         except Exception as e:
-            print(f"Error reading CSV file {filepath}: {e}")
+            if self.logger:
+                self.logger.error(f"Error reading CSV file {filepath}: {e}")
+            else:
+                print(f"Error reading CSV file {filepath}: {e}")
             return []
 
     def read_signal(self, filepath, channel):
@@ -29,7 +32,10 @@ class CSVHandler(FileHandler):
             if channel in dataset.columns:
                 return dataset[channel].to_numpy()
         except Exception as e:
-            print(f"Error reading CSV signal from {filepath}: {e}")
+            if self.logger:
+                self.logger.error(f"Error reading CSV signal from {filepath}: {e}")
+            else:
+                print(f"Error reading CSV signal from {filepath}: {e}")
         return None
 
     def get_signal_data(self, logger, filepath, epoch_duration, channel, ann_parse):
@@ -66,4 +72,4 @@ class CSVHandler(FileHandler):
             }
         except Exception as e:
             logger.error(f"Error processing CSV file {filepath}: {e}")
-            return None
+            raise

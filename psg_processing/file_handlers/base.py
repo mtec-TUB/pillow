@@ -6,7 +6,8 @@ Base file handler for PSG data processing.
 class FileHandler:
     """Base class for handling different PSG file formats."""
 
-    def __init__(self):
+    def __init__(self, logger=None):
+        self.logger = logger
         self.file_extension = None
 
     def get_channels(self, filepath):
