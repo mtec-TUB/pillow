@@ -1,118 +1,181 @@
+
 # PSG Processing Toolkit
 
-A comprehensive, object-oriented toolkit for processing polysomnography (PSG) datasets with support for multiple file formats and automated signal processing. The system uses a modular architecture with dataset-specific processors and a unified processing pipeline.
+A comprehensive, object-oriented toolkit for processing polysomnography (PSG) datasets, supporting various file formats and automated signal processing.
 
-## **Architecture Overview**
+---
+
+## **Table of Contents**
+- [Architecture](#architecture)
+- [Quickstart](#quickstart)
+- [Running the Processing Pipeline](#running-the-processing-pipeline)
+- [Supported File Formats](#supported-file-formats)
+- [Processing steps](#processing-steps)
+- [Output](#output)
+- [Adding New Datasets](#adding-new-datasets)
+- [Helpful Notes](#helpful-notes)
+
+---
+
+## **Architecture**
 
 The codebase is organized into three main components:
 
 ```
-├── dataset_processors/            # Dataset-specific processing logic
-│   ├── __init__.py                # Processor registry and imports
-│   ├── base.py                    # Abstract base processor class
-│   ├── registry.py                # Dynamic processor registration
-│   ├── abc_processor.py           # ABC dataset processor
-│   ├── mesa_processor.py          # MESA dataset processor
-│   ├── sof_processor.py           # SOF dataset processor
-│   └── ...                        # Other dataset processors
-├── psg_processing/                # Core processing modules
-│   ├── __init__.py                # Package interface
+├── dataset_preprocessings/        # One-time restructuring of datasets
+├── dataset_processors/            # Dataset-specific logic
+│   ├── base.py                    # Abstract base class for processors
+│   ├── registry.py                # Processor registration and management
+│   └── <dataset>_processor.py     # One processor per dataset
+├── psg_processing/                # Core modules for processing
 │   ├── core/
-│   │   ├── dataset_explorer.py    # File discovery & channel analysis
-│   │   ├── processor.py           # Main file process pipeline
-│   │   └── signal_processor.py    # Signal filtering & resampling
-│   ├── file_handlers/             # Multi-format file support
-│   │   ├── base.py                # Base handler interface
-│   │   ├── edf_handler.py         # EDF/BDF file support
-│   │   ├── h5_handler.py          # HDF5 file support
-│   │   ├── csv_handler.py         # CSV file support
-│   │   ├── wfdb_handler.py        # WFDB file support
-│   │   └── factory.py             # Handler factory pattern
-│   └── utils/
-│       └── logging_manager.py     # Centralized logging
-├── dataset_preprocessings/        # One-time dataset reorganization
-└── process_dataset.py            # Entry-Point: Unified command-line interface
+│   │   ├── dataset_explorer.py    # File search & channel analysis
+│   │   ├── processor.py           # Main processing pipeline
+│   │   └── signal_processor.py    # Filtering & resampling
+│   ├── file_handlers/             # Support for various file formats
+│   └── utils/                     # Logging, helper functions
+└── process_dataset.py             # Main command-line interface
 ```
 
-## **Quick Start**
+---
 
-Install requirements.txt
+## **Quickstart**
 
+1. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### Command Line Usage
+2. **Start the processing pipeline**
+   ```bash
+   python process_dataset.py --dataset <DATASETNAME> --action prepare --base_data_dir <PATH_TO_DATA>
+   ```
+   Example:
+   ```bash
+   python process_dataset.py --dataset ABC --action prepare --base_data_dir /media/linda/Elements/sleep_data
+   ```
 
+   For more examples and options, see [Running the Processing Pipeline](#running-the-processing-pipeline).
+
+---
+
+## **Running the Processing Pipeline**
+
+The main script is [`process_dataset.py`](process_dataset.py). It provides the following actions:
+
+- **prepare**: Starts processing and harmonization of a dataset.
+- **get_channel_names**: Lists all channels of a dataset.
+- **get_channel_types**: Lists all channel types of a dataset.
+
+**Key arguments:**
+- `--dataset`: Name of the dataset (e.g. ABC, MESA, HOMEPAP, ...)
+- `--base_data_dir`: Base directory of all raw data
+- `--data_dir`, `--ann_dir`, `--output_dir`: Optional, to manually set paths
+- `--resample`: Target sampling rate (e.g. 100) or "None"
+- `--channels`: List of channels to process
+- `--overwrite`: Overwrite existing output files
+
+**Example calls:**
 ```bash
-python procress_dataset.py --dataset ABC --action get_channel_names
-
-python process_dataset.py --dataset MSP --resample None --overwrite True
-
-python process_dataset.py --dataset SHHS
+python process_dataset.py --dataset ABC --action get_channel_names
+python process_dataset.py --dataset MESA --resample None --overwrite
+python process_dataset.py --dataset HOMEPAP --channels EEG1 EOG1 --resample 100
 ```
+
+
+---
 
 ## **Supported File Formats**
 
+The following file types can be handled to extract the signal from (see [file_handlers](/psg_processing/file_handlers/)). New file handlers can be added easily.
+
 - **EDF** (European Data Format) - `.edf`
-- **HDF5** (Hierarchical Data Format) - `.h5` 
+- **HDF5** (Hierarchical Data Format) - `.h5`
 - **CSV** (Comma-Separated Values) - `.csv`
 - **WFDB** (WaveForm DataBase) - `.hea`
 
-## **Key Features**
+For the annotation files there is no common handler because most datasets have  a unique annotation saving format. The base parsing strategy can be found in [base.py](/dataset_processors/base.py) ann_parse() function, and can be overwritten individually for each dataset processor in [dataset_processors](/dataset_processors/). 
 
-### File Handlers
-- **Extensible Design**: Easy to add new file formats
-- **Unified Interface**: Consistent API across all formats
+---
 
-### Signal Processing
-- **Digital/Analog Detection**: Automatic signal type classification to keep the resulting signal as close to the original one as possible
-- **Resampling**: Polyphase filtering with clipping preservation
-- **Filtering**: AASM suggested bandpass filtering per channel type
-  - EEG and EOG channels: 0.3-35 Hz
-  - EMG channels: 10+ Hz (high-pass)
-  - ECG channels: 0.3+ Hz (high-pass)
-  - Abdominal/Respiratory signals: 0.1-15 Hz
-  - Nasal pressure: 0.03+ Hz (high-pass)
-  - Snoring: 10+ Hz (high-pass)
+## **Processing steps**
 
-### Dataset Processing
-- **Batch Processing**: Handle multiple files and channels efficiently
-- **Progress Tracking**: Comprehensive logging and progress reporting
-- **Error Handling**: Robust error handling with detailed logging
-- **Output Management**: Organized output structure with metadata
+These steps will be performed to process the polysomnography datasets (see [processor.py](/psg_processing/core/processor.py)):
 
-### Logging & Monitoring
-- **Multi-level Logging**: Console and file logging with configurable levels
-- **Per-channel Logs**: Individual log files for detailed tracking
-- **Progress Reporting**: Real-time processing status updates
-
-## **Development**
-
-### Adding New Dataset
+- all files with matching extension are automatically detected and processed iterative
+- the annotations for one file are loaded either from a seperate corresponding annotation file or from the input file itself 
+- each file is checked for defined channel names and each found channel is processed seperately
+- the output path is generated (see also [Output](#output)) and checked for invalid characters
+- if not defined differently (param: overwrite) the file will be skipped if the output path already exists
+- the signal is extracted from the file using the file handler
+- the signal is truncated to whole epochs
+- if resampling condition is not None (e.g.resample is 100):
+    - type of the channel (digital/discrete or analog/continuos) is taken from dataset_processor (can be determined with get_channel_types for new datasets)  
+    - digital channels are resampled with a nearest neighbour interpolation and analog continous channels with polyphase filtering (mse.filter), where clipped values will be preserved to keep similarity or original data
+    - filter signal based on AASM recomendation (e.g. EEG and EOG with 0.3-35Hz bandpass)
+- the signal is reshaped to [num_epochs, epoch_dur * fs]
+- the extracted annotations are checked for timing inconsistencies and aligned with the signal length
+- the signal is cleaned/shortened based on annotations
+    - max. 30min of wake epochs are kept at beginning and ending of signal
+    - epochs labeled with 'Movement' or 'Artifact' are removed
+- the signal, annotations and other information is saved to the output_path (see [Output](#output))
 
 
-### Adding New File Formats
+---
 
-1. Create a new handler in `file_handlers/`:
-```python
-from .base import FileHandler
+## **Output**
 
-class NewFormatHandler(FileHandler):
-    def __init__(self):
-        super().__init__()
-        self.file_extension = ".new"
-    
-    def get_channels(self, filepath):
-        # Implement channel extraction
-        pass
-    
-    def get_signal_info(self, logger, filepath, epoch_duration, channel):
-        # Implement signal extraction
-        pass
-```
+The pipeline will generate one .npz file per processed channel per file in a channel based folder structure. Thus three input .edf files with each five recorded channels will result in five output folders named after the channels with each containing three .npz files. It can happen that the output folders do not all contain the same number of files (number of input files) which means that some input files did not include all channels that were defined to be processed.
 
-2. Register in `factory.py`:
-```python
-self.handlers = {
-    # ... existing handlers
-    '.new': NewFormatHandler()
-}
-```
+If not defined differently the files are saved in the same subfolder structure as they were found in the data directory. The output folder (DS_harmonized) will have two subfolders corresponding to the harmonized files resampled to 100Hz and filtered (100Hz_filt) and in the original sample rate (orig).
+
+Example: the 100Hz resampled signal of channel ECG found in
+`/sleep_data/ABC_dataset/polysomnography/follow_up/abc_001.edf` 
+will be saved as 
+`/sleep_data/ABC_dataset/ABC_harmonized/100Hz_filt/follow_up/ECG/ECG_abc_001.npz`
+
+The `.npz` files can be extracted with `numpy.load()` and contain the following entries:
+
+- **x**: Processed signal data array with dim [num_epochs, epoch_dur * fs]
+- **y**: Sleep stage annotations ("W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4)
+- **fs**: Sampling rate
+- **ch_label**: Channel label (like it was originally found in the input file)
+- **start_datetime**: Start date and time of the recording if existed
+- **file_duration**: Total duration of the original signal in seconds
+- **epoch_duration**: Duration of each epoch (def: 30 seconds)
+- **n_all_epochs**: Total number of epochs before cleaning
+- **n_epochs**: Number of final processed epochs (without labeled as Movement or Artifact and with shortened wake periods at beginning and ending of file)
+
+If there is a second annotation entry called **y2**, this results from a second scorer (for example in ISRUC dataset)
+
+---
+
+## **Adding New Datasets**
+
+1. **Optional: Preprocessing scripts**
+   - If needed, implement preprocessing in `dataset_preprocessings/` to reorder or rename files (each file must have a unique name and either a corresponding annotation file or the annotation saved inside the file itself).
+   - example preprocessing handling shown in [FDCSR dataset](/dataset_processors/fdcsr_processor.py) or [DCSM dataset](/dataset_processors/dcsm_processor.py).
+
+2. **Create a new processor:**
+   - Add a file `dataset_processors/<your_dataset>_processor.py`.
+   - Inherit from [`BaseDatasetProcessor`](dataset_processors/base.py) and implement the methods `_setup_dataset_config` (specify file extensions as this is the only known property in the beginning), `ann_parse`, optionally `preprocess` and `dataset_paths`.
+   - to register the processor use the decorator `@register_dataset("YOURNAME")`.
+   - check if the polysomnography file extension is already covered by on of the [file_handlers](/psg_processing/file_handlers/), if not create a new one
+
+3. **Perform channel search and channel type determination:**
+    - search for existing channel names in dataset with:
+     ```bash
+      python process_dataset.py --dataset <your_dataset> --action get_channel_names
+      ```
+    - determine the type of channels with:
+    ```bash
+    python process_dataset.py --dataset <your_dataset> --action get_channel_types
+    ```
+    Channels like 'Oxygen saturation', 'Light' or 'Position' are mostly digital, while EEG, ECG and EMG channels should be analog. Check the results manually to prevent wrong processing.
+4. **Define all pending dataset properties:**
+    - In `_setup_dataset_config`, specify channel names, channel types, channel groups and optional alias_mappings (can be used if many different channel names appear that seem to belong all to the same channel, see [BESTAIR dataset](/dataset_processors/bestair_processor.py))
+5. **Perform processing:**
+    - see [Running the Processing Pipeline](#running-the-processing-pipeline)
+
+
+---
