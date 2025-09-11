@@ -22,7 +22,7 @@ A comprehensive, object-oriented toolkit for processing polysomnography (PSG) da
 The codebase is organized into three main components:
 
 ```
-├── dataset_preprocessings/        # One-time restructuring of datasets
+├── dataset_preprocessors/        # One-time restructuring of datasets
 ├── dataset_processors/            # Dataset-specific logic
 │   ├── base.py                    # Abstract base class for processors
 │   ├── registry.py                # Processor registration and management
@@ -153,7 +153,7 @@ If there is a second annotation entry called **y2**, this results from a second 
 ## **Adding New Datasets**
 
 1. **Optional: Preprocessing scripts**
-   - If needed, implement preprocessing in `dataset_preprocessings/` to reorder or rename files (each file must have a unique name and either a corresponding annotation file or the annotation saved inside the file itself).
+   - If needed, implement preprocessing in `dataset_preprocessors/` to reorder or rename files (each file must have a unique name and either a corresponding annotation file or the annotation saved inside the file itself).
    - example preprocessing handling shown in [FDCSR dataset](/dataset_processors/fdcsr_processor.py) or [DCSM dataset](/dataset_processors/dcsm_processor.py).
 
 2. **Create a new processor:**
