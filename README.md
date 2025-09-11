@@ -162,7 +162,7 @@ If there is a second annotation entry called **y2**, this results from a second 
    - to register the processor use the decorator `@register_dataset("YOURNAME")`.
    - check if the polysomnography file extension is already covered by on of the [file_handlers](/psg_processing/file_handlers/), if not create a new one
 
-3. **Perform channel search and channel type determination:**
+3. **Explore dataset:**
     - search for existing channel names in dataset with:
      ```bash
       python process_dataset.py --dataset <your_dataset> --action get_channel_names
@@ -171,7 +171,7 @@ If there is a second annotation entry called **y2**, this results from a second 
     ```bash
     python process_dataset.py --dataset <your_dataset> --action get_channel_types
     ```
-    Channels like 'Oxygen saturation', 'Light' or 'Position' are mostly digital, while EEG, ECG and EMG channels should be analog. Check the results manually to prevent wrong processing.
+    - Channels like 'Oxygen saturation', 'Light' or 'Position' are mostly digital, while EEG, ECG and EMG channels should be analog. Check the results manually to prevent wrong processing.
 4. **Define all pending dataset properties:**
     - In `_setup_dataset_config`, specify channel names, channel types, channel groups and optional alias_mappings (can be used if many different channel names appear that seem to belong all to the same channel, see [BESTAIR dataset](/dataset_processors/bestair_processor.py))
 5. **Perform processing:**
