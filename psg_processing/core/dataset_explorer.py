@@ -259,10 +259,6 @@ class Dataset_Explorer:
                     self.logger.info("\nAnalysis stopped completely by user.")
                     break
 
-            except Exception as e:
-                channel_progress.set_postfix_str(f"ERROR - defaulting to DIGITAL")
-                channel_types["digital"].append(channel)  # Default to digital on error
-
         # Close the main progress bar
         if 'channel_progress' in locals():
             channel_progress.close()
