@@ -60,7 +60,7 @@ class H5Handler(FileHandler):
                 print(f"Error reading H5 signal from {filepath}: {e}")
         return None
 
-    def get_signal_data(self, logger, filepath, epoch_duration, channel):
+    def get_signal_data(self, filepath, epoch_duration, channel):
         """Get complete H5 signal information for processing."""
         sampling_rate = 250
         try:
@@ -73,14 +73,14 @@ class H5Handler(FileHandler):
                 ch_names = [data[0] for data in dataset]
 
                 if channel not in ch_names:
-                    logger.info(f"Channel {channel} not found")
+                    self.logger.info(f"Channel {channel} not found")
                     return None
 
                 select_ch_idx = ch_names.index(channel)
-                logger.info(f"Channel selected: {channel}")
+                self.logger.info(f"Channel selected: {channel}")
 
                 ch_samples = [data[1].shape[0] for data in dataset]
-                logger.info(f"Select channel samples: {ch_samples[select_ch_idx]}")
+                self.logger.info(f"Select channel samples: {ch_samples[select_ch_idx]}")
                 file_duration = ch_samples[select_ch_idx] / sampling_rate
 
                 n_epoch_samples = int(epoch_duration * sampling_rate)
@@ -96,5 +96,5 @@ class H5Handler(FileHandler):
                     "file_duration": file_duration,
                 }
         except Exception as e:
-            logger.error(f"Error processing H5 file {filepath}: {e}")
+            self.logger.error(f"Error processing H5 file {filepath}: {e}")
             raise

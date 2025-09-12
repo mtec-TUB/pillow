@@ -11,8 +11,7 @@ from .wfdb_handler import WFDBHandler
 class FileHandlerFactory:
     """Factory class to get the appropriate file handler."""
 
-    def __init__(self, logger=None):
-        self.logger = logger
+    def __init__(self):
         self.handlers = {
             ".edf": EDFHandler,
             ".h5": H5Handler,
@@ -20,11 +19,11 @@ class FileHandlerFactory:
             ".hea": WFDBHandler,
         }
 
-    def get_handler(self, filepath):
+    def get_handler(self, logger, filepath):
         """Get the appropriate handler for a file."""
         for ext, handler in self.handlers.items():
             if ext in filepath.lower():
-                return handler(logger=self.logger)
+                return handler(logger)
         return None
 
     def get_file_type(self, filepath):

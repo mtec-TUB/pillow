@@ -9,7 +9,7 @@ from .base import FileHandler
 class EDFHandler(FileHandler):
     """Handler for EDF files."""
 
-    def __init__(self):
+    def __init__(self, logger):
         super().__init__()
         self.file_extension = ".edf"
 
@@ -44,25 +44,25 @@ class EDFHandler(FileHandler):
                 print(f"Error reading EDF signal from {filepath}: {e}")
         return None
 
-    def get_signal_data(self, logger, filepath, epoch_duration, channel):
+    def get_signal_data(self, filepath, epoch_duration, channel):
         """Get complete EDF signal information for processing."""
         try:
             psg_f = pyedflib.EdfReader(filepath)
 
             ch_names = psg_f.getSignalLabels()
             if channel not in ch_names:
-                logger.info(f"Channel {channel} not found")
+                self.logger.info(f"Channel {channel} not found")
                 psg_f.close()
                 return None
 
             select_ch_idx = ch_names.index(channel)
-            logger.info(f"Channel selected: {channel}")
+            self.logger.info(f"Channel selected: {channel}")
 
             start_datetime = psg_f.getStartdatetime()
             file_duration = psg_f.getFileDuration()
 
             ch_samples = psg_f.getNSamples()
-            logger.info(f"Select channel samples: {ch_samples[select_ch_idx]}")
+            self.logger.info(f"Select channel samples: {ch_samples[select_ch_idx]}")
             ch_freq = psg_f.getSampleFrequencies()
 
             sampling_rate = int(ch_freq[select_ch_idx])
@@ -79,6 +79,6 @@ class EDFHandler(FileHandler):
                 "file_duration": file_duration,
             }
         except Exception as e:
-            logger.error(f"Error processing EDF file {filepath}: {e}")
+            self.logger.error(f"Error processing EDF file {filepath}: {e}")
             self.logger.error("Maybe the repair_edfs.py script or EDF Browser header repairer can help.")
             raise

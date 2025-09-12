@@ -54,7 +54,7 @@ class DatasetProcessor:
         try:
             # Set up logger and initialize components
             self.logger = self.logging_manager.setup_logger()
-            file_factory = FileHandlerFactory(logger=self.logger)
+            file_factory = FileHandlerFactory()
 
             # Get files using dataset-specific extensions
             explorer = Dataset_Explorer(
@@ -97,7 +97,7 @@ class DatasetProcessor:
         """Process a single PSG file for all specified channels."""
 
         # Get file handler and validate format
-        handler = file_factory.get_handler(psg_fname)
+        handler = file_factory.get_handler(self.logger,psg_fname)
         if not handler:
             self.logger.warning(f"Unsupported file format: {psg_fname}")
             return
