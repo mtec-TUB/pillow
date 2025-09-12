@@ -62,6 +62,9 @@ class DatasetProcessor:
             )
             psg_fnames, ann_fnames = explorer.get_files()
 
+            if not psg_fnames:
+                return
+
             # Process each file
             for i, psg_fname in enumerate(psg_fnames):
                 self.logger.info(f"\n--- Processing file {i+1}/{len(psg_fnames)} ---")

@@ -61,9 +61,14 @@ class Dataset_Explorer:
             tuple: (psg_filenames, annotation_filenames) arrays
         """
         # Discover PSG signal files
+        if not os.path.exists(self.data_dir):
+            self.logger.error(f"Data directory does not exist: {self.data_dir}")
+            return None, None
+
         self.logger.info(
             f"Searching for signal files: {os.path.join(self.data_dir, self.psg_ext)}"
         )
+
         self.psg_fnames = glob.glob(
             os.path.join(self.data_dir, self.psg_ext), recursive=True
         )
@@ -76,9 +81,14 @@ class Dataset_Explorer:
             return self.psg_fnames, None
 
         # Discover annotation files
+        if not os.path.exists(self.ann_dir):
+            self.logger.error(f"Annotation directory does not exist: {self.ann_dir}")
+            return None, None
+
         self.logger.info(
             f"Searching for annotation files: {os.path.join(self.ann_dir, self.ann_ext)}"
         )
+
         self.ann_fnames = glob.glob(
             os.path.join(self.ann_dir, self.ann_ext), recursive=True
         )
