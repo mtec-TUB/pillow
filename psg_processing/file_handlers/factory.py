@@ -25,10 +25,3 @@ class FileHandlerFactory:
             if ext in filepath.lower():
                 return handler(logger)
         return None
-
-    def get_file_type(self, filepath):
-        """Get the file type identifier."""
-        handler = self.get_handler(filepath)
-        if handler:
-            return handler.file_extension[1:]  # Remove the dot
-        return None
