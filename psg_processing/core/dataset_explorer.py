@@ -130,7 +130,7 @@ class Dataset_Explorer:
 
         # Use tqdm for clean progress bar
         for psg_fname in tqdm(self.psg_fnames, desc="Processing files", unit="file"):
-            handler = self.file_factory.get_handler(psg_fname)
+            handler = self.file_factory.get_handler(self.logger, psg_fname)
 
             if handler:
                 channels = handler.get_channels(psg_fname)
@@ -161,7 +161,6 @@ class Dataset_Explorer:
                 and classify that channel as DIGITAL immediately.\n")
 
         channel_types = {"analog": [], "digital": []}
-        total_channels = len(self.ch_names)
 
         # Main progress bar for channels
         channel_progress = tqdm(
@@ -191,7 +190,7 @@ class Dataset_Explorer:
                 )
 
                 for psg_fname in file_progress:
-                    handler = self.file_factory.get_handler(psg_fname)
+                    handler = self.file_factory.get_handler(self.logger, psg_fname)
 
                     if not handler:
                         continue

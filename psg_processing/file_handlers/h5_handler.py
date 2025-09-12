@@ -9,8 +9,7 @@ from .base import FileHandler
 class H5Handler(FileHandler):
     """Handler for H5 files."""
 
-    def __init__(self):
-        super().__init__()
+    def _initialize(self):
         self.file_extension = ".h5"
 
     def collect_h5_dataset(self, name, obj, dataset):
@@ -35,10 +34,7 @@ class H5Handler(FileHandler):
                 )
                 return [data[0] for data in dataset]
         except Exception as e:
-            if self.logger:
-                self.logger.error(f"Error reading H5 file {filepath}: {e}")
-            else:
-                print(f"Error reading H5 file {filepath}: {e}")
+            self.logger.error(f"Error reading H5 file {filepath}: {e}")
             return []
 
     def read_signal(self, filepath, channel):
@@ -54,10 +50,7 @@ class H5Handler(FileHandler):
                     select_ch_idx = signal_labels.index(channel)
                     return dataset[select_ch_idx][1]
         except Exception as e:
-            if self.logger:
-                self.logger.error(f"Error reading H5 signal from {filepath}: {e}")
-            else:
-                print(f"Error reading H5 signal from {filepath}: {e}")
+            self.logger.error(f"Error reading H5 signal from {filepath}: {e}")
         return None
 
     def get_signal_data(self, filepath, epoch_duration, channel):

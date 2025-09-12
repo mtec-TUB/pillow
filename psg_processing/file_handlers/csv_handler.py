@@ -9,8 +9,7 @@ from .base import FileHandler
 class CSVHandler(FileHandler):
     """Handler for CSV files."""
 
-    def __init__(self):
-        super().__init__()
+    def _initialize(self):
         self.file_extension = ".csv"
 
     def get_channels(self, filepath):
@@ -19,10 +18,7 @@ class CSVHandler(FileHandler):
             dataset = pd.read_csv(filepath, sep=",", header=0, nrows=1)
             return list(dataset.columns)
         except Exception as e:
-            if self.logger:
-                self.logger.error(f"Error reading CSV file {filepath}: {e}")
-            else:
-                print(f"Error reading CSV file {filepath}: {e}")
+            self.logger.error(f"Error reading CSV file {filepath}: {e}")
             return []
 
     def read_signal(self, filepath, channel):
@@ -32,20 +28,17 @@ class CSVHandler(FileHandler):
             if channel in dataset.columns:
                 return dataset[channel].to_numpy()
         except Exception as e:
-            if self.logger:
-                self.logger.error(f"Error reading CSV signal from {filepath}: {e}")
-            else:
-                print(f"Error reading CSV signal from {filepath}: {e}")
+            self.logger.error(f"Error reading CSV signal from {filepath}: {e}")
         return None
 
-    def get_signal_data(self, logger, filepath, epoch_duration, channel, ann_parse):
+    def get_signal_data(self, filepath, epoch_duration, channel):
         """Get complete CSV signal information for processing."""
         try:
             sampling_rate = 64
             dataset = pd.read_csv(filepath, sep=",", header=0)
 
             if channel not in dataset.columns:
-                logger.info(f"Channel {channel} not found")
+                self.logger.info(f"Channel {channel} not found")
                 return None
 
             # Prepare dataset to get labels:
@@ -57,8 +50,8 @@ class CSVHandler(FileHandler):
                 ((dataset.index == 0) | (dataset.index + 1) % (sampling_rate * 30) == 0)
             ]
 
-            logger.info(f"Channel selected: {channel}")
-            logger.info(f"Select channel samples: {len(signal)}")
+            self.logger.info(f"Channel selected: {channel}")
+            self.logger.info(f"Select channel samples: {len(signal)}")
 
             n_epoch_samples = sampling_rate * epoch_duration
             file_duration = len(signal)
@@ -71,5 +64,5 @@ class CSVHandler(FileHandler):
                 "file_duration": file_duration,
             }
         except Exception as e:
-            logger.error(f"Error processing CSV file {filepath}: {e}")
+            self.logger.error(f"Error processing CSV file {filepath}: {e}")
             raise

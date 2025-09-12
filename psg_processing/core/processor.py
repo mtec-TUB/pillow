@@ -97,7 +97,7 @@ class DatasetProcessor:
         """Process a single PSG file for all specified channels."""
 
         # Get file handler and validate format
-        handler = file_factory.get_handler(self.logger,psg_fname)
+        handler = file_factory.get_handler(self.logger, psg_fname)
         if not handler:
             self.logger.warning(f"Unsupported file format: {psg_fname}")
             return
@@ -259,7 +259,7 @@ class DatasetProcessor:
         """Extract signal data using the appropriate handler."""
 
         signal_data = handler.get_signal_data(
-            self.logger, psg_fname, epoch_duration, channel
+            psg_fname, epoch_duration, channel
         )
 
         if signal_data is None:

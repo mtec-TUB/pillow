@@ -9,8 +9,7 @@ from .base import FileHandler
 class EDFHandler(FileHandler):
     """Handler for EDF files."""
 
-    def __init__(self, logger):
-        super().__init__()
+    def _initialize(self):
         self.file_extension = ".edf"
 
     def get_channels(self, filepath):
@@ -22,10 +21,7 @@ class EDFHandler(FileHandler):
                 # return labels, freqs 
                 return labels
         except Exception as e:
-            if self.logger:
-                self.logger.error(f"Error reading EDF file {filepath}: {e}")
-            else:
-                print(f"Error reading EDF file {filepath}: {e}")
+            self.logger.error(f"Error reading EDF file {filepath}: {e}")
             return []
 
     def read_signal(self, filepath, channel):
@@ -37,11 +33,8 @@ class EDFHandler(FileHandler):
                     ch_idx = ch_names_file.index(channel)
                     return psg_f.readSignal(ch_idx)
         except Exception as e:
-            if self.logger:
-                self.logger.error(f"Error reading EDF signal from {filepath}: {e}")
-                self.logger.error("Maybe the repair_edfs.py script can help.")
-            else:
-                print(f"Error reading EDF signal from {filepath}: {e}")
+            self.logger.error(f"Error reading EDF signal from {filepath}: {e}")
+            self.logger.error("Maybe the repair_edfs.py script can help.")
         return None
 
     def get_signal_data(self, filepath, epoch_duration, channel):

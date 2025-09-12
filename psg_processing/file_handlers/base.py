@@ -9,6 +9,12 @@ class FileHandler:
     def __init__(self, logger=None):
         self.logger = logger
         self.file_extension = None
+        # Call the child's initialization method to set file_extension
+        self._initialize()
+
+    def _initialize(self):
+        """Initialize handler-specific attributes. Must be implemented by subclasses."""
+        raise NotImplementedError
 
     def get_channels(self, filepath):
         """Extract channel information from file."""
@@ -18,7 +24,7 @@ class FileHandler:
         """Read signal data for a specific channel."""
         raise NotImplementedError
 
-    def get_signal_data(self, logger, filepath, epoch_duration, channel):
+    def get_signal_data(self, filepath, epoch_duration, channel):
         """Get complete signal information for processing."""
         raise NotImplementedError
 
