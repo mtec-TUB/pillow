@@ -19,7 +19,7 @@ class EDFHandler(FileHandler):
             with pyedflib.EdfReader(filepath) as psg_f:
                 labels = psg_f.getSignalLabels()
                 # freqs = psg_f.getSampleFrequencies()
-                # return [(label, float(freq)) for label, freq in zip(labels, freqs)]
+                # return labels, freqs 
                 return labels
         except Exception as e:
             if self.logger:
