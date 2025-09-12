@@ -134,6 +134,8 @@ class Dataset_Explorer:
 
             if handler:
                 channels = handler.get_channels(psg_fname)
+                # for label, freq in zip(channels, freqs):
+                #     self.ch_names.add((label, float(freq)))
                 self.ch_names.update(channels)
             else:
                 self.logger.warning(f"Unsupported file format for {psg_fname}")
