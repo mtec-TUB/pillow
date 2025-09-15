@@ -66,7 +66,7 @@ class WFDBHandler(FileHandler):
                 "signal": signal,
                 "sampling_rate": sampling_rate,
                 "n_epoch_samples": n_epoch_samples,
-                "start_datetime": 0,
+                "start_datetime": None,
                 "file_duration": file_duration,
             }
         except Exception as e:
