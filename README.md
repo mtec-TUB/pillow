@@ -91,10 +91,12 @@ The following file types can be handled to extract the signal from (see [file_ha
 
 - **EDF** (European Data Format) - `.edf`
 - **HDF5** (Hierarchical Data Format) - `.h5`
-- **CSV** (Comma-Separated Values) - `.csv`
 - **WFDB** (WaveForm DataBase) - `.hea`
 
-For the annotation files there is no common handler because most datasets have  a unique annotation saving format. The base parsing strategy can be found in [base.py](/dataset_processors/base.py) ann_parse() function, and can be overwritten individually for each dataset processor in [dataset_processors](/dataset_processors/). 
+These formats require dataset-specific handling due to varying structures (Each dataset requires its own CSV handler (e.g., `DreamtCSVHandler` for DREAMT dataset):
+- **CSV** (Comma-Separated Values) - `.csv`
+
+For the annotation files there is no common handler because most datasets have a unique annotation saving format. The base parsing strategy can be found in [base.py](/dataset_processors/base.py) ann_parse() function, and can be overwritten individually for each dataset processor in [dataset_processors](/dataset_processors/). 
 
 ---
 
@@ -160,7 +162,10 @@ If there is a second annotation entry called **y2**, this results from a second 
    - Add a file `dataset_processors/<your_dataset>_processor.py`.
    - Inherit from [`BaseDatasetProcessor`](dataset_processors/base.py) and implement the methods `_setup_dataset_config` (specify file extensions as this is the only known property in the beginning), `ann_parse`, optionally `preprocess` and `dataset_paths`.
    - to register the processor use the decorator `@register_dataset("YOURNAME")`.
-   - check if the polysomnography file extension is already covered by on of the [file_handlers](/psg_processing/file_handlers/), if not create a new one
+   - Check if the polysomnography file extension is already covered by one of the [file_handlers](/psg_processing/file_handlers/):
+     - **For standardized formats** (EDF, H5, WFDB): Use existing generic handlers
+     - **For CSV files**: Create a dataset-specific handler (e.g., `your_dataset_csv_handler.py`) since CSV structures vary significantly between datasets
+     - **For new binary formats**: Create a new generic handler if the format could be reused across datasets
 
 3. **Explore dataset:**
     - search for existing channel names in dataset with:

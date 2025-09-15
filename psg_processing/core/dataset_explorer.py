@@ -26,6 +26,7 @@ class Dataset_Explorer:
 
     def __init__(
         self,
+        dataset_name: str,
         data_dir: str,
         ann_dir: str,
         psg_ext: str,
@@ -43,7 +44,7 @@ class Dataset_Explorer:
         self.ann_fnames = []
         self.ch_names = []
         self.get_channel_types = []
-        self.file_factory = FileHandlerFactory()
+        self.file_factory = FileHandlerFactory(dataset_name)
 
         # Setup logger with StreamHandler (console only)
         self.logger = LoggingManager.setup_logger(level=log_level)

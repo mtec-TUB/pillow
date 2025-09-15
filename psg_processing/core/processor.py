@@ -54,11 +54,11 @@ class DatasetProcessor:
         try:
             # Set up logger and initialize components
             self.logger = self.logging_manager.setup_logger()
-            file_factory = FileHandlerFactory()
+            file_factory = FileHandlerFactory(dataset_processor.dataset_name)
 
             # Get files using dataset-specific extensions
             explorer = Dataset_Explorer(
-                data_dir, ann_dir, **dataset_processor.file_extensions
+                dataset_processor.dataset_name, data_dir, ann_dir, **dataset_processor.file_extensions
             )
             psg_fnames, ann_fnames = explorer.get_files()
 
