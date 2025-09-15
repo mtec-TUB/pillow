@@ -112,7 +112,7 @@ These steps will be performed to process the polysomnography datasets (see [proc
 - if resampling condition is not None (e.g.resample is 100):
     - type of the channel (digital/discrete or analog/continuos) is taken from dataset_processor (can be determined with get_channel_types for new datasets)  
     - digital channels are resampled with a nearest neighbour interpolation and analog continous channels with polyphase filtering (mse.filter), where clipped values will be preserved to keep similarity or original data
-    - filter signal based on AASM recomendation (e.g. EEG and EOG with 0.3-35Hz bandpass)
+    - signal is filtered based on AASM recomendation (e.g. EEG and EOG with 0.3-35Hz bandpass)
 - the signal is reshaped to [num_epochs, epoch_dur * fs]
 - the extracted annotations are checked for timing inconsistencies and aligned with the signal length
 - the signal is cleaned/shortened based on annotations
