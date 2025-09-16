@@ -26,6 +26,8 @@ class SignalProcessor:
             logger: Logger instance for operation tracking
         """
         self.logger = logger
+        self.signal_min = None
+        self.signal_max = None
 
     # Standard filter frequency mappings for different signal groups
     FILTER_FREQUENCIES = {
@@ -82,6 +84,9 @@ class SignalProcessor:
         # perform resampling if necessary
         if resample_freq != "None":
             resample_freq = int(resample_freq)
+            
+            # Store clipping threshold
+            self.signal_min, self.signal_max = np.min(signal), np.max(signal)
 
             if resample_freq != sampling_rate:
 
@@ -93,30 +98,25 @@ class SignalProcessor:
 
             # Filter signal according to AASM Manual
             [low, high] = self.get_filt_freq(select_ch, channel_groups)
-            if not (low is None and high is None):
+            if not (low is None and high is None) and (ch_type == "analog"):
+                    
                 self.logger.info(
                     f"Filter signal with low: {low} Hz and high: {high} Hz bandpass"
                 )
-                if (high is None or sampling_rate >= high * 2) and (
-                    ch_type == "analog"
-                ):
-                    signal = filter_data(
-                        signal,
-                        resample_freq,
-                        low,
-                        high,
-                        method="fir",
-                        verbose="WARNING",
-                    )
-                elif (sampling_rate < high * 2) and (ch_type == "analog"):
-                    signal = filter_data(
-                        signal,
-                        resample_freq,
-                        low,
-                        sampling_rate / 2,
-                        method="fir",
-                        verbose="WARNING",
-                    )
+                if (high is None):
+                    high = sampling_rate/2
+                
+                signal = filter_data(
+                    signal,
+                    resample_freq,
+                    low,
+                    min(high, sampling_rate/2),
+                    method="fir",
+                    verbose="WARNING",
+                )
+
+            # Final clipping to original signal range
+            signal = np.clip(signal, a_min=self.signal_min, a_max=self.signal_max)
 
             sampling_rate = resample_freq
 
@@ -156,31 +156,6 @@ class SignalProcessor:
         Returns:
             numpy.ndarray: Resampled signal with preserved clipping characteristics
         """
-        # Find clipping thresholds
-        signal_min, signal_max = np.min(signal), np.max(signal)
-
-        # Create clipping masks
-        clipping_mask_min = signal == signal_min
-        clipping_mask_max = signal == signal_max
-        clipping_mask = clipping_mask_min | clipping_mask_max
-
-        # Remove isolated clipping points (likely not true clipping)
-        lonely_clippers = (
-            np.diff(clipping_mask.astype(np.int32), n=2, append=[0, 0]) == -2
-        )
-        indices_lonely_clippers = np.argwhere(lonely_clippers) + 1
-        clipping_mask_min[indices_lonely_clippers] = False
-        clipping_mask_max[indices_lonely_clippers] = False
-
-        # Resample clipping masks to match new sampling rate
-        resample_factor = input_rate / output_rate
-        clipping_mask_min_resampled = np.round(
-            np.argwhere(clipping_mask_min) * resample_factor
-        ).astype(int)
-        clipping_mask_max_resampled = np.round(
-            np.argwhere(clipping_mask_max) * resample_factor
-        ).astype(int)
-
         # Perform high-quality polyphase resampling
         signal_resampled = resample(
             signal.astype(np.float64),
@@ -188,20 +163,5 @@ class SignalProcessor:
             down=input_rate,
             method="polyphase",
         )
-
-        # Ensure mask indices are within bounds
-        clipping_mask_min_resampled = clipping_mask_min_resampled[
-            clipping_mask_min_resampled < len(signal_resampled)
-        ]
-        clipping_mask_max_resampled = clipping_mask_max_resampled[
-            clipping_mask_max_resampled < len(signal_resampled)
-        ]
-
-        # Restore clipping values to prevent resampling artifacts
-        signal_resampled[clipping_mask_min_resampled] = signal_min
-        signal_resampled[clipping_mask_max_resampled] = signal_max
-
-        # Final clipping to original signal range
-        signal_resampled = np.clip(signal_resampled, a_min=signal_min, a_max=signal_max)
 
         return signal_resampled
