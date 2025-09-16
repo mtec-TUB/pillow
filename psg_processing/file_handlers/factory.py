@@ -21,7 +21,7 @@ class FileHandlerFactory:
         
         # Dataset-specific CSV handlers
         self.csv_handlers = {
-            "DREAMT": DreamtCSVHandler,
+            "DREAMT - Dataset for Real-time sleep stage EstimAtion using Multisensor wearable Technology": DreamtCSVHandler,
             # Future: "OTHER_DATASET": OtherCSVHandler,
         }
 
