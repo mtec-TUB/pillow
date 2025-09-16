@@ -10,7 +10,7 @@ from .file_handlers import (
     FileHandler,
     EDFHandler,
     H5Handler,
-    CSVHandler,
+    DreamtCSVHandler,
     WFDBHandler,
     FileHandlerFactory,
 )
@@ -25,7 +25,7 @@ __all__ = [
     "FileHandler",
     "EDFHandler",
     "H5Handler",
-    "CSVHandler",
+    "DreamtCSVHandler",
     "WFDBHandler",
     "FileHandlerFactory",
     # Core Processing
