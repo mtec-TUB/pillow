@@ -62,9 +62,6 @@ class DatasetProcessor:
             )
             psg_fnames, ann_fnames = explorer.get_files()
 
-            if not psg_fnames:
-                return
-
             # Process each file
             for i, psg_fname in enumerate(psg_fnames):
                 self.logger.info(f"\n--- Processing file {i+1}/{len(psg_fnames)} ---")
@@ -188,10 +185,14 @@ class DatasetProcessor:
 
         if processed_data is None:
             return
+        
+        # replace x,y and n_epochs after the processing
+        for key in processed_data:
+            signal_data[key] = processed_data[key]
 
         # Save processed data
         self._save_processed_data(
-            processed_data, output_dir, filename, channel, epoch_duration
+            signal_data, output_dir, filename, channel, epoch_duration
         )
 
         self.logger.info("=" * 40)
@@ -201,7 +202,7 @@ class DatasetProcessor:
         for ch_type, channels in channel_types.items():
             if channel in channels:
                 return ch_type
-        return "digital"  # Default fallback
+        raise Exception
 
     def _setup_channel_output(
         self,
@@ -343,8 +344,6 @@ class DatasetProcessor:
             "x": x,
             "y": y,
             "sampling_rate": sampling_rate,
-            "start_datetime": signal_data["start_datetime"],
-            "file_duration": signal_data["file_duration"],
             "n_all_epochs": n_epochs,
         }
 
@@ -414,28 +413,32 @@ class DatasetProcessor:
         return x, y
 
     def _save_processed_data(
-        self, processed_data, output_dir, filename, channel, epoch_duration
+        self, signal_data, output_dir, filename, channel, epoch_duration
     ):
         """Save processed data to file."""
 
         save_dict = {
-            "x": processed_data["x"],
-            "fs": processed_data["sampling_rate"],
+            "x": signal_data["x"],
+            "fs": signal_data["sampling_rate"],
             "ch_label": channel,
-            "start_datetime": processed_data["start_datetime"],
-            "file_duration": processed_data["file_duration"],
+            "start_datetime": signal_data["start_datetime"],
+            "file_duration": signal_data["file_duration"],
             "epoch_duration": epoch_duration,
-            "n_all_epochs": processed_data["n_all_epochs"],
-            "n_epochs": len(processed_data["x"]),
+            "n_all_epochs": signal_data["n_all_epochs"],
+            "n_epochs": len(signal_data["x"]),
         }
 
         # Handle multiple scorers
-        y = processed_data["y"]
+        y = signal_data["y"]
         if y.ndim == 1:
             save_dict["y"] = y
         elif y.ndim == 2:
             save_dict["y"] = y[:, 0]
             save_dict["y2"] = y[:, 1]
+            
+        # Include unit if existing
+        if "unit" in signal_data:
+            save_dict["unit"] = signal_data["unit"]
 
         output_path = os.path.join(output_dir, filename)
         

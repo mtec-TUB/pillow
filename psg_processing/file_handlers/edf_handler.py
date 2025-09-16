@@ -61,12 +61,15 @@ class EDFHandler(FileHandler):
             sampling_rate = int(ch_freq[select_ch_idx])
             n_epoch_samples = int(epoch_duration * sampling_rate)
             signal = psg_f.readSignal(select_ch_idx)
+            
+            unit = psg_f.getPhysicalDimension(select_ch_idx)
 
             psg_f.close()
 
             return {
                 "signal": signal,
                 "sampling_rate": sampling_rate,
+                "unit": unit,
                 "n_epoch_samples": n_epoch_samples,
                 "start_datetime": start_datetime,
                 "file_duration": file_duration,
