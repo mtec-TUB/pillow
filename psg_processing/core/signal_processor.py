@@ -103,14 +103,12 @@ class SignalProcessor:
                 self.logger.info(
                     f"Filter signal with low: {low} Hz and high: {high} Hz bandpass"
                 )
-                if (high is None):
-                    high = sampling_rate/2
                 
                 signal = filter_data(
                     signal,
                     resample_freq,
                     low,
-                    min(high, sampling_rate/2),
+                    min(high, sampling_rate/2) if high else None,
                     method="fir",
                     verbose="WARNING",
                 )
