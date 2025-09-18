@@ -96,8 +96,12 @@ def main():
 
         if not args.data_dir:
             data_dir = os.path.join(args.base_data_dir, data_dir)
+        else:
+            data_dir = args.data_dir
         if not args.ann_dir:
             ann_dir = os.path.join(args.base_data_dir, ann_dir)
+        else:
+            ann_dir = args.ann_dir
         if not args.output_dir:
             if args.resample == "None":
                 output_dir = os.path.join(
@@ -113,6 +117,10 @@ def main():
                     f"{args.dataset}_harmonized",
                     f"{args.resample}Hz_filt",
                 )
+        else:
+            output_dir = args.output_dir
+    else:
+        data_dir, ann_dir, output_dir = args.data_dir, args.ann_dir, args.output_dir
 
     print(f"Data directory: {data_dir}")
     print(f"Annotation directory: {ann_dir}")
