@@ -38,11 +38,11 @@ class SignalProcessor:
         "nasal_pressure": [0.03, None],  # Nasal pressure: 0.03+ Hz (high-pass)
         "snoring": [10, None],  # Snoring: 10+ Hz (high-pass)
         "default": [None, None],  # Default: no filtering
-    }
+    }        
 
     def get_filt_freq(
         self, ch_name: str, channel_groups: Dict[str, List[str]]
-    ) -> List[Union[float, None]]:
+    ) -> tuple[str, List[Union[float, None]]]:
         """
         Get filter frequencies for a given channel using the centralized mapping.
 
@@ -55,12 +55,10 @@ class SignalProcessor:
         # Look up which group this channel belongs to
         for group_name, channels in channel_groups.items():
             if ch_name in channels:
-                return self.FILTER_FREQUENCIES.get(
-                    group_name, self.FILTER_FREQUENCIES["default"]
-                )
+                return group_name, self.FILTER_FREQUENCIES.get(group_name)
 
         # If channel not found in any group, return default (no filtering)
-        return self.FILTER_FREQUENCIES["default"]
+        return "default", self.FILTER_FREQUENCIES["default"]
 
     def resample_filter_signal(
         self, signal, select_ch, ch_type, channel_groups, sampling_rate, resample_freq
@@ -81,44 +79,47 @@ class SignalProcessor:
         """
         self.logger.info(f"Sample rate before: {sampling_rate}")
 
-        # perform resampling if necessary
-        if resample_freq != "None":
-            resample_freq = int(resample_freq)
-            
-            # Store clipping threshold
-            self.signal_min, self.signal_max = np.min(signal), np.max(signal)
+        resample_freq = int(resample_freq)
 
-            if resample_freq != sampling_rate:
+        channel_group, [low, high] = self.get_filt_freq(select_ch, channel_groups)
 
-                if ch_type == "digital":
-                    signal = self.resample_dig(signal, sampling_rate, resample_freq)
+        # center signals, that will be filtered later on, around zero
+        if channel_group != "default":
+            signal = signal - np.mean(signal)
+        
+        # Store clipping threshold
+        self.signal_min, self.signal_max = np.min(signal), np.max(signal)
 
-                elif ch_type == "analog":
-                    signal = self.resample_ana(signal, sampling_rate, resample_freq)
+        # if fs not already desired resample fs -> resample
+        if resample_freq != sampling_rate:
 
-            # Filter signal according to AASM Manual
-            [low, high] = self.get_filt_freq(select_ch, channel_groups)
-            if not (low is None and high is None) and (ch_type == "analog"):
-                    
-                self.logger.info(
-                    f"Filter signal with low: {low} Hz and high: {high} Hz bandpass"
-                )
+            if ch_type == "digital":
+                signal = self.resample_dig(signal, sampling_rate, resample_freq)
+
+            elif ch_type == "analog":
+                signal = self.resample_ana(signal, sampling_rate, resample_freq)
+
+        # Filter signal according to AASM Manual
+        if not (low is None and high is None) and (ch_type == "analog"):
                 
-                signal = filter_data(
-                    signal,
-                    resample_freq,
-                    low,
-                    min(high, sampling_rate/2) if high else None,
-                    method="fir",
-                    verbose="WARNING",
-                )
+            self.logger.info(
+                f"Filter signal with low: {low} Hz and high: {high} Hz bandpass"
+            )
+            
+            signal = filter_data(
+                signal,
+                resample_freq,
+                low,
+                min(high, sampling_rate/2) if high else None,
+                method="fir",
+                verbose="WARNING",
+            )
 
-            # Final clipping to original signal range
-            signal = np.clip(signal, a_min=self.signal_min, a_max=self.signal_max)
+        # Final clipping to original signal range
+        signal = np.clip(signal, a_min=self.signal_min, a_max=self.signal_max)
 
-            sampling_rate = resample_freq
-
-            self.logger.info(f"Sample rate after: {sampling_rate}")
+        sampling_rate = resample_freq
+        self.logger.info(f"Sample rate after: {sampling_rate}")
 
         return signal, sampling_rate
 
