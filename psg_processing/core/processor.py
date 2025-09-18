@@ -418,7 +418,7 @@ class DatasetProcessor:
         if self.logger:
             self.logger.info(f"  Data after sleep selection: {x.shape}, {y.shape}")
 
-        return x, y
+        return x, y #, {"MVT": move_idx, "UNK": unk_idx, "rm_start": start_idx}
 
     def _save_processed_data(
         self, signal_data, output_dir, filename, channel, epoch_duration
