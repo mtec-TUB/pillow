@@ -26,6 +26,7 @@ class Dataset_Explorer:
 
     def __init__(
         self,
+        logger,
         dataset_name: str,
         data_dir: str,
         ann_dir: str,
@@ -47,8 +48,11 @@ class Dataset_Explorer:
         self.file_factory = FileHandlerFactory(dataset_name)
 
         # Setup logger with StreamHandler (console only)
-        logging_manager = LoggingManager(level=log_level)
-        self.logger = logging_manager.setup_logger()
+        if not logger:
+            logging_manager = LoggingManager(level=log_level)
+            self.logger = logging_manager.setup_logger()
+        else:
+            self.logger = logger
 
     def get_files(self):
         """
@@ -65,7 +69,7 @@ class Dataset_Explorer:
         # Discover PSG signal files
         if not os.path.exists(self.data_dir):
             self.logger.error(f"Data directory does not exist: {self.data_dir}")
-            return None, None
+            return [], []
 
         self.logger.info(
             f"Searching for signal files: {os.path.join(self.data_dir, self.psg_ext)}"
@@ -85,7 +89,7 @@ class Dataset_Explorer:
         # Discover annotation files
         if not os.path.exists(self.ann_dir):
             self.logger.error(f"Annotation directory does not exist: {self.ann_dir}")
-            return None, None
+            return [], []
 
         self.logger.info(
             f"Searching for annotation files: {os.path.join(self.ann_dir, self.ann_ext)}"

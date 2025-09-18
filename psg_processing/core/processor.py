@@ -6,6 +6,7 @@ import os
 import re
 import numpy as np
 from pathlib import Path
+import logging
 
 from ..file_handlers import FileHandlerFactory
 from ..utils.logging_manager import LoggingManager
@@ -25,7 +26,7 @@ class DatasetProcessor:
     """
 
     def __init__(self, overwrite=False):
-        self.logging_manager = LoggingManager(level='WARNING')
+        self.logging_manager = LoggingManager(level=logging.INFO)
         self.logger = None
         self.overwrite = overwrite
 
@@ -56,13 +57,13 @@ class DatasetProcessor:
 
             # Get files using dataset-specific extensions
             explorer = Dataset_Explorer(
-                dataset_processor.dataset_name, data_dir, ann_dir, **dataset_processor.file_extensions
+                self.logger, dataset_processor.dataset_name, data_dir, ann_dir, **dataset_processor.file_extensions
             )
             psg_fnames, ann_fnames = explorer.get_files()
 
             # Process each file
             for i, psg_fname in enumerate(psg_fnames):
-                self.logger.info(f"\n--- Processing file {i+1}/{len(psg_fnames)} ---")
+                print(f"\n--- Processing file {i+1}/{len(psg_fnames)} ---")
                 self._process_single_file(
                     psg_fname,
                     ann_fnames[i] if ann_fnames is not None else None,
@@ -75,10 +76,11 @@ class DatasetProcessor:
                 )
 
             # Finalize processing
+            self.logging_manager.cleanup_file_handlers(self.logger)
             self.logger.info("\n" + "=" * 60)
             self.logger.info("DATASET PREPARATION COMPLETED")
-            self.logging_manager.cleanup_file_handlers(self.logger)
         except KeyboardInterrupt:
+            self.logging_manager.cleanup_file_handlers(self.logger)
             self.logger.info("Stopped processing")
 
     def _process_single_file(
@@ -315,7 +317,6 @@ class DatasetProcessor:
         n_epoch_samples = int(epoch_duration * sampling_rate)
         n_epochs = len(signal) // n_epoch_samples
         signals = signal[0 : n_epochs * epoch_duration * sampling_rate].reshape(-1, n_epoch_samples)
-        print(signals.shape)
 
         if resample_freq != "None":
             # zero pad last eventually not full epoch
@@ -449,6 +450,5 @@ class DatasetProcessor:
 
         output_path = os.path.join(output_dir, filename)
         
-        print(output_path)
         np.savez(output_path, **save_dict)
         self.logger.info(f"Successfully saved: {filename}")
