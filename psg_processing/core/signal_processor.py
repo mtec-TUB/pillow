@@ -34,7 +34,7 @@ class SignalProcessor:
         "eeg_eog": [0.3, 35],  # EEG and EOG channels: 0.3-35 Hz
         "emg": [10, None],  # EMG channels: 10+ Hz (high-pass)
         "ecg": [0.3, None],  # ECG channels: 0.3+ Hz (high-pass)
-        "respiratory": [0.1, 15],  # Respiratory signals: 0.1-15 Hz
+        "thoraco_abdo_resp": [0.1, 15],  # thoraco_abdo_resp signals: 0.1-15 Hz
         "nasal_pressure": [0.03, None],  # Nasal pressure: 0.03+ Hz (high-pass)
         "snoring": [10, None],  # Snoring: 10+ Hz (high-pass)
         "default": [None, None],  # Default: no filtering
