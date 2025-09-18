@@ -60,22 +60,20 @@ class LoggingManager:
 
         return log_file_path
 
-    def setup_logger(self,output_dir=None):
+    def setup_logger(self,dir=None):
         """
         Create a logger with both console and optional file output.
 
         Args:
-            name: Logger name (usually module name or dataset name)
-            log_file: Optional path to log file. If None, only console logging
-            level: Logging level (default: INFO)
+            dir: Optional path to folder to delete old logging files
 
         Returns:
             Configured logger instance
         """
 
         # delete all exisiting log_files in output folder
-        if output_dir:
-            log_files = glob.glob(os.path.join(output_dir, '**',self.log_filename), recursive=True
+        if dir:
+            log_files = glob.glob(os.path.join(dir, '**',self.log_filename), recursive=True
         )
             for f in log_files:
                 os.remove(f)
