@@ -47,7 +47,8 @@ class Dataset_Explorer:
         self.file_factory = FileHandlerFactory(dataset_name)
 
         # Setup logger with StreamHandler (console only)
-        self.logger = LoggingManager.setup_logger(level=log_level)
+        logging_manager = LoggingManager(level=log_level)
+        self.logger = logging_manager.setup_logger()
 
     def get_files(self):
         """
