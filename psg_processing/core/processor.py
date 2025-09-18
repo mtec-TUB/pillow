@@ -25,7 +25,7 @@ class DatasetProcessor:
     """
 
     def __init__(self, overwrite=False):
-        self.logging_manager = LoggingManager()
+        self.logging_manager = LoggingManager(level='WARNING')
         self.logger = None
         self.overwrite = overwrite
 
@@ -36,7 +36,6 @@ class DatasetProcessor:
         ann_dir,
         output_dir,
         resample,
-        overwrite,
         epoch_duration=30,
     ):
         """
@@ -48,12 +47,11 @@ class DatasetProcessor:
             ann_dir: PSG Annotation directory
             output_dir: Output directory for processed files
             resample: Resample frequency (given in Hz, or None)
-            overwrite: Wether to overwrite existing processed files or skip them
             epoch_duration: Duration of each epoch in seconds (default: 30)
         """
         try:
             # Set up logger and initialize components
-            self.logger = self.logging_manager.setup_logger()
+            self.logger = self.logging_manager.setup_logger(output_dir)
             file_factory = FileHandlerFactory(dataset_processor.dataset_name)
 
             # Get files using dataset-specific extensions
@@ -302,41 +300,50 @@ class DatasetProcessor:
         ann_label = dataset_processor.ann_label
 
         # Check signal length
-        n_epochs = len(signal) // n_epoch_samples
-        if n_epochs <= 1:
+        if len(signal) // n_epoch_samples <= 1:
             self.logger.info(f"Signal too short, only {len(signal)} samples")
             return None
 
-        # Truncate to whole epochs
-        signal = signal[0 : n_epochs * epoch_duration * sampling_rate]
-
-        # Resample and filter
-        signal_processor = SignalProcessor(self.logger)
-        signal, sampling_rate = signal_processor.resample_filter_signal(
-            signal, channel, ch_type, channel_groups, sampling_rate, resample_freq
-        )
+        if resample_freq != "None":
+            # Resample and filter
+            signal_processor = SignalProcessor(self.logger)
+            signal, sampling_rate = signal_processor.resample_filter_signal(
+                signal, channel, ch_type, channel_groups, sampling_rate, resample_freq
+            )
 
         # Reshape into epochs
         n_epoch_samples = int(epoch_duration * sampling_rate)
         n_epochs = len(signal) // n_epoch_samples
-        signals = signal.reshape(-1, n_epoch_samples)
+        signals = signal[0 : n_epochs * epoch_duration * sampling_rate].reshape(-1, n_epoch_samples)
+        print(signals.shape)
+
+        if resample_freq != "None":
+            # zero pad last eventually not full epoch
+            last_epoch = signals[n_epochs * epoch_duration * sampling_rate:]
+            if last_epoch:
+                n_last_epoch = len(last_epoch)
+                last_epoch = np.pad(last_epoch,pad_width=n_epoch_samples-n_last_epoch,constant_values=0)
+                signals = np.append(signals, last_epoch, axis=0)
 
         # Generate labels 
         labels = ann_label(self.logger, signal_data["ann_stage_events"], epoch_duration)
 
-        # Align labels (some datasets handle different length of signal and label data)
-        signals, labels = dataset_processor.alignment(
-            self.logger,
-            signal_data["psg_fname"],
-            signal_data["ann_fname"],
-            signals,
-            labels,
-        )
+        if resample_freq != "None":
+            # Align labels (some datasets handle different length of signal and label data)
+            signals, labels = dataset_processor.alignment(
+                self.logger,
+                signal_data["psg_fname"],
+                signal_data["ann_fname"],
+                signals,
+                labels,
+            )
 
-        # Clean signal data
         x, y = signals.astype(np.float32), labels.astype(np.int32)
 
-        x, y = self._clean_signal(x, y, STAGE_DICT)
+        if resample_freq != "None":
+            # Clean signal data
+            x, y = self._clean_signal(x, y, STAGE_DICT)
+
         if x is None:
             return None
 
