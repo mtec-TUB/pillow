@@ -60,7 +60,7 @@ class LoggingManager:
 
         return log_file_path
 
-    def setup_logger(self,dir=None):
+    def setup_logger(self,dir=None, overwrite=False):
         """
         Create a logger with both console and optional file output.
 
@@ -71,10 +71,10 @@ class LoggingManager:
             Configured logger instance
         """
 
-        # delete all exisiting log_files in output folder
-        if dir:
+        # delete all exisiting log_files in output folder if overwrite True
+        if overwrite and dir:
             log_files = glob.glob(os.path.join(dir, '**',self.log_filename), recursive=True
-        )
+            )
             for f in log_files:
                 os.remove(f)
             
