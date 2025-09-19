@@ -343,7 +343,7 @@ class DatasetProcessor:
 
         if resample_freq != "None":
             # Clean signal data
-            x, y = self._clean_signal(x, y, STAGE_DICT)
+            x, y, select_start = self._clean_signal(x, y, STAGE_DICT)
 
         if x is None:
             return None
@@ -353,6 +353,7 @@ class DatasetProcessor:
             "y": y,
             "sampling_rate": sampling_rate,
             "n_all_epochs": n_epochs,
+            "rm_start_epochs": select_start
         }
 
     def _clean_signal(self, x, y, stage_dict):
@@ -367,58 +368,55 @@ class DatasetProcessor:
         Returns:
             Tuple of (cleaned_x, cleaned_y) or (None, None) if no sleep detected
         """
-        if self.logger:
-            self.logger.info(
-                f"Starting signal cleaning - Input shape: x={x.shape}, y={y.shape}"
-            )
+        self.logger.info(
+            f"Starting signal cleaning - Input shape: x={x.shape}, y={y.shape}"
+        )
 
         # Remove movement and unknown epochs
         move_idx = np.where(y == stage_dict["MOVE"])[0]
         unk_idx = np.where(y == stage_dict["UNK"])[0]
 
+        remove_idx = []
+
         if len(move_idx) > 0 or len(unk_idx) > 0:
             remove_idx = np.union1d(move_idx, unk_idx)
-            if self.logger:
-                self.logger.info("Removing irrelevant stages:")
-                if len(move_idx) > 0:
-                    self.logger.info(f"  Movement epochs: {len(move_idx)}")
-                if len(unk_idx) > 0:
-                    self.logger.info(f"  Unknown epochs: {len(unk_idx)}")
-                self.logger.info(f"  Total epochs to remove: {len(remove_idx)}")
-                self.logger.info(f"  Data before removal: {x.shape}, {y.shape}")
+            self.logger.info("Removing irrelevant stages:")
+            if len(move_idx) > 0:
+                self.logger.info(f"  Movement epochs: {len(move_idx)}")
+            if len(unk_idx) > 0:
+                self.logger.info(f"  Unknown epochs: {len(unk_idx)}")
 
-            select_idx = np.setdiff1d(np.arange(len(x)), remove_idx)
-            x = x[select_idx]
-            y = y[select_idx]
-
-        if self.logger:
-            self.logger.info(f"  Data after removal: {x.shape}, {y.shape}")
+            # move_unk_select_idx = np.setdiff1d(np.arange(len(x)), remove_idx)
+                
+            # select_idx = np.setdiff1d(np.arange(len(x)), remove_idx)
+            # x = x[select_idx]
+            # y = y[select_idx]
 
         # Select only sleep periods (30 min buffer around sleep)
         w_edge_mins = 30
-        nw_idx = np.where(y != stage_dict["W"])[0]
+        nw_idx = np.where((y != stage_dict["W"]) & (y != stage_dict["MOVE"]) & (y != stage_dict["UNK"]))[0]
 
         if len(nw_idx) == 0:
-            if self.logger:
-                self.logger.warning("File contains no sleep stages (only Wake)")
+            self.logger.warning("File contains no sleep stages (only Wake)")
             return None, None
 
         # Calculate sleep period boundaries with buffer
         start_idx = max(0, nw_idx[0] - (w_edge_mins * 2))
         end_idx = min(len(y) - 1, nw_idx[-1] + (w_edge_mins * 2))
 
-        select_idx = np.arange(start_idx, end_idx + 1)
+        self.logger.info(f"  Outside 30min wake epochs: {start_idx + (len(x)-end_idx)-1}")
+        
+        select_idx = np.setdiff1d(np.arange(start_idx, end_idx + 1),remove_idx)
 
-        if self.logger:
-            self.logger.info(f"  Data before sleep selection: {x.shape}, {y.shape}")
+        self.logger.info(f"  Total epochs to remove: {len(x) - len(select_idx)}")
+        self.logger.info(f"Removed {select_idx[0]} epochs at beginning of signal")
 
         x = x[select_idx]
         y = y[select_idx]
 
-        if self.logger:
-            self.logger.info(f"  Data after sleep selection: {x.shape}, {y.shape}")
-
-        return x, y #, {"MVT": move_idx, "UNK": unk_idx, "rm_start": start_idx}
+        self.logger.info(f"  Data after cleaning: {x.shape}, {y.shape}")
+        
+        return x, y, select_idx[0]
 
     def _save_processed_data(
         self, signal_data, output_dir, filename, channel, epoch_duration
@@ -434,6 +432,7 @@ class DatasetProcessor:
             "epoch_duration": epoch_duration,
             "n_all_epochs": signal_data["n_all_epochs"],
             "n_epochs": len(signal_data["x"]),
+            "rm_start_epochs": signal_data["rm_start_epochs"]
         }
 
         # Handle multiple scorers
