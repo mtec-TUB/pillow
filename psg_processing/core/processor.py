@@ -52,7 +52,7 @@ class DatasetProcessor:
         """
         try:
             # Set up logger and initialize components
-            self.logger = self.logging_manager.setup_logger(output_dir)
+            self.logger = self.logging_manager.setup_logger(output_dir, self.overwrite)
             file_factory = FileHandlerFactory(dataset_processor.dataset_name)
 
             # Get files using dataset-specific extensions
