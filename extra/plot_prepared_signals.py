@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fft import rfft, rfftfreq
 from scipy.signal import firwin, filtfilt
+import tkinter as tk
+from tkinter import filedialog
 
 
 def visualize_multiple_signals(signals):
@@ -105,18 +107,74 @@ def visualize_multiple_signals(signals):
     plt.tight_layout()
     plt.show()
 
-#'/media/linda/Elements/sleep_data/100Hz/EEG3_mesa-sleep-0002.npz',
+# #'/media/linda/Elements/sleep_data/100Hz/EEG3_mesa-sleep-0002.npz',
 signals = [
-            # '/media/linda/Elements/sleep_data/MESA - Multi-Ethnic Study of Atherosclerosis/MESA_harmonized/orig/npz/EEG1/EEG1_mesa-sleep-0001.npz',
-            # '/media/linda/Elements/sleep_data/MESA - Multi-Ethnic Study of Atherosclerosis/MESA_harmonized/100Hz_filt/npz/EEG1/EEG1_mesa-sleep-0001.npz',
+            # '/media/linda/Elements/sleep_data/APPLES - Apnea Positive Pressure Long-term Efficacy Study/APPLES_harmonized/100Hz_filt/npz/ROC/ROC_apples-460164.npz',
+            # '/media/linda/Elements/sleep_data/APPLES - Apnea Positive Pressure Long-term Efficacy Study/APPLES_harmonized/orig/npz/ROC/ROC_apples-460164.npz',
+            # '/media/linda/Elements/sleep_data/CPS - Comprehensive Polysomnography Dataset (A Resource for Sleep-Related Arousal Research)/CPS_harmonized/100Hz_filt/npz/EOGl/EOGl_0Ah95Qw18puf1JsnrKBA6u8XXZLlMIQJ.npz',
+            # '/media/linda/Elements/sleep_data/CPS - Comprehensive Polysomnography Dataset (A Resource for Sleep-Related Arousal Research)/CPS_harmonized/orig/npz/EOGl/EOGl_0Ah95Qw18puf1JsnrKBA6u8XXZLlMIQJ.npz'
+
+            '/media/linda/Elements/sleep_data/MESA - Multi-Ethnic Study of Atherosclerosis/MESA_harmonized/orig/npz/EMG/EMG_mesa-sleep-0002.npz',
+            '/media/linda/Elements/sleep_data/MESA - Multi-Ethnic Study of Atherosclerosis/MESA_harmonized/100Hz_filt/npz/EMG/EMG_mesa-sleep-0002.npz',
             # '/media/linda/Elements/sleep_data/MESA - Multi-Ethnic Study of Atherosclerosis/MESA_harmonized/100Hz_filt/npz/EEG1/EEG1_mesa-sleep-0001_after.npz',
-            '/media/linda/Elements/sleep_data/MESA - Multi-Ethnic Study of Atherosclerosis/MESA_harmonized/100Hz_filt/npz/EEG1/EEG1_mesa-sleep-0001_before.npz',
+            #'/media/linda/Elements/sleep_data/MESA - Multi-Ethnic Study of Atherosclerosis/MESA_harmonized/100Hz_filt/npz/EEG1/EEG1_mesa-sleep-0001_before.npz',
             ]
 
 
-# signals = [
-#     '/media/linda/Elements/sleep_data/SHHS - Sleep Heart Health Study/SHHS_harmonized/100Hz_filt/shhs1/npz/ECG/ECG_shhs1-200043.npz',
-#     '/media/linda/Elements/sleep_data/SHHS - Sleep Heart Health Study/SHHS_harmonized/orig/shhs1/npz/ECG/ECG_shhs1-200043.npz',
-#     ]
+# # signals = [
+# #     '/media/linda/Elements/sleep_data/SHHS - Sleep Heart Health Study/SHHS_harmonized/100Hz_filt/shhs1/npz/ECG/ECG_shhs1-200043.npz',
+# #     '/media/linda/Elements/sleep_data/SHHS - Sleep Heart Health Study/SHHS_harmonized/orig/shhs1/npz/ECG/ECG_shhs1-200043.npz',
+# #     ]
 visualize_multiple_signals(signals)
+
+def select_npz_files():
+    """
+    Opens a file dialog to allow user to select multiple .npz files.
+   
+    Returns:
+        list: List of selected file paths, or empty list if canceled
+    """
+    # Create a root window and hide it
+    root = tk.Tk()
+    root.withdraw()  # Hide the main window
+   
+    # Open file dialog for multiple .npz files
+    file_paths1 = filedialog.askopenfilenames(
+        title="Select .npz files to visualize",
+        filetypes=[("NPZ files", "*.npz"), ("All files", "*.*")],
+        multiple=True,
+        initialdir="/media/linda/Elements/sleep_data"
+    )
+
+    # Open file dialog for multiple .npz files
+    file_paths2 = filedialog.askopenfilenames(
+        title="Select .npz files to visualize",
+        filetypes=[("NPZ files", "*.npz"), ("All files", "*.*")],
+        multiple=True,
+        initialdir="/media/linda/Elements/sleep_data"
+    )
+   
+    root.destroy()  # Clean up the root window
+   
+    # Convert tuple to list
+    return list(file_paths1) + list(file_paths2)
+
+
+
+
+# # Select files using file dialog
+# print("Please select the .npz files you want to visualize...")
+# selected_files = select_npz_files()
+
+
+# if selected_files:
+#     print(f"Selected {len(selected_files)} files:")
+#     for file_path in selected_files:
+#         print(f"  - {os.path.basename(file_path)}")
+   
+#     # Visualize the selected signals
+#     visualize_multiple_signals(selected_files)
+# else:
+#     print("No files selected. Exiting...")
+
 
