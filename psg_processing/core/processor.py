@@ -398,7 +398,7 @@ class DatasetProcessor:
 
         if len(nw_idx) == 0:
             self.logger.warning("File contains no sleep stages (only Wake)")
-            return None, None
+            return None, None, None
 
         # Calculate sleep period boundaries with buffer
         start_idx = max(0, nw_idx[0] - (w_edge_mins * 2))
