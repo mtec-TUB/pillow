@@ -58,18 +58,13 @@ class Dataset_Explorer:
         """
         Discover and collect PSG signal files and annotation files.
 
-        Args:
-            psg_ext (str): File extension pattern for PSG files (default: "*.edf")
-            ann_ext (str): File extension pattern for annotation files (default: "*.xml")
-            ann_ext2 (str, optional): Second annotation file extension pattern
-
         Returns:
             tuple: (psg_filenames, annotation_filenames) arrays
         """
         # Discover PSG signal files
         if not os.path.exists(self.data_dir):
             self.logger.error(f"Data directory does not exist: {self.data_dir}")
-            return [], []
+            raise FileNotFoundError(f"Data directory does not exist: {self.data_dir}")
 
         self.logger.info(
             f"Searching for signal files: {os.path.join(self.data_dir, self.psg_ext)}"
@@ -81,15 +76,10 @@ class Dataset_Explorer:
         self.psg_fnames.sort()
         self.logger.info(f"Found {len(self.psg_fnames)} signal files")
 
-        # Return early if no annotation files needed
-        if self.ann_ext is None:
-            self.logger.info("No annotation files requested")
-            return self.psg_fnames, None
-
         # Discover annotation files
         if not os.path.exists(self.ann_dir):
             self.logger.error(f"Annotation directory does not exist: {self.ann_dir}")
-            return [], []
+            raise FileNotFoundError(f"Annotation directory does not exist {self.ann_dir}")
 
         self.logger.info(
             f"Searching for annotation files: {os.path.join(self.ann_dir, self.ann_ext)}"
@@ -130,8 +120,6 @@ class Dataset_Explorer:
     def get_all_channels(self):
         """
         Discover all available channel names and frequencies across all PSG files.
-
-        Supports multiple file formats: EDF, H5, CSV, and WFDB.
 
         Returns:
             set: Set of tuples containing (channel_name, frequency) pairs for EDF files,
