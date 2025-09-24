@@ -178,6 +178,9 @@ class DatasetProcessor:
         signal_data["psg_fname"] = psg_fname
         signal_data["ann_fname"] = ann_fname
 
+        # Generate labels now to log them for every file and channel
+        signal_data["ann_stage_events"] = dataset_processor.ann_label(self.logger, signal_data["ann_stage_events"], epoch_duration)
+
         # Process the signal (resample, filter, clean)
         processed_data = self._process_signal_data(
             signal_data, channel, ch_type, resample, dataset_processor, epoch_duration
@@ -295,11 +298,9 @@ class DatasetProcessor:
         """Process signal data through the complete pipeline."""
 
         signal = signal_data["signal"]
+        labels = signal_data["ann_stage_events"]
         sampling_rate = signal_data["sampling_rate"]
         n_epoch_samples = signal_data["n_epoch_samples"]
-
-        channel_groups = dataset_processor.channel_groups
-        ann_label = dataset_processor.ann_label
 
         # Check signal length
         if len(signal) // n_epoch_samples <= 1:
@@ -310,7 +311,7 @@ class DatasetProcessor:
             # Resample and filter
             signal_processor = SignalProcessor(self.logger)
             signal, sampling_rate = signal_processor.resample_filter_signal(
-                signal, channel, ch_type, channel_groups, sampling_rate, resample_freq
+                signal, channel, ch_type, dataset_processor.channel_groups, sampling_rate, resample_freq
             )
 
         # Reshape into epochs
@@ -322,14 +323,11 @@ class DatasetProcessor:
             # zero pad last eventually not full epoch
             last_epoch = signals[n_epochs * epoch_duration * sampling_rate:]
             if last_epoch:
+                raise Exception("Last epoch not full")
                 n_last_epoch = len(last_epoch)
                 last_epoch = np.pad(last_epoch,pad_width=n_epoch_samples-n_last_epoch,constant_values=0)
                 signals = np.append(signals, last_epoch, axis=0)
 
-        # Generate labels 
-        labels = ann_label(self.logger, signal_data["ann_stage_events"], epoch_duration)
-
-        if resample_freq != "None":
             # Align labels (some datasets handle different length of signal and label data)
             signals, labels = dataset_processor.alignment(
                 self.logger,
