@@ -11,9 +11,6 @@ from .base import FileHandler
 class WFDBHandler(FileHandler):
     """Handler for WFDB files."""
 
-    def _initialize(self):
-        self.file_extension = ".hea"
-
     def get_channels(self, filepath):
         """Extract channel names from WFDB files."""
         try:

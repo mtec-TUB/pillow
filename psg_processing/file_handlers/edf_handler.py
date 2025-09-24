@@ -9,9 +9,6 @@ from .base import FileHandler
 class EDFHandler(FileHandler):
     """Handler for EDF files."""
 
-    def _initialize(self):
-        self.file_extension = ".edf"
-
     def get_channels(self, filepath):
         """Extract channel names and frequencies from EDF files."""
         try:

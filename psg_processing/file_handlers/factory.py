@@ -14,6 +14,7 @@ class FileHandlerFactory:
     def __init__(self, dataset_name=None):
         self.dataset_name = dataset_name
         self.handlers = {
+            ".rec": EDFHandler,
             ".edf": EDFHandler,
             ".h5": H5Handler,
             ".hea": WFDBHandler,
@@ -42,10 +43,7 @@ class FileHandlerFactory:
         if ".csv" in filepath_lower:
             if self.dataset_name and self.dataset_name in self.csv_handlers:
                 handler_class = self.csv_handlers[self.dataset_name]
-                handler = handler_class(logger)
-                # Verify the handler actually supports this file
-                if handler.supports_format(filepath):
-                    return handler
+                return handler_class(logger)
             return None  # No appropriate CSV handler found
         
         # Handle other file types

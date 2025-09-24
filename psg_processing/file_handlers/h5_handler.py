@@ -9,9 +9,6 @@ from .base import FileHandler
 class H5Handler(FileHandler):
     """Handler for H5 files."""
 
-    def _initialize(self):
-        self.file_extension = ".h5"
-
     def collect_h5_dataset(self, name, obj, dataset):
         """
         Helper function to collect H5 datasets during file iteration.

@@ -9,9 +9,6 @@ from .base import FileHandler
 class DreamtCSVHandler(FileHandler):
     """Handler for DREAMT dataset CSV files."""
 
-    def _initialize(self):
-        self.file_extension = ".csv"
-
     def get_channels(self, filepath):
         """Extract column names from DREAMT CSV files."""
         try:
@@ -68,16 +65,3 @@ class DreamtCSVHandler(FileHandler):
         except Exception as e:
             self.logger.error(f"Error processing DREAMT CSV file {filepath}: {e}")
             raise
-
-    def supports_format(self, filepath):
-        """Check if this handler supports the given DREAMT CSV file format."""
-        if not self.file_extension in filepath.lower():
-            return False
-        
-        # Additional check: verify it's a DREAMT file by checking for expected columns
-        try:
-            dataset = pd.read_csv(filepath, sep=",", header=0, nrows=1)
-            dreamt_columns = {'TIMESTAMP', 'BVP','ACC_X', 'ACC_Y', 'ACC_Z', 'Sleep_Stage'}  # not all listed
-            return dreamt_columns.issubset(set(dataset.columns))
-        except:
-            return False
