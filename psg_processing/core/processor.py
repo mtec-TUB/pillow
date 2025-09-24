@@ -319,15 +319,15 @@ class DatasetProcessor:
         n_epochs = len(signal) // n_epoch_samples
         signals = signal[0 : n_epochs * epoch_duration * sampling_rate].reshape(-1, n_epoch_samples)
 
-        if resample_freq != "None":
-            # zero pad last eventually not full epoch
-            last_epoch = signals[n_epochs * epoch_duration * sampling_rate:]
-            if last_epoch:
-                raise Exception("Last epoch not full")
-                n_last_epoch = len(last_epoch)
-                last_epoch = np.pad(last_epoch,pad_width=n_epoch_samples-n_last_epoch,constant_values=0)
+        if resample_freq == "None":
+            # zero pad last eventually not full epoch 
+            last_epoch = signal[n_epochs * epoch_duration * sampling_rate:]
+            n_last_epoch = len(last_epoch)
+            if n_last_epoch > 0:
+                last_epoch = np.pad(last_epoch,pad_width=(0,n_epoch_samples-n_last_epoch),constant_values=0).reshape(1,-1)
                 signals = np.append(signals, last_epoch, axis=0)
 
+        if resample_freq != "None":
             # Align labels (some datasets handle different length of signal and label data)
             signals, labels = dataset_processor.alignment(
                 self.logger,
@@ -336,15 +336,15 @@ class DatasetProcessor:
                 signals,
                 labels,
             )
+            # Clean signal data
+            signals, labels, select_start = self._clean_signal(signals, labels, STAGE_DICT)
+        else:
+            select_start = 0
+        
+        if signals is None:
+            return None
 
         x, y = signals.astype(np.float32), labels.astype(np.int32)
-
-        if resample_freq != "None":
-            # Clean signal data
-            x, y, select_start = self._clean_signal(x, y, STAGE_DICT)
-
-        if x is None:
-            return None
 
         return {
             "x": x,
