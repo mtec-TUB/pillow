@@ -110,7 +110,7 @@ class SignalProcessor:
                 signal,
                 resample_freq,
                 low,
-                min(high, sampling_rate/2) if high else None,
+                high if (high and high < resample_freq/2) else None,
                 method="fir",
                 verbose="WARNING",
             )
