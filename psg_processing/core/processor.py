@@ -205,7 +205,8 @@ class DatasetProcessor:
         for ch_type, channels in channel_types.items():
             if channel in channels:
                 return ch_type
-        raise Exception
+            
+        raise Exception(f"channel {channel} not listed in channel_types")
 
     def _setup_channel_output(
         self,
