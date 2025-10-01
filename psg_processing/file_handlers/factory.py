@@ -2,6 +2,7 @@
 Factory for creating file handlers based on file type.
 """
 
+from .mat_handler import MATHandler
 from .edf_handler import EDFHandler
 from .h5_handler import H5Handler
 from .wfdb_handler import WFDBHandler
@@ -14,6 +15,7 @@ class FileHandlerFactory:
     def __init__(self, dataset_name=None):
         self.dataset_name = dataset_name
         self.handlers = {
+            ".mat": MATHandler,
             ".rec": EDFHandler,
             ".edf": EDFHandler,
             ".h5": H5Handler,
