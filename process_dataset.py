@@ -35,6 +35,7 @@ def main():
         "--dataset",
         required=True,
         choices=DatasetRegistry.list_datasets(),
+        type=str.upper,
         help="Dataset to process",
     )
 
