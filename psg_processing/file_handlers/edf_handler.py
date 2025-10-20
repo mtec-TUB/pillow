@@ -18,7 +18,7 @@ class EDFHandler(FileHandler):
                 # return labels, freqs 
                 return labels
         except Exception as e:
-            self.logger.error(f"Error reading EDF file {filepath}: {e}")
+            self.logger.error(f"Error reading EDF file: {e}")
             return []
 
     def read_signal(self, filepath, channel):
@@ -30,7 +30,7 @@ class EDFHandler(FileHandler):
                     ch_idx = ch_names_file.index(channel)
                     return psg_f.readSignal(ch_idx)
         except Exception as e:
-            self.logger.error(f"Error reading EDF signal from {filepath}: {e}")
+            self.logger.error(f"Error reading EDF signal from: {e}")
             self.logger.error("Maybe the repair_edfs.py script can help.")
         return None
 
@@ -72,6 +72,6 @@ class EDFHandler(FileHandler):
                 "file_duration": file_duration,
             }
         except Exception as e:
-            self.logger.error(f"Error processing EDF file {filepath}: {e}")
+            self.logger.error(f"Error processing EDF file: {e}")
             self.logger.error("Maybe the repair_edfs.py script or EDF Browser header repairer can help.")
             raise
