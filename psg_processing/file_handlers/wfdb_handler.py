@@ -5,6 +5,7 @@ WFDB file handler for PSG data processing.
 import os
 import numpy as np
 import wfdb
+from datetime import datetime
 from .base import FileHandler
 
 
@@ -45,6 +46,8 @@ class WFDBHandler(FileHandler):
             if channel not in signal_labels:
                 self.logger.info(f"Channel {channel} not found")
                 return None
+            
+            start_datetime = datetime.combine(record.base_date,record.base_time)
 
             self.logger.info(f"Channel selected: {channel}")
 
@@ -63,7 +66,7 @@ class WFDBHandler(FileHandler):
                 "signal": signal,
                 "sampling_rate": sampling_rate,
                 "n_epoch_samples": n_epoch_samples,
-                "start_datetime": None,
+                "start_datetime": start_datetime,
                 "file_duration": file_duration,
             }
         except Exception as e:
