@@ -7,6 +7,7 @@ import re
 import numpy as np
 from pathlib import Path
 import logging
+from datetime import datetime
 
 from ..file_handlers import FileHandlerFactory
 from ..utils.logging_manager import LoggingManager
@@ -276,7 +277,13 @@ class DatasetProcessor:
         # Handle start datetime fallback (take time from annotation file)
         if signal_data["start_datetime"] is None:
             signal_data["start_datetime"] = ann_Startdatetime
+        elif ann_Startdatetime != None and isinstance(ann_Startdatetime, datetime):
+            print(signal_data["start_datetime"].time() == ann_Startdatetime.time())
+            print(psg_fname)
+            # assert signal_data["start_datetime"].time() == ann_Startdatetime.time(), f"{signal_data["start_datetime"]} != {ann_Startdatetime}"
 
+        # return None
+    
         # Add pre-loaded annotations
         signal_data["ann_stage_events"] = ann_stage_events
 
@@ -309,15 +316,26 @@ class DatasetProcessor:
             return None
 
         if resample_freq != "None":
+            # Shorten signal if annotations start later
+            signal,labels = dataset_processor.align_front(
+                self.logger,
+                signal_data["psg_fname"],
+                signal_data["ann_fname"],
+                signal,
+                labels,
+                sampling_rate
+            )
+
             # Resample and filter
             signal_processor = SignalProcessor(self.logger)
             signal, sampling_rate = signal_processor.resample_filter_signal(
                 signal, channel, ch_type, dataset_processor.channel_groups, sampling_rate, resample_freq
             )
 
-        # Reshape into epochs
+        # Reshape into epochs based on annotation start
         n_epoch_samples = int(epoch_duration * sampling_rate)
         n_epochs = len(signal) // n_epoch_samples
+        print(f"Seconds in unfilled epoch: {len(signal)/sampling_rate - (n_epochs * epoch_duration)}")
         signals = signal[0 : n_epochs * epoch_duration * sampling_rate].reshape(-1, n_epoch_samples)
 
         if resample_freq == "None":
@@ -329,8 +347,8 @@ class DatasetProcessor:
                 signals = np.append(signals, last_epoch, axis=0)
 
         if resample_freq != "None":
-            # Align labels (some datasets handle different length of signal and label data)
-            signals, labels = dataset_processor.alignment(
+            # Align labels (some datasets have different length of signal and annotation data)
+            signals, labels = dataset_processor.align_end(
                 self.logger,
                 signal_data["psg_fname"],
                 signal_data["ann_fname"],
