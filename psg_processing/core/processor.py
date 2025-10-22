@@ -7,7 +7,7 @@ import re
 import numpy as np
 from pathlib import Path
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from ..file_handlers import FileHandlerFactory
 from ..utils.logging_manager import LoggingManager
@@ -161,23 +161,46 @@ class DatasetProcessor:
         # Setup logging for this channel
         self.logging_manager.setup_channel_file_logging(self.logger, output_dir)
 
-        self.logger.info(f"Signal file: {psg_fname}")
+        self.logger.info(f"Signal file: {Path(psg_fname).relative_to(data_dir)}")
 
         # Extract and process signal
         signal_data = self._extract_signal_data(
             handler,
             psg_fname,
             channel,
-            epoch_duration,
-            ann_stage_events,
-            ann_Startdatetime,
+            epoch_duration
         )
 
         if signal_data is None:
             return
-
+        
+        # Add more information to signal_data annotations
+        signal_data["ann_stage_events"] = ann_stage_events
         signal_data["psg_fname"] = psg_fname
         signal_data["ann_fname"] = ann_fname
+        
+        # Handle start datetime (take time from annotation file)
+        if signal_data["start_datetime"] is None:
+            signal_data["start_datetime"] = ann_Startdatetime
+        elif ann_Startdatetime != None:
+            if (isinstance(ann_Startdatetime, datetime) and signal_data["start_datetime"].time() != ann_Startdatetime.time()) or (isinstance(ann_Startdatetime,float) and ann_Startdatetime != 0):
+                print(f"Start of signal:{signal_data["start_datetime"]} \nStart of labels: {ann_Startdatetime}")
+
+                # Shorten signal if annotations start later or align front to first common epoch if annotations start before
+                ret, signal,labels = dataset_processor.align_front(
+                    self.logger,
+                    signal_data["psg_fname"],
+                    signal_data["ann_fname"],
+                    signal_data["signal"],
+                    signal_data["ann_stage_events"],
+                    signal_data["sampling_rate"]
+                )
+                if not ret:
+                    raise Exception('Signals and Labels need to be aligned at the front but there is no function implemented')
+                signal_data["signal"] = signal
+                signal_data["ann_stage_events"] = labels
+
+        self.logger.info(f"Start datetime: {signal_data['start_datetime']}")
 
         # Generate labels now to log them for every file and channel
         signal_data["ann_stage_events"] = dataset_processor.ann_label(self.logger, signal_data["ann_stage_events"], epoch_duration)
@@ -261,9 +284,7 @@ class DatasetProcessor:
         handler,
         psg_fname,
         channel,
-        epoch_duration,
-        ann_stage_events,
-        ann_Startdatetime,
+        epoch_duration
     ):
         """Extract signal data using the appropriate handler."""
 
@@ -274,20 +295,6 @@ class DatasetProcessor:
         if signal_data is None:
             return None
 
-        # Handle start datetime fallback (take time from annotation file)
-        if signal_data["start_datetime"] is None:
-            signal_data["start_datetime"] = ann_Startdatetime
-        elif ann_Startdatetime != None and isinstance(ann_Startdatetime, datetime):
-            print(signal_data["start_datetime"].time() == ann_Startdatetime.time())
-            print(psg_fname)
-            # assert signal_data["start_datetime"].time() == ann_Startdatetime.time(), f"{signal_data["start_datetime"]} != {ann_Startdatetime}"
-
-        # return None
-    
-        # Add pre-loaded annotations
-        signal_data["ann_stage_events"] = ann_stage_events
-
-        self.logger.info(f"Start datetime: {signal_data['start_datetime']}")
         self.logger.info(
             f"File duration: {signal_data['file_duration']} sec, {signal_data['file_duration']/3600:.2f} h"
         )
@@ -316,16 +323,6 @@ class DatasetProcessor:
             return None
 
         if resample_freq != "None":
-            # Shorten signal if annotations start later
-            signal,labels = dataset_processor.align_front(
-                self.logger,
-                signal_data["psg_fname"],
-                signal_data["ann_fname"],
-                signal,
-                labels,
-                sampling_rate
-            )
-
             # Resample and filter
             signal_processor = SignalProcessor(self.logger)
             signal, sampling_rate = signal_processor.resample_filter_signal(
