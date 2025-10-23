@@ -252,8 +252,9 @@ class DatasetProcessor:
             if alias_checking:
                 ch_name_path = alias_checking[0]
 
-        # replace slash in folder names to avoid nester output structure
+        # replace slash in folder names to avoid nester output structure and colon because it is often not accepted in folder names
         ch_name_path = re.sub(r"[\/]", "_", ch_name_path)
+        ch_name_path = re.sub(r"[:]", "_", ch_name_path)
 
         # Create output directory
         if keep_folder_structure:
@@ -264,7 +265,7 @@ class DatasetProcessor:
         output_dir = os.path.join(output_dir, relative_path, "npz", ch_name_path)
         os.makedirs(output_dir, exist_ok=True)
 
-        # Generate safe filename
+        # Generate safe file and folder name
         base_filename = os.path.splitext(os.path.basename(psg_fname))[0] + ".npz"
         ch_name_safe = re.sub(r"[^a-zA-Z0-9._\-\s]", "_", channel)
         filename = f"{ch_name_safe}_{base_filename}"
