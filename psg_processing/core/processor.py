@@ -189,6 +189,7 @@ class DatasetProcessor:
                 # Shorten signal if annotations start later or align front to first common epoch if annotations start before
                 ret, signal,labels = dataset_processor.align_front(
                     self.logger,
+                    ann_Startdatetime,
                     signal_data["psg_fname"],
                     signal_data["ann_fname"],
                     signal_data["signal"],
