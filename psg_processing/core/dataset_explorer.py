@@ -162,7 +162,7 @@ class Dataset_Explorer:
             f"Found {len(self.ch_names)} channels to analyze across {len(self.psg_fnames)} files"
         )
         self.logger.info("TIP: Press Ctrl+C during any channel analysis to skip remaining files \
-                and classify that channel as DIGITAL immediately.\n")
+                         and classify that channel as DIGITAL immediately.\n")
 
         channel_types = {"analog": [], "digital": []}
 
