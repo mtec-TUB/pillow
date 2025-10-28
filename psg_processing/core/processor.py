@@ -144,7 +144,6 @@ class DatasetProcessor:
         """Process a single channel from a single file."""
 
         # Setup channel processing environment
-        ch_type = self._get_channel_type(channel, dataset_processor.channel_types)
         output_dir, filename = self._setup_channel_output(
             dataset_processor.keep_folder_structure,
             channel,
@@ -206,7 +205,9 @@ class DatasetProcessor:
         # Generate labels now to log them for every file and channel
         signal_data["ann_stage_events"] = dataset_processor.ann_label(self.logger, signal_data["ann_stage_events"], epoch_duration)
 
-        # Process the signal (resample, filter, clean)
+        # Process the signal (resample, filter, clean)        
+        ch_type = self._get_channel_type(channel, dataset_processor.channel_types)
+        
         processed_data = self._process_signal_data(
             signal_data, channel, ch_type, resample, dataset_processor, epoch_duration
         )
