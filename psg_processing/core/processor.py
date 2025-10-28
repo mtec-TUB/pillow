@@ -112,7 +112,7 @@ class DatasetProcessor:
             return
 
         # Process each channel for this file
-        for channel in dataset_processor.channel_names:
+        for channel in list(set(dataset_processor.channel_names) & set(handler.get_channels(psg_fname))):
             self._process_single_channel(
                 psg_fname,
                 ann_fname,
