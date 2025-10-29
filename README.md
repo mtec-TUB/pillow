@@ -92,8 +92,9 @@ The following file types can be handled to extract the signal from (see [file_ha
 - **EDF** (European Data Format) - `.edf`
 - **HDF5** (Hierarchical Data Format) - `.h5`
 - **WFDB** (WaveForm DataBase) - `.hea`
+- **MAT** (Matlab Data Format) - `.mat` (maybe not suitable for all different kind of mat-files and likely dataset-specific)
 
-These formats require dataset-specific handling due to varying structures (Each dataset requires its own CSV handler (e.g., `DreamtCSVHandler` for DREAMT dataset):
+These formats require dataset-specific handling due to varying structures (Each dataset requires its own CSV handler, e.g., `DreamtCSVHandler` for DREAMT dataset):
 - **CSV** (Comma-Separated Values) - `.csv`
 
 For the annotation files there is no common handler because most datasets have a unique annotation saving format. The base parsing strategy can be found in [base.py](/dataset_processors/base.py) ann_parse() function, and can be overwritten individually for each dataset processor in [dataset_processors](/dataset_processors/). 
@@ -104,7 +105,7 @@ For the annotation files there is no common handler because most datasets have a
 
 These steps will be performed to process the polysomnography datasets (see [processor.py](/psg_processing/core/processor.py)):
 
-- all files with matching extension are automatically detected and processed iterative
+- all files with matching extension are automatically detected and processed iterative (number of found psg and annot files has to match)
 - the annotations for one file are loaded either from a seperate corresponding annotation file or from the input file itself 
 - each file is checked for defined channel names and each found channel is processed seperately
 - the output path is generated (see also [Output](#output)) and checked for invalid characters
