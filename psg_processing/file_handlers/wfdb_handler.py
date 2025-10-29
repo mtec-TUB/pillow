@@ -17,7 +17,11 @@ class WFDBHandler(FileHandler):
         try:
             psg_fname_no_ext, _ = os.path.splitext(filepath)
             record = wfdb.rdheader(psg_fname_no_ext)
-            return record.sig_name
+            # freqs = []
+            # for ch_name in record.sig_name:
+            #     _, fields = wfdb.rdsamp(psg_fname_no_ext, channel_names=[ch_name])
+            #     freqs.append(fields["fs"])
+            return record.sig_name #, freqs
         except Exception as e:
             self.logger.error(f"Error reading WFDB file {filepath}: {e}")
             return []
@@ -39,7 +43,7 @@ class WFDBHandler(FileHandler):
     def get_signal_data(self, filepath, epoch_duration, channel):
         """Get complete WFDB signal information for processing."""
         try:
-            psg_fname, ext = os.path.splitext(filepath)
+            psg_fname, _ = os.path.splitext(filepath)
             record = wfdb.rdheader(psg_fname)
             signal_labels = record.sig_name
 
