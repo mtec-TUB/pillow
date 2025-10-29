@@ -2,17 +2,18 @@
 Main dataset processor for PSG data preparation.
 """
 
+import logging
 import os
 import re
-import numpy as np
-from pathlib import Path
-import logging
 from datetime import datetime, timedelta
+from pathlib import Path
+
+import numpy as np
 
 from ..file_handlers import FileHandlerFactory
 from ..utils.logging_manager import LoggingManager
-from .signal_processor import SignalProcessor
 from .dataset_explorer import Dataset_Explorer
+from .signal_processor import SignalProcessor
 
 # Sleep stage labels mapping
 STAGE_DICT = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "MOVE": 5, "UNK": 6}
@@ -186,7 +187,9 @@ class DatasetProcessor:
         # Handle start datetime (take time from annotation file)
         if signal_data["start_datetime"] is None:
             signal_data["start_datetime"] = ann_Startdatetime
-        elif ann_Startdatetime != None:
+        
+        # Align start of signal and annotation
+        if ann_Startdatetime != None:
             if (
                 isinstance(ann_Startdatetime, datetime)
                 and signal_data["start_datetime"].time() != ann_Startdatetime.time()
