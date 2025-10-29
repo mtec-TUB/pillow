@@ -13,15 +13,13 @@ class MATHandler(FileHandler):
         """Extract channel names and frequencies from EDF files."""
         try:
             psg_f = loadmat(filepath)['Data']
-            # freqs = psg_f.getSampleFrequencies()
-            # return labels, freqs 
             return psg_f.dtype.names
         except Exception as e:
             self.logger.error(f"Error reading mat file {filepath}: {e}")
             return []
 
     def read_signal(self, filepath, channel):
-        """Read signal from EDF file for specific channel."""
+        """Read signal from Mat file for specific channel."""
         try:
             psg_f = loadmat(filepath)['Data']
             if channel in psg_f.dtype.names:
