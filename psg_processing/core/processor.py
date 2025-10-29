@@ -58,7 +58,11 @@ class DatasetProcessor:
 
             # Get files using dataset-specific extensions
             explorer = Dataset_Explorer(
-                self.logger, dataset_processor.dataset_name, data_dir, ann_dir, **dataset_processor.file_extensions
+                self.logger,
+                dataset_processor.dataset_name,
+                data_dir,
+                ann_dir,
+                **dataset_processor.file_extensions,
             )
             psg_fnames, ann_fnames = explorer.get_files()
 
@@ -111,8 +115,12 @@ class DatasetProcessor:
         if ann_stage_events == []:
             return
 
+        # ann_stage_events = dataset_processor.check_labels(self.logger, ann_stage_events, epoch_duration)
+
         # Process each channel for this file
-        for channel in list(set(dataset_processor.channel_names) & set(handler.get_channels(psg_fname))):
+        for channel in list(
+            set(dataset_processor.channel_names) & set(handler.get_channels(psg_fname))
+        ):
             self._process_single_channel(
                 psg_fname,
                 ann_fname,
@@ -164,57 +172,67 @@ class DatasetProcessor:
 
         # Extract and process signal
         signal_data = self._extract_signal_data(
-            handler,
-            psg_fname,
-            channel,
-            epoch_duration
+            handler, psg_fname, channel, epoch_duration
         )
 
         if signal_data is None:
             return
-        
+
         # Add more information to signal_data annotations
         signal_data["ann_stage_events"] = ann_stage_events
         signal_data["psg_fname"] = psg_fname
         signal_data["ann_fname"] = ann_fname
-        
+
         # Handle start datetime (take time from annotation file)
         if signal_data["start_datetime"] is None:
             signal_data["start_datetime"] = ann_Startdatetime
         elif ann_Startdatetime != None:
-            if (isinstance(ann_Startdatetime, datetime) and signal_data["start_datetime"].time() != ann_Startdatetime.time()) or (isinstance(ann_Startdatetime,(int,float)) and ann_Startdatetime != 0):
-                print(f"Start of signal:{signal_data["start_datetime"]} \nStart of labels: {ann_Startdatetime}")
+            if (
+                isinstance(ann_Startdatetime, datetime)
+                and signal_data["start_datetime"].time() != ann_Startdatetime.time()
+            ) or (
+                isinstance(ann_Startdatetime, (int, float)) and ann_Startdatetime != 0
+            ):
+                print(
+                    f"Start of signal:{signal_data["start_datetime"]} \nStart of labels: {ann_Startdatetime}"
+                )
 
                 # Shorten signal if annotations start later or align front to first common epoch if annotations start before
-                ret, signal,labels = dataset_processor.align_front(
+                ret, signal, labels = dataset_processor.align_front(
                     self.logger,
                     ann_Startdatetime,
                     signal_data["psg_fname"],
                     signal_data["ann_fname"],
                     signal_data["signal"],
                     signal_data["ann_stage_events"],
-                    signal_data["sampling_rate"]
+                    signal_data["sampling_rate"],
                 )
                 if not ret:
-                    raise Exception('Signals and Labels need to be aligned at the front but there is no function implemented')
+                    raise Exception(
+                        "Signals and Labels need to be aligned at the front but there is no function implemented"
+                    )
                 signal_data["signal"] = signal
                 signal_data["ann_stage_events"] = labels
 
         self.logger.info(f"Start datetime: {signal_data['start_datetime']}")
 
-        # Generate labels now to log them for every file and channel
-        signal_data["ann_stage_events"] = dataset_processor.ann_label(self.logger, signal_data["ann_stage_events"], epoch_duration)
+        # Print and log labels for every file and channel if desired
+        # if self.log_labels():
+        #     self._log_labels(signal_data["ann_stage_events"])
+        signal_data["ann_stage_events"] = dataset_processor.ann_label(
+            self.logger, signal_data["ann_stage_events"], epoch_duration
+        )
 
-        # Process the signal (resample, filter, clean)        
+        # Process the signal (resample, filter, clean)
         ch_type = self._get_channel_type(channel, dataset_processor.channel_types)
-        
+
         processed_data = self._process_signal_data(
             signal_data, channel, ch_type, resample, dataset_processor, epoch_duration
         )
 
         if processed_data is None:
             return
-        
+
         # replace x,y and n_epochs after the processing
         for key in processed_data:
             signal_data[key] = processed_data[key]
@@ -226,12 +244,20 @@ class DatasetProcessor:
 
         self.logger.info("=" * 40)
 
+    # def _log_labels(self, ann_stage_events):
+    #     for event in ann_stage_events:
+    #         onset_sec = int(event["Start"])
+    #         duration_sec = int(event["Duration"])
+    #         ann_str = event["Stage"]
+
+    #         self.logger.info("Include onset:{}, duration:{}, label:{} ({})".format(onset_sec, duration_sec, label, ann_str))
+
     def _get_channel_type(self, channel, channel_types):
         """Get the type (analog/digital) for a specific channel."""
         for ch_type, channels in channel_types.items():
             if channel in channels:
                 return ch_type
-            
+
         raise Exception(f"channel {channel} not listed in channel_types")
 
     def _setup_channel_output(
@@ -282,18 +308,10 @@ class DatasetProcessor:
             return True
         return False
 
-    def _extract_signal_data(
-        self,
-        handler,
-        psg_fname,
-        channel,
-        epoch_duration
-    ):
+    def _extract_signal_data(self, handler, psg_fname, channel, epoch_duration):
         """Extract signal data using the appropriate handler."""
 
-        signal_data = handler.get_signal_data(
-            psg_fname, epoch_duration, channel
-        )
+        signal_data = handler.get_signal_data(psg_fname, epoch_duration, channel)
 
         if signal_data is None:
             return None
@@ -329,21 +347,34 @@ class DatasetProcessor:
             # Resample and filter
             signal_processor = SignalProcessor(self.logger)
             signal, sampling_rate = signal_processor.resample_filter_signal(
-                signal, channel, ch_type, dataset_processor.channel_groups, sampling_rate, resample_freq
+                signal,
+                channel,
+                ch_type,
+                dataset_processor.channel_groups,
+                sampling_rate,
+                resample_freq,
             )
 
         # Reshape into epochs based on annotation start
         n_epoch_samples = int(epoch_duration * sampling_rate)
         n_epochs = len(signal) // n_epoch_samples
-        print(f"Seconds in unfilled epoch: {len(signal)/sampling_rate - (n_epochs * epoch_duration)}")
-        signals = signal[0 : n_epochs * epoch_duration * sampling_rate].reshape(-1, n_epoch_samples)
+        print(
+            f"Seconds in unfilled epoch: {len(signal)/sampling_rate - (n_epochs * epoch_duration)}"
+        )
+        signals = signal[0 : n_epochs * epoch_duration * sampling_rate].reshape(
+            -1, n_epoch_samples
+        )
 
         if resample_freq == "None":
-            # zero pad last eventually not full epoch 
-            last_epoch = signal[n_epochs * epoch_duration * sampling_rate:]
+            # zero pad last eventually not full epoch
+            last_epoch = signal[n_epochs * epoch_duration * sampling_rate :]
             n_last_epoch = len(last_epoch)
             if n_last_epoch > 0:
-                last_epoch = np.pad(last_epoch,pad_width=(0,n_epoch_samples-n_last_epoch),constant_values=0).reshape(1,-1)
+                last_epoch = np.pad(
+                    last_epoch,
+                    pad_width=(0, n_epoch_samples - n_last_epoch),
+                    constant_values=0,
+                ).reshape(1, -1)
                 signals = np.append(signals, last_epoch, axis=0)
 
         if resample_freq != "None":
@@ -356,10 +387,12 @@ class DatasetProcessor:
                 labels,
             )
             # Clean signal data
-            signals, labels, select_start = self._clean_signal(signals, labels, STAGE_DICT)
+            signals, labels, select_start = self._clean_signal(
+                signals, labels, STAGE_DICT
+            )
         else:
             select_start = 0
-        
+
         if signals is None:
             return None
 
@@ -370,7 +403,7 @@ class DatasetProcessor:
             "y": y,
             "sampling_rate": sampling_rate,
             "n_all_epochs": n_epochs,
-            "rm_start_epochs": select_start
+            "rm_start_epochs": select_start,
         }
 
     def _clean_signal(self, x, y, stage_dict):
@@ -404,14 +437,18 @@ class DatasetProcessor:
                 self.logger.info(f"  Unknown epochs: {len(unk_idx)}")
 
             # move_unk_select_idx = np.setdiff1d(np.arange(len(x)), remove_idx)
-                
+
             # select_idx = np.setdiff1d(np.arange(len(x)), remove_idx)
             # x = x[select_idx]
             # y = y[select_idx]
 
         # Select only sleep periods (30 min buffer around sleep)
         w_edge_mins = 30
-        nw_idx = np.where((y != stage_dict["W"]) & (y != stage_dict["MOVE"]) & (y != stage_dict["UNK"]))[0]
+        nw_idx = np.where(
+            (y != stage_dict["W"])
+            & (y != stage_dict["MOVE"])
+            & (y != stage_dict["UNK"])
+        )[0]
 
         if len(nw_idx) == 0:
             self.logger.warning("File contains no sleep stages (only Wake)")
@@ -421,9 +458,11 @@ class DatasetProcessor:
         start_idx = max(0, nw_idx[0] - (w_edge_mins * 2))
         end_idx = min(len(y) - 1, nw_idx[-1] + (w_edge_mins * 2))
 
-        self.logger.info(f"  Outside 30min wake epochs: {start_idx + (len(x)-end_idx)-1}")
-        
-        select_idx = np.setdiff1d(np.arange(start_idx, end_idx + 1),remove_idx)
+        self.logger.info(
+            f"  Outside 30min wake epochs: {start_idx + (len(x)-end_idx)-1}"
+        )
+
+        select_idx = np.setdiff1d(np.arange(start_idx, end_idx + 1), remove_idx)
 
         self.logger.info(f"  Total epochs to remove: {len(x) - len(select_idx)}")
         self.logger.info(f"Removed {select_idx[0]} epochs at beginning of signal")
@@ -432,7 +471,7 @@ class DatasetProcessor:
         y = y[select_idx]
 
         self.logger.info(f"  Data after cleaning: {x.shape}, {y.shape}")
-        
+
         return x, y, select_idx[0]
 
     def _save_processed_data(
@@ -449,7 +488,7 @@ class DatasetProcessor:
             "epoch_duration": epoch_duration,
             "n_all_epochs": signal_data["n_all_epochs"],
             "n_epochs": len(signal_data["x"]),
-            "rm_start_epochs": signal_data["rm_start_epochs"]
+            "rm_start_epochs": signal_data["rm_start_epochs"],
         }
 
         # Handle multiple scorers
@@ -459,12 +498,12 @@ class DatasetProcessor:
         elif y.ndim == 2:
             save_dict["y"] = y[:, 0]
             save_dict["y2"] = y[:, 1]
-            
+
         # Include unit if existing
         if "unit" in signal_data:
             save_dict["unit"] = signal_data["unit"]
 
         output_path = os.path.join(output_dir, filename)
-        
+
         np.savez(output_path, **save_dict)
         self.logger.info(f"Successfully saved: {filename}")
