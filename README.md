@@ -22,7 +22,6 @@ A comprehensive, object-oriented toolkit for processing polysomnography (PSG) da
 The codebase is organized into three main components:
 
 ```
-├── dataset_preprocessors/        # One-time restructuring of datasets
 ├── dataset_processors/            # Dataset-specific logic
 │   ├── base.py                    # Abstract base class for processors
 │   ├── registry.py                # Processor registration and management
@@ -155,20 +154,16 @@ If there is a second annotation entry called **y2**, this results from a second 
 
 ## **Adding New Datasets**
 
-1. **Optional: Preprocessing scripts**
-   - If needed, implement preprocessing in `dataset_preprocessors/` to reorder or rename files (each file must have a unique name and either a corresponding annotation file or the annotation saved inside the file itself).
-   - example preprocessing handling shown in [FDCSR dataset](/dataset_processors/fdcsr_processor.py) or [DCSM dataset](/dataset_processors/dcsm_processor.py).
+1. **Create a new processor:**
+    - Add a file `dataset_processors/<your_dataset>_processor.py`.
+    - Inherit from [`BaseDatasetProcessor`](dataset_processors/base.py) and implement the methods `_setup_dataset_config` (specify file extensions as this is the only known property in the beginning), `ann_parse`, optionally `preprocess` (see [FDCSR dataset](/dataset_processors/fdcsr_processor.py)) and `dataset_paths`.
+    - to register the processor use the decorator `@register_dataset("YOURNAME")`.
+    - Check if the polysomnography file extension is already covered by one of the [file_handlers](/psg_processing/file_handlers/):
+        - **For standardized formats** (EDF, H5, WFDB): Use existing generic handlers
+        - **For CSV files**: Create a dataset-specific handler (e.g., `your_dataset_csv_handler.py`) since CSV structures vary significantly between datasets
+        - **For new formats**: Create a new generic handler if the format could be reused across datasets
 
-2. **Create a new processor:**
-   - Add a file `dataset_processors/<your_dataset>_processor.py`.
-   - Inherit from [`BaseDatasetProcessor`](dataset_processors/base.py) and implement the methods `_setup_dataset_config` (specify file extensions as this is the only known property in the beginning), `ann_parse`, optionally `preprocess` and `dataset_paths`.
-   - to register the processor use the decorator `@register_dataset("YOURNAME")`.
-   - Check if the polysomnography file extension is already covered by one of the [file_handlers](/psg_processing/file_handlers/):
-     - **For standardized formats** (EDF, H5, WFDB): Use existing generic handlers
-     - **For CSV files**: Create a dataset-specific handler (e.g., `your_dataset_csv_handler.py`) since CSV structures vary significantly between datasets
-     - **For new binary formats**: Create a new generic handler if the format could be reused across datasets
-
-3. **Explore dataset:**
+2. **Explore dataset:**
     - search for existing channel names in dataset with:
      ```bash
       python process_dataset.py --dataset <your_dataset> --action get_channel_names
@@ -178,9 +173,9 @@ If there is a second annotation entry called **y2**, this results from a second 
     python process_dataset.py --dataset <your_dataset> --action get_channel_types
     ```
     - Channels like 'Oxygen saturation', 'Light' or 'Position' are mostly digital, while EEG, ECG and EMG channels should be analog. Check the results manually to prevent wrong processing.
-4. **Define all pending dataset properties:**
+3. **Define all pending dataset properties:**
     - In `_setup_dataset_config`, specify channel names, channel types, channel groups and optional alias_mappings (can be used if many different channel names appear that seem to belong all to the same channel, see [BESTAIR dataset](/dataset_processors/bestair_processor.py))
-5. **Perform processing:**
+4. **Perform processing:**
     - see [Running the Processing Pipeline](#running-the-processing-pipeline)
 
 
