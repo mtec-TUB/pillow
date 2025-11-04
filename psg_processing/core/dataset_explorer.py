@@ -7,6 +7,7 @@ import glob
 import numpy as np
 from numba import njit
 from tqdm import tqdm
+from natsort import natsorted
 import logging
 
 from ..file_handlers import FileHandlerFactory
@@ -73,7 +74,7 @@ class Dataset_Explorer:
         self.psg_fnames = glob.glob(
             os.path.join(self.data_dir, self.psg_ext), recursive=True
         )
-        self.psg_fnames.sort()
+        self.psg_fnames = natsorted(self.psg_fnames)
         self.logger.info(f"Found {len(self.psg_fnames)} signal files")
 
         # Discover annotation files
@@ -100,7 +101,7 @@ class Dataset_Explorer:
             self.ann_fnames.extend(ann_fnames2)
             self.logger.info(f"Found {len(ann_fnames2)} additional annotation files")
 
-        self.ann_fnames.sort()
+        self.ann_fnames = natsorted(self.ann_fnames)
         self.logger.info(f"Total annotation files: {len(self.ann_fnames)}")
 
         # Convert to numpy arrays for consistency

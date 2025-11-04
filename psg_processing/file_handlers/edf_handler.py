@@ -55,8 +55,8 @@ class EDFHandler(FileHandler):
             self.logger.info(f"Select channel samples: {ch_samples[select_ch_idx]}")
             ch_freq = psg_f.getSampleFrequencies()
 
-            sampling_rate = int(ch_freq[select_ch_idx])
-            n_epoch_samples = int(epoch_duration * sampling_rate)
+            sampling_rate = ch_freq[select_ch_idx]
+            n_epoch_samples = epoch_duration * sampling_rate
             signal = psg_f.readSignal(select_ch_idx)
             
             unit = psg_f.getPhysicalDimension(select_ch_idx)
