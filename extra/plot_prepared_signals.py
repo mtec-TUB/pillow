@@ -43,6 +43,10 @@ def visualize_multiple_signals(signals):
             # Load the signal (x) from the .npz file
             data = np.load(file_path)
             signal = data['x']
+            # print(signal.shape)
+            # if "100Hz_filt" in file_path:
+            #     signal = np.insert(signal,-1,np.zeros((2,3000)),axis=0)
+            #     print(signal.shape)
             sample_rate = data['fs']
             print(sample_rate)
         except Exception as e:
@@ -108,24 +112,28 @@ def visualize_multiple_signals(signals):
     plt.show()
 
 # #'/media/linda/Elements/sleep_data/100Hz/EEG3_mesa-sleep-0002.npz',
-signals = [
-            # '/media/linda/Elements/sleep_data/APPLES - Apnea Positive Pressure Long-term Efficacy Study/APPLES_harmonized/100Hz_filt/npz/ROC/ROC_apples-460164.npz',
-            # '/media/linda/Elements/sleep_data/APPLES - Apnea Positive Pressure Long-term Efficacy Study/APPLES_harmonized/orig/npz/ROC/ROC_apples-460164.npz',
-            # '/media/linda/Elements/sleep_data/CPS - Comprehensive Polysomnography Dataset (A Resource for Sleep-Related Arousal Research)/CPS_harmonized/100Hz_filt/npz/EOGl/EOGl_0Ah95Qw18puf1JsnrKBA6u8XXZLlMIQJ.npz',
-            # '/media/linda/Elements/sleep_data/CPS - Comprehensive Polysomnography Dataset (A Resource for Sleep-Related Arousal Research)/CPS_harmonized/orig/npz/EOGl/EOGl_0Ah95Qw18puf1JsnrKBA6u8XXZLlMIQJ.npz'
+# signals = [
+#             # '/media/linda/Elements/sleep_data/APPLES - Apnea Positive Pressure Long-term Efficacy Study/APPLES_harmonized/100Hz_filt/npz/ROC/ROC_apples-460164.npz',
+#             # '/media/linda/Elements/sleep_data/APPLES - Apnea Positive Pressure Long-term Efficacy Study/APPLES_harmonized/orig/npz/ROC/ROC_apples-460164.npz',
+#             # '/media/linda/Elements/sleep_data/CPS - Comprehensive Polysomnography Dataset (A Resource for Sleep-Related Arousal Research)/CPS_harmonized/100Hz_filt/npz/EOGl/EOGl_0Ah95Qw18puf1JsnrKBA6u8XXZLlMIQJ.npz',
+#             # '/media/linda/Elements/sleep_data/CPS - Comprehensive Polysomnography Dataset (A Resource for Sleep-Related Arousal Research)/CPS_harmonized/orig/npz/EOGl/EOGl_0Ah95Qw18puf1JsnrKBA6u8XXZLlMIQJ.npz'
 
-            '/media/linda/Elements/sleep_data/MESA - Multi-Ethnic Study of Atherosclerosis/MESA_harmonized/orig/npz/EMG/EMG_mesa-sleep-0002.npz',
-            '/media/linda/Elements/sleep_data/MESA - Multi-Ethnic Study of Atherosclerosis/MESA_harmonized/100Hz_filt/npz/EMG/EMG_mesa-sleep-0002.npz',
-            # '/media/linda/Elements/sleep_data/MESA - Multi-Ethnic Study of Atherosclerosis/MESA_harmonized/100Hz_filt/npz/EEG1/EEG1_mesa-sleep-0001_after.npz',
-            #'/media/linda/Elements/sleep_data/MESA - Multi-Ethnic Study of Atherosclerosis/MESA_harmonized/100Hz_filt/npz/EEG1/EEG1_mesa-sleep-0001_before.npz',
-            ]
+#             # '/media/linda/Elements/sleep_data/MESA - Multi-Ethnic Study of Atherosclerosis/MESA_harmonized/orig/npz/EMG/EMG_mesa-sleep-0002.npz',
+#             # '/media/linda/Elements/sleep_data/MESA - Multi-Ethnic Study of Atherosclerosis/MESA_harmonized/100Hz_filt/npz/EMG/EMG_mesa-sleep-0002.npz',
+            
+#             '/home/linda/Downloads/ABC - Apnea, Bariatric surgery, and CPAP study/ABC_harmonized/500Hz_filt/baseline/npz/C3/C3_abc-baseline-900001.npz',
+#             '/home/linda/Downloads/ABC - Apnea, Bariatric surgery, and CPAP study/ABC_harmonized/200Hz_filt/baseline/npz/C3/C3_abc-baseline-900001.npz',
+#             '/home/linda/Downloads/ABC - Apnea, Bariatric surgery, and CPAP study/ABC_harmonized/orig/baseline/npz/C3/C3_abc-baseline-900001.npz'
+#             # '/media/linda/Elements/sleep_data/MESA - Multi-Ethnic Study of Atherosclerosis/MESA_harmonized/100Hz_filt/npz/EEG1/EEG1_mesa-sleep-0001_after.npz',
+#             #'/media/linda/Elements/sleep_data/MESA - Multi-Ethnic Study of Atherosclerosis/MESA_harmonized/100Hz_filt/npz/EEG1/EEG1_mesa-sleep-0001_before.npz',
+#             ]
 
 
 # # signals = [
 # #     '/media/linda/Elements/sleep_data/SHHS - Sleep Heart Health Study/SHHS_harmonized/100Hz_filt/shhs1/npz/ECG/ECG_shhs1-200043.npz',
 # #     '/media/linda/Elements/sleep_data/SHHS - Sleep Heart Health Study/SHHS_harmonized/orig/shhs1/npz/ECG/ECG_shhs1-200043.npz',
 # #     ]
-visualize_multiple_signals(signals)
+# visualize_multiple_signals(signals)
 
 def select_npz_files():
     """
@@ -162,19 +170,19 @@ def select_npz_files():
 
 
 
-# # Select files using file dialog
-# print("Please select the .npz files you want to visualize...")
-# selected_files = select_npz_files()
+# Select files using file dialog
+print("Please select the .npz files you want to visualize...")
+selected_files = select_npz_files()
 
 
-# if selected_files:
-#     print(f"Selected {len(selected_files)} files:")
-#     for file_path in selected_files:
-#         print(f"  - {os.path.basename(file_path)}")
+if selected_files:
+    print(f"Selected {len(selected_files)} files:")
+    for file_path in selected_files:
+        print(f"  - {os.path.basename(file_path)}")
    
-#     # Visualize the selected signals
-#     visualize_multiple_signals(selected_files)
-# else:
-#     print("No files selected. Exiting...")
+    # Visualize the selected signals
+    visualize_multiple_signals(selected_files)
+else:
+    print("No files selected. Exiting...")
 
 
