@@ -7,7 +7,7 @@ import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-
+from decimal import Decimal
 import numpy as np
 
 from ..file_handlers import FileHandlerFactory
@@ -194,7 +194,7 @@ class DatasetProcessor:
                 isinstance(ann_Startdatetime, datetime)
                 and signal_data["start_datetime"].time() != ann_Startdatetime.time()
             ) or (
-                isinstance(ann_Startdatetime, (int, float)) and ann_Startdatetime != 0
+                isinstance(ann_Startdatetime, (int, float,Decimal)) and ann_Startdatetime != 0
             ):
                 print(
                     f"Start of signal:{signal_data["start_datetime"]} \nStart of labels: {ann_Startdatetime}"
