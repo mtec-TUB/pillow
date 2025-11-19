@@ -52,6 +52,7 @@ class H5Handler(FileHandler):
 
     def get_signal_data(self, filepath, epoch_duration, channel):
         """Get complete H5 signal information for processing."""
+        # DOD-O and DOD-H -specific sampling rate
         sampling_rate = 250
         try:
             with h5py.File(filepath, "r") as f:
