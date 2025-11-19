@@ -23,7 +23,7 @@ class MATHandler(FileHandler):
         try:
             psg_f = loadmat(filepath)['Data']
             if channel in psg_f.dtype.names:
-                return psg_f[0,0][channel]
+                return psg_f[0,0][channel][:, 0]
         except Exception as e:
             self.logger.error(f"Error reading mat signal from {filepath}: {e}")
         return None
@@ -39,12 +39,12 @@ class MATHandler(FileHandler):
 
             self.logger.info(f"Channel selected: {channel}")
 
-            signal = psg_f[0,0][channel]
+            signal = psg_f[0,0][channel][:, 0]
             samples = psg_f[0,0]['num_Labels'][0,0]
             assert len(signal) == samples
             self.logger.info(f"Select channel samples: {samples}")
 
-            sampling_rate = int(psg_f[0,0]['fs'])
+            sampling_rate = psg_f[0,0]['fs'][0,0]
             n_epoch_samples = sampling_rate * epoch_duration
             file_duration = samples / sampling_rate
 
