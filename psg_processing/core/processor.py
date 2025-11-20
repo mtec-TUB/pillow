@@ -122,7 +122,7 @@ class DatasetProcessor:
         for channel in list(
             set(dataset_processor.channel_names) & set(handler.get_channels(psg_fname))
         ):
-            self._process_single_channel(
+            ret = self._process_single_channel(
                 psg_fname,
                 ann_fname,
                 channel,
@@ -135,6 +135,8 @@ class DatasetProcessor:
                 ann_Startdatetime,
                 epoch_duration,
             )
+            if not ret: # marks that the other channels of this file dont have to be processed because labels contain only wake (no sleep)
+                break
 
     def _process_single_channel(
         self,
@@ -164,7 +166,7 @@ class DatasetProcessor:
 
         # Skip if file already exists
         if not self.overwrite and self._output_file_exists(output_dir, filename):
-            return
+            return True
 
         # Setup logging for this channel
         self.logging_manager.setup_channel_file_logging(self.logger, output_dir)
@@ -177,7 +179,7 @@ class DatasetProcessor:
         )
 
         if signal_data is None:
-            return
+            return True
 
         # Add more information to signal_data annotations
         signal_data["ann_stage_events"] = ann_stage_events
@@ -229,12 +231,14 @@ class DatasetProcessor:
         # Process the signal (resample, filter, clean)
         ch_type = self._get_channel_type(channel, dataset_processor.channel_types)
 
-        processed_data = self._process_signal_data(
+        processed_data, continue_processing = self._process_signal_data(
             signal_data, channel, ch_type, resample, dataset_processor, epoch_duration
         )
 
+        if continue_processing is False:
+            return False
         if processed_data is None:
-            return
+            return True
 
         # replace x,y and n_epochs after the processing
         for key in processed_data:
@@ -246,6 +250,8 @@ class DatasetProcessor:
         )
 
         self.logger.info("=" * 40)
+    
+        return True
 
     # def _log_labels(self, ann_stage_events):
     #     for event in ann_stage_events:
@@ -344,7 +350,7 @@ class DatasetProcessor:
         # Check signal length
         if len(signal) // n_epoch_samples <= 1:
             self.logger.info(f"Signal too short, only {len(signal)} samples")
-            return None
+            return None, True
 
         if resample_freq != "None":
             # Resample and filter
@@ -397,7 +403,7 @@ class DatasetProcessor:
             select_start = 0
 
         if signals is None:
-            return None
+            return None, False
 
         x, y = signals.astype(np.float32), labels.astype(np.int32)
 
@@ -407,7 +413,7 @@ class DatasetProcessor:
             "sampling_rate": sampling_rate,
             "n_all_epochs": n_epochs,
             "rm_start_epochs": select_start,
-        }
+        }, True
 
     def _clean_signal(self, x, y, stage_dict):
         """
