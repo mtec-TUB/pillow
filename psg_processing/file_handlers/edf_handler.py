@@ -18,8 +18,9 @@ class EDFHandler(FileHandler):
                 # return labels, freqs 
                 return labels
         except Exception as e:
-            self.logger.error(f"Error reading EDF file: {e}")
-            return []
+            self.logger.error(f"Error processing EDF file: {e}")
+            self.logger.error("Maybe the repair_edfs.py script or EDF Browser header repairer can help.")
+            raise
 
     def read_signal(self, filepath, channel):
         """Read signal from EDF file for specific channel."""
