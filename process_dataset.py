@@ -4,7 +4,7 @@ Unified dataset processor for sleep datasets.
 This replaces all individual prepare_*.py scripts.
 """
 import os
-from typing import List
+from typing import List, Optional
 import argparse
 import sys
 from pathlib import Path
@@ -14,20 +14,19 @@ sys.path.append(str(Path(__file__).parent))
 
 from dataset_processors import get_processor, DatasetRegistry
 
-
-def main():
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Process sleep datasets for harmonization",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=f"""
-                    Available datasets:
-                    {', '.join(DatasetRegistry.list_datasets())}
-                    
-                    Examples:
-                      python process_dataset.py --dataset ABC --data_dir /path/to/ABC/polysomnograpy --output_dir /path/to/output --action prepare --resample None
-                      python process_dataset.py --dataset MESA --data_dir /path/to/MESA/ --action get_channel_names
-                      python process_dataset.py --dataset SOF --data_dir /path/to/SOF/data --action get_channel_types
-                            """,
+    description="Process sleep datasets for harmonization",
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    epilog=f"""
+                Available datasets:
+                {', '.join(DatasetRegistry.list_datasets())}
+                
+                Examples:
+                    python process_dataset.py --dataset ABC --data_dir /path/to/ABC/polysomnograpy --output_dir /path/to/output --action prepare --resample None
+                    python process_dataset.py --dataset MESA --data_dir /path/to/MESA/ --action get_channel_names
+                    python process_dataset.py --dataset SOF --data_dir /path/to/SOF/data --action get_channel_types
+                        """,
     )
 
     # Required arguments
@@ -83,52 +82,72 @@ def main():
     
     parser.add_argument("--overwrite", action="store_true", help="Overwrite existing files")
 
-    args = parser.parse_args()
+    return parser
+
+def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+    parser = build_parser()
+    return parser.parse_args(argv)
+
+
+def _parse_resample(val: str):
+    """Return None if the string is 'None' (case-insensitive), otherwise return the original string."""
+    if val is None:
+        return None
+    if isinstance(val, str) and val.lower() == "none":
+        return None
+    return val
+
+def _resolve_paths(processor, base_data_dir: str, data_dir: str | None, ann_dir: str | None, output_dir: str | None, resample_val):
+    """Return resolved (data_dir, ann_dir, output_dir).
+
+    - If data_dir or ann_dir not provided, use proc.dataset_paths() and join with base_data_dir.
+    - If output_dir not provided, construct under base_data_dir using dataset_name and resample info.
+    """
+    # Start from processor-provided relative paths
+    rel_data_dir, rel_ann_dir = processor.dataset_paths()
+
+    data_dir_resolved = data_dir if data_dir else os.path.join(base_data_dir, rel_data_dir)
+    ann_dir_resolved = ann_dir if ann_dir else os.path.join(base_data_dir, rel_ann_dir)
+
+    if output_dir:
+        output_dir_resolved = os.path.join(
+            output_dir,
+            f"{processor.dset_name}_harmonized",
+            res_label,
+        )
+    else:
+        # If resample_val is None we want the 'orig' folder, else '<N>Hz_filt'
+        res_label = "orig" if resample_val is None else f"{resample_val}Hz_filt"
+        output_dir_resolved = os.path.join(
+            base_data_dir,
+            processor.dataset_name,
+            f"{processor.dset_name}_harmonized",
+            res_label,
+        )
+
+    return data_dir_resolved, ann_dir_resolved, output_dir_resolved
+
+
+def main(argv: Optional[List[str]] = None):
+    args = parse_args(argv)
 
     # Get the processor for this dataset
     processor_class = get_processor(args.dataset)
     processor = processor_class()
 
-    print(f"Processing dataset: {args.dataset}")
+    print(f"Processing dataset: {processor.dset_name}")
 
-    # Set up paths if not manually specified
-    if not args.data_dir or not args.ann_dir or not args.output_dir:
-        data_dir, ann_dir = processor.dataset_paths()
-
-        if not args.data_dir:
-            data_dir = os.path.join(args.base_data_dir, data_dir)
-        else:
-            data_dir = args.data_dir
-        if not args.ann_dir:
-            ann_dir = os.path.join(args.base_data_dir, ann_dir)
-        else:
-            ann_dir = args.ann_dir
-        if not args.output_dir:
-            if args.resample == "None":
-                output_dir = os.path.join(
-                    args.base_data_dir,
-                    processor.dataset_name,
-                    f"{args.dataset}_harmonized",
-                    "orig",
-                )
-            else:
-                output_dir = os.path.join(
-                    args.base_data_dir,
-                    processor.dataset_name,
-                    f"{args.dataset}_harmonized",
-                    f"{args.resample}Hz_filt",
-                )
-        else:
-            output_dir = args.output_dir
-    else:
-        data_dir, ann_dir, output_dir = args.data_dir, args.ann_dir, args.output_dir
+    resample_val = _parse_resample(args.resample)
+    data_dir, ann_dir, output_dir = _resolve_paths(
+        processor, args.base_data_dir, args.data_dir, args.ann_dir, args.output_dir, resample_val
+    )
 
     print(f"Data directory: {data_dir}")
     print(f"Annotation directory: {ann_dir}")
     print(f"Output directory: {output_dir}")
 
     # Process the dataset
-    processor.process(args.action, data_dir, ann_dir, output_dir, args.resample, args.channels, args.overwrite)
+    processor.process(args.action, data_dir, ann_dir, output_dir, resample_val, args.channels, args.overwrite)
 
 
 if __name__ == "__main__":
