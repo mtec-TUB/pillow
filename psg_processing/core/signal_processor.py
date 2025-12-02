@@ -7,6 +7,7 @@ from typing import Dict, List, Union
 import numpy as np
 from scipy.interpolate import interp1d
 from mne.filter import resample, filter_data
+import cupy
 
 
 class SignalProcessor:
@@ -112,6 +113,7 @@ class SignalProcessor:
                 low,
                 high if (high and high < resample_freq/2) else None,
                 method="fir",
+                n_jobs='cuda' if cupy.cuda.is_available() else -1,
                 verbose="WARNING",
             )
 
@@ -161,6 +163,7 @@ class SignalProcessor:
             up=output_rate,
             down=input_rate,
             method="polyphase",
+            n_jobs=-1,
         )
 
         return signal_resampled
