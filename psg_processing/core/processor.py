@@ -19,6 +19,82 @@ from .signal_processor import SignalProcessor
 STAGE_DICT = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "MOVE": 5, "UNK": 6}
 
 
+def _process_channel_worker(args):
+    """
+    Worker for processing a single channel. Args is a tuple:
+    (psg_fname, ann_fname, channel, data_dir, output_dir, resample,
+     dataset_name, channel_types, channel_groups, file_extensions, alias_mapping,
+     keep_folder_structure, epoch_duration, overwrite, ann_stage_events, ann_Startdatetime)
+    """
+    (
+        psg_fname,
+        ann_fname,
+        channel,
+        data_dir,
+        output_dir,
+        resample,
+        dataset_name,
+        channel_types,
+        channel_groups,
+        file_extensions,
+        alias_mapping,
+        keep_folder_structure,
+        epoch_duration,
+        overwrite,
+        ann_stage_events,
+        ann_Startdatetime,
+    ) = args
+
+    # Reconstruct dataset processor class
+    from dataset_processors.registry import get_processor
+
+    ProcessorClass = get_processor(dataset_name)
+    try:
+        ds_processor = ProcessorClass(dataset_name)
+    except Exception:
+        ds_processor = ProcessorClass()
+
+    # Inject attributes if needed
+    ds_processor.channel_types = channel_types
+    ds_processor.channel_groups = channel_groups
+    ds_processor.file_extensions = file_extensions
+    ds_processor.alias_mapping = alias_mapping
+    ds_processor.keep_folder_structure = keep_folder_structure
+
+    # Create local processor and logger
+    local_processor = DatasetProcessor(overwrite=overwrite)
+    local_processor.logger = local_processor.logging_manager.setup_logger(output_dir, local_processor.overwrite)
+
+    # Create file handler factory
+    file_factory = FileHandlerFactory(ds_processor.dataset_name)
+
+    # The handler needs to be obtained inside the worker process
+    handler = file_factory.get_handler(local_processor.logger, psg_fname)
+    if not handler:
+        local_processor.logger.warning(f"Unsupported file format: {psg_fname}")
+        return False
+
+    try:
+        ret = local_processor._process_single_channel(
+            psg_fname,
+            ann_fname,
+            channel,
+            handler,
+            data_dir,
+            output_dir,
+            resample,
+            ds_processor,
+            ann_stage_events,
+            ann_Startdatetime,
+            epoch_duration,
+        )
+    except Exception as e:
+        print(f"Error processing channel {channel} in {psg_fname}: {e}")
+        raise
+
+    return ret
+
+
 class DatasetProcessor:
     """
     Main processor for PSG dataset preparation and signal processing.
@@ -40,6 +116,7 @@ class DatasetProcessor:
         output_dir,
         resample,
         epoch_duration=30,
+        num_jobs=None,
     ):
         """
         Main function to prepare dataset files for processing.
@@ -55,12 +132,12 @@ class DatasetProcessor:
         try:
             # Set up logger and initialize components
             self.logger = self.logging_manager.setup_logger(output_dir, self.overwrite)
-            file_factory = FileHandlerFactory(dataset_processor.dataset_name)
+            file_factory = FileHandlerFactory(dataset_processor.dset_name)
 
             # Get files using dataset-specific extensions
             explorer = Dataset_Explorer(
                 self.logger,
-                dataset_processor.dataset_name,
+                dataset_processor.dset_name,
                 data_dir,
                 ann_dir,
                 **dataset_processor.file_extensions,
@@ -79,6 +156,7 @@ class DatasetProcessor:
                     dataset_processor,
                     file_factory,
                     epoch_duration,
+                    num_jobs,
                 )
 
             # Finalize processing
@@ -99,6 +177,7 @@ class DatasetProcessor:
         dataset_processor,
         file_factory,
         epoch_duration,
+        num_workers=None,
     ):
         """Process a single PSG file for all specified channels."""
 
@@ -118,25 +197,59 @@ class DatasetProcessor:
 
         # ann_stage_events = dataset_processor.check_labels(self.logger, ann_stage_events, epoch_duration)
 
-        # Process each channel for this file
-        for channel in list(
-            set(dataset_processor.channel_names) & set(handler.get_channels(psg_fname))
-        ):
-            ret = self._process_single_channel(
-                psg_fname,
-                ann_fname,
-                channel,
-                handler,
-                data_dir,
-                output_dir,
-                resample,
-                dataset_processor,
-                ann_stage_events,
-                ann_Startdatetime,
-                epoch_duration,
-            )
-            if not ret: # marks that the other channels of this file dont have to be processed because labels contain only wake (no sleep)
-                break
+        # List channels to process for this file
+        channels = list(set(dataset_processor.channel_names) & set(handler.get_channels(psg_fname)))
+
+        if num_workers and num_workers != 1:
+            # Build channel tasks for multiprocessing
+            tasks = []
+            for channel in channels:
+                tasks.append(
+                    (
+                        psg_fname,
+                        ann_fname,
+                        channel,
+                        data_dir,
+                        output_dir,
+                        resample,
+                        dataset_processor.dset_name,
+                        dataset_processor.channel_types,
+                        dataset_processor.channel_groups,
+                        dataset_processor.file_extensions,
+                        dataset_processor.alias_mapping,
+                        dataset_processor.keep_folder_structure,
+                        epoch_duration,
+                        self.overwrite,
+                        ann_stage_events,
+                        ann_Startdatetime,
+                    )
+                )
+
+            from multiprocessing import Pool
+
+            with Pool(processes=num_workers) as pool:
+                for ret in pool.imap_unordered(_process_channel_worker, tasks):
+                    if ret is False:
+                        # if a worker indicates no more channels needed, break
+                        break
+        else:
+            # Sequential per-channel processing
+            for channel in channels:
+                ret = self._process_single_channel(
+                    psg_fname,
+                    ann_fname,
+                    channel,
+                    handler,
+                    data_dir,
+                    output_dir,
+                    resample,
+                    dataset_processor,
+                    ann_stage_events,
+                    ann_Startdatetime,
+                    epoch_duration,
+                )
+                if not ret:  # marks that other channels of this file don't have to be processed
+                    break
 
     def _process_single_channel(
         self,

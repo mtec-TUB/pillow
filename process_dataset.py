@@ -79,6 +79,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=[], # all
         help="List of desired channel names to process"
     )    
+
+    parser.add_argument(
+        "--num_jobs", 
+        type=int,
+        default=1,
+        help="Number of parallel jobs to use for processing"
+    )
     
     parser.add_argument("--overwrite", action="store_true", help="Overwrite existing files")
 
@@ -147,7 +154,7 @@ def main(argv: Optional[List[str]] = None):
     print(f"Output directory: {output_dir}")
 
     # Process the dataset
-    processor.process(args.action, data_dir, ann_dir, output_dir, resample_val, args.channels, args.overwrite)
+    processor.process(args.action, data_dir, ann_dir, output_dir, resample_val, args.channels, args.num_jobs, args.overwrite)
 
 
 if __name__ == "__main__":
