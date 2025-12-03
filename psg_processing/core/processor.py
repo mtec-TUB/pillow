@@ -102,19 +102,23 @@ class DatasetProcessor:
     handling file processing, signal cleaning, and output generation.
     """
 
-    def __init__(self, overwrite=False):
+    def __init__(self, dataset, data_dir,ann_dir, output_dir,overwrite=False):
+        """ 
+        data_dir: PSG data directory
+        ann_dir: PSG Annotation directory
+        output_dir: Output directory for processed files
+        """
         self.logging_manager = LoggingManager(level=logging.INFO)
         self.logger = None
+        self.dataset = dataset
+        self.data_dir = data_dir
+        self.ann_dir = ann_dir
+        self.output_dir = output_dir
         self.overwrite = overwrite
 
     def prepare_files(
         self,
-        dataset,
-        data_dir,
-        ann_dir,
-        output_dir,
         resample,
-        *,
         epoch_duration=30,
         num_jobs=None,
     ):
@@ -123,24 +127,23 @@ class DatasetProcessor:
 
         Args:
             dataset: Instance of BaseDataset containing all dataset-specific logic
-            data_dir: PSG data directory
-            ann_dir: PSG Annotation directory
-            output_dir: Output directory for processed files
             resample: Resample frequency (given in Hz, or None)
             epoch_duration: Duration of each epoch in seconds (default: 30)
         """
+        self.resample = resample
+        self.epoch_duration = epoch_duration
         try:
             # Set up logger and initialize components
-            self.logger = self.logging_manager.setup_logger(output_dir, self.overwrite)
-            file_factory = FileHandlerFactory(dataset.dset_name)
+            self.logger = self.logging_manager.setup_logger(self.output_dir, self.overwrite)
+            self.file_factory = FileHandlerFactory(self.dataset.dset_name)
 
             # Get files using dataset-specific extensions
             explorer = Dataset_Explorer(
                 self.logger,
-                dataset.dset_name,
-                data_dir,
-                ann_dir,
-                **dataset.file_extensions,
+                self.dataset.dset_name,
+                self.data_dir,
+                self.ann_dir,
+                **self.dataset.file_extensions,
             )
             psg_fnames, ann_fnames = explorer.get_files()
 
@@ -152,12 +155,6 @@ class DatasetProcessor:
                 self._process_single_file(
                     psg_fname,
                     ann_fnames[i] if ann_fnames is not None else None,
-                    data_dir,
-                    output_dir,
-                    resample,
-                    dataset,
-                    file_factory,
-                    epoch_duration,
                     num_jobs,
                 )
 
@@ -169,39 +166,33 @@ class DatasetProcessor:
             self.logging_manager.cleanup_file_handlers(self.logger)
             self.logger.info("Stopped processing")
 
-    # def _check_file_matching(self, psg_fname, ann_fname):
-    #     """Check if PSG and annotation files match."""
-    #     psg_base = os.path.splitext(os.path.basename(psg_fname))[0]
-    #     ann_base = os.path.splitext(os.path.basename(ann_fname))[0]
+    def _check_file_matching(self, psg_fname, ann_fname):
+        """Check if PSG and annotation files match."""
+        psg_base = os.path.splitext(os.path.basename(psg_fname))[0]
+        ann_base = os.path.splitext(os.path.basename(ann_fname))[0]
 
-    #     if psg_base != ann_base:
-    #         self.logger.warning(
-    #             f"PSG file and annotation file do not match:\n  PSG: {psg_base}\n  ANN: {ann_base}"
-    #         )
+        if psg_base != ann_base:
+            self.logger.warning(
+                f"PSG file and annotation file do not match:\n  PSG: {psg_base}\n  ANN: {ann_base}"
+            )
 
     def _process_single_file(
         self,
         psg_fname,
         ann_fname,
-        data_dir,
-        output_dir,
-        resample,
-        dataset,
-        file_factory,
-        epoch_duration,
         num_workers=None,
     ):
         """Process a single PSG file for all specified channels."""
 
         # Get file handler and validate format
-        handler = file_factory.get_handler(self.logger, psg_fname)
+        handler = self.file_factory.get_handler(self.logger, psg_fname)
         if not handler:
             self.logger.warning(f"Unsupported file format: {psg_fname}")
             return
 
         # Load annotations before (same for all channels)
-        ann_stage_events, ann_Startdatetime = dataset.ann_parse(
-            ann_fname, epoch_duration
+        ann_stage_events, ann_Startdatetime = self.dataset.ann_parse(
+            ann_fname, self.epoch_duration
         )
 
         if ann_stage_events == []:
@@ -210,7 +201,7 @@ class DatasetProcessor:
         # ann_stage_events = dataset.check_labels(self.logger, ann_stage_events, epoch_duration)
 
         # List channels to process for this file
-        channels = list(set(dataset.channel_names) & set(handler.get_channels(psg_fname)))
+        channels = list(set(self.dataset.channel_names) & set(handler.get_channels(psg_fname)))
 
         if num_workers and num_workers != 1:
             # Build channel tasks for multiprocessing
@@ -221,8 +212,8 @@ class DatasetProcessor:
                         psg_fname,
                         ann_fname,
                         channel,
-                        data_dir,
-                        output_dir,
+                        self.data_dir,
+                        self.output_dir,
                         resample,
                         dataset.dset_name,
                         dataset.channel_types,
@@ -252,13 +243,8 @@ class DatasetProcessor:
                     ann_fname,
                     channel,
                     handler,
-                    data_dir,
-                    output_dir,
-                    resample,
-                    dataset,
                     ann_stage_events,
                     ann_Startdatetime,
-                    epoch_duration,
                 )
                 if not ret:  # marks that other channels of this file don't have to be processed
                     break
@@ -269,38 +255,31 @@ class DatasetProcessor:
         ann_fname,
         channel,
         handler,
-        data_dir,
-        output_dir,
-        resample,
-        dataset,
         ann_stage_events,
         ann_Startdatetime,
-        epoch_duration,
     ):
         """Process a single channel from a single file."""
 
         # Setup channel processing environment
-        output_dir, filename = self._setup_channel_output(
-            dataset.keep_folder_structure,
+        filename = self._setup_channel_output(
+            self.dataset.keep_folder_structure,
             channel,
             psg_fname,
-            data_dir,
-            output_dir,
-            dataset.alias_mapping,
+            self.dataset.alias_mapping,
         )
 
         # Skip if file already exists
-        if not self.overwrite and self._output_file_exists(output_dir, filename):
+        if not self.overwrite and self._output_file_exists(filename):
             return True
 
         # Setup logging for this channel
-        self.logging_manager.setup_channel_file_logging(self.logger, output_dir)
+        self.logging_manager.setup_channel_file_logging(self.logger, self.output_dir)
 
-        self.logger.info(f"Signal file: {Path(psg_fname).relative_to(data_dir)}")
+        self.logger.info(f"Signal file: {Path(psg_fname).relative_to(self.data_dir)}")
 
         # Extract and process signal
         signal_data = self._extract_signal_data(
-            handler, psg_fname, channel, epoch_duration
+            handler, psg_fname, channel, self.epoch_duration
         )
 
         if signal_data is None:
@@ -328,7 +307,7 @@ class DatasetProcessor:
                 )
 
                 # Shorten signal if annotations start later or align front to first common epoch if annotations start before
-                ret, signal, labels = dataset.align_front(
+                ret, signal, labels = self.dataset.align_front(
                     self.logger,
                     ann_Startdatetime,
                     signal_data["psg_fname"],
@@ -349,15 +328,15 @@ class DatasetProcessor:
         # Print and log labels for every file and channel if desired
         # if self.log_labels():
         #     self._log_labels(signal_data["ann_stage_events"])
-        signal_data["ann_stage_events"] = dataset.ann_label(
-            self.logger, signal_data["ann_stage_events"], epoch_duration
+        signal_data["ann_stage_events"] = self.dataset.ann_label(
+            self.logger, signal_data["ann_stage_events"], self.epoch_duration
         )
 
         # Process the signal (resample, filter, clean)
-        ch_type = self._get_channel_type(channel, dataset.channel_types)
+        ch_type = self._get_channel_type(channel, self.dataset.channel_types)
 
         processed_data, continue_processing = self._process_signal_data(
-            signal_data, channel, ch_type, resample, dataset, epoch_duration
+            signal_data, channel, ch_type, self.resample, self.dataset, self.epoch_duration
         )
 
         if continue_processing is False:
@@ -371,7 +350,7 @@ class DatasetProcessor:
 
         # Save processed data
         self._save_processed_data(
-            signal_data, output_dir, filename, channel, epoch_duration
+            signal_data, filename, channel, self.epoch_duration
         )
 
         self.logger.info("=" * 40)
@@ -399,8 +378,6 @@ class DatasetProcessor:
         keep_folder_structure,
         channel,
         psg_fname,
-        data_dir,
-        output_dir,
         alias_mapping,
     ):
         """Setup output directory and filename for a channel."""
@@ -420,23 +397,23 @@ class DatasetProcessor:
 
         # Create output directory
         if keep_folder_structure:
-            relative_path = os.path.split(Path(psg_fname).relative_to(data_dir))[0]
+            relative_path = os.path.split(Path(psg_fname).relative_to(self.data_dir))[0]
         else:
             relative_path = ""
 
-        output_dir = os.path.join(output_dir, relative_path, "npz", ch_name_path)
-        os.makedirs(output_dir, exist_ok=True)
+        self.output_dir = os.path.join(self.output_dir, relative_path, "npz", ch_name_path)
+        os.makedirs(self.output_dir, exist_ok=True)
 
         # Generate safe file and folder name
         base_filename = os.path.splitext(os.path.basename(psg_fname))[0] + ".npz"
         ch_name_safe = re.sub(r"[^a-zA-Z0-9._\-\s]", "_", channel)
         filename = f"{ch_name_safe}_{base_filename}"
 
-        return output_dir, filename
+        return filename
 
-    def _output_file_exists(self, output_dir, filename):
+    def _output_file_exists(self, filename):
         """Check if output file already exists."""
-        full_path = os.path.join(output_dir, filename)
+        full_path = os.path.join(self.output_dir, filename)
         if os.path.exists(full_path):
             print(f"File already exists: {full_path}")
             return True
@@ -609,7 +586,7 @@ class DatasetProcessor:
         return x, y, select_idx[0]
 
     def _save_processed_data(
-        self, signal_data, output_dir, filename, channel, epoch_duration
+        self, signal_data, filename, channel, epoch_duration
     ):
         """Save processed data to file."""
 
@@ -637,7 +614,7 @@ class DatasetProcessor:
         if "unit" in signal_data:
             save_dict["unit"] = signal_data["unit"]
 
-        output_path = os.path.join(output_dir, filename)
+        output_path = os.path.join(self.output_dir, filename)
 
         np.savez(output_path, **save_dict)
         self.logger.info(f"Successfully saved: {filename}")
