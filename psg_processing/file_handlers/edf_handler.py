@@ -53,7 +53,7 @@ class EDFHandler(FileHandler):
             file_duration = psg_f.getFileDuration()
 
             ch_samples = psg_f.getNSamples()
-            self.logger.info(f"Select channel samples: {ch_samples[select_ch_idx]}")
+            logger.info(f"Select channel samples: {ch_samples[select_ch_idx]}")
             ch_freq = psg_f.getSampleFrequencies()
 
             sampling_rate = ch_freq[select_ch_idx]

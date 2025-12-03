@@ -208,7 +208,7 @@ class BaseDataset(ABC):
         if parent_dir not in sys.path:
             sys.path.insert(0, parent_dir)
 
-        self.psg_file_handler = get_handler(self.dset_name, self.file_extensions['psg_ext'])
+        self.psg_file_handler = get_handler(self.dset_name, self.file_extensions['psg_ext'])()
 
         if action == "prepare":
 
