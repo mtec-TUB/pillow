@@ -33,34 +33,3 @@ from .sof import SOF
 from .stages  import STAGES
 from .ucddb import UCDDB
 from .wsc import WSC
-
-# __all__ = [
-#     "ABC",
-#     "APOE",
-#     "APPLES",
-#     "BESTAIR",
-#     "BaseDataset",
-#     "CFS",
-#     "CPS",
-#     "DCSM",
-#     "DODH",
-#     "DODO",
-#     "DREAMT",
-#     "DatasetRegistry",
-#     "FDCSR",
-#     "HMC",
-#     "HOMEPAP",
-#     "ISRUC",
-#     "MESA",
-#     "MITBIH",
-#     "MNC",
-#     "MROS",
-#     "MSP",
-#     "Physio2018",
-#     "SHHS",
-#     "SleepEDF2018",
-#     "SOF",
-#     "WSC",
-#     "get_",
-#     "register_dataset",
-# ]
