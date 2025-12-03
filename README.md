@@ -22,10 +22,10 @@ A comprehensive, object-oriented toolkit for processing polysomnography (PSG) da
 The codebase is organized into three main components:
 
 ```
-├── dataset_processors/            # Dataset-specific logic
-│   ├── base.py                    # Abstract base class for processors
-│   ├── registry.py                # Processor registration and management
-│   └── <dataset>_processor.py     # One processor per dataset
+├── datasets/            # Dataset-specific logic
+│   ├── base.py                    # Abstract base class for dataset
+│   ├── registry.py                # Dataset registration and management
+│   └── <dataset>.py               # One file per dataset
 ├── psg_processing/                # Core modules for processing
 │   ├── core/
 │   │   ├── dataset_explorer.py    # File search & channel analysis
@@ -72,6 +72,7 @@ The main script is [`process_dataset.py`](process_dataset.py). It provides the f
 - `--data_dir`, `--ann_dir`, `--output_dir`: Optional, to manually set paths
 - `--resample`: Target sampling rate (e.g. 100) or "None"
 - `--channels`: List of channels to process
+- `--num-jobs`: Parallelization option 
 - `--overwrite`: Overwrite existing output files
 
 **Example calls:**
@@ -96,7 +97,7 @@ The following file types can be handled to extract the signal from (see [file_ha
 These formats require dataset-specific handling due to varying structures (Each dataset requires its own CSV handler, e.g., `DreamtCSVHandler` for DREAMT dataset):
 - **CSV** (Comma-Separated Values) - `.csv`
 
-For the annotation files there is no common handler because most datasets have a unique annotation saving format. The base parsing strategy can be found in [base.py](/dataset_processors/base.py) ann_parse() function, and can be overwritten individually for each dataset processor in [dataset_processors](/dataset_processors/). 
+For the annotation files there is no common handler because most datasets have a unique annotation saving format. The base parsing strategy can be found in [base.py](/datasets/base.py) ann_parse() function, and can be overwritten individually for each dataset in [datasets](/datasets/). 
 
 ---
 
@@ -112,7 +113,7 @@ These steps will be performed to process the polysomnography datasets (see [proc
 - the signal is extracted from the file using the file handler
 - the signal is truncated to whole epochs
 - if resampling condition is not None (e.g.resample is 100):
-    - type of the channel (digital/discrete or analog/continuos) is taken from dataset_processor (can be determined with get_channel_types for new datasets)  
+    - type of the channel (digital/discrete or analog/continuos) is taken from dataset (can be determined with get_channel_types for new datasets)  
     - digital channels are resampled with a nearest neighbour interpolation and analog continous channels with polyphase filtering (mse.filter), where clipped values will be preserved to keep similarity or original data
     - signal is filtered based on AASM recomendation (e.g. EEG and EOG with 0.3-35Hz bandpass)
 - the signal is reshaped to [num_epochs, epoch_dur * fs]
@@ -154,10 +155,10 @@ If there is a second annotation entry called **y2**, this results from a second 
 
 ## **Adding New Datasets**
 
-1. **Create a new processor:**
-    - Add a file `dataset_processors/<your_dataset>_processor.py`.
-    - Inherit from [`BaseDatasetProcessor`](dataset_processors/base.py) and implement the methods `_setup_dataset_config` (specify file extensions as this is the only known property in the beginning), `ann_parse`, optionally `preprocess` (see [FDCSR dataset](/dataset_processors/fdcsr_processor.py)) and `dataset_paths`.
-    - to register the processor use the decorator `@register_dataset("YOURNAME")`.
+1. **Create a new dataset descriptive file:**
+    - Add a file `datasets/<your_dataset>.py`.
+    - Inherit from [`BaseDataset`](datasets/base.py) and implement the methods `_setup_dataset_config` (specify file extensions as this is the only known property in the beginning), `ann_parse`, optionally `preprocess` (see [FDCSR dataset](/datasets/fdcsr.py)) and `dataset_paths`.
+    - to register the dataset use the decorator `@register_dataset("YOURNAME")`.
     - Check if the polysomnography file extension is already covered by one of the [file_handlers](/psg_processing/file_handlers/):
         - **For standardized formats** (EDF, H5, WFDB): Use existing generic handlers
         - **For CSV files**: Create a dataset-specific handler (e.g., `your_dataset_csv_handler.py`) since CSV structures vary significantly between datasets
@@ -174,7 +175,7 @@ If there is a second annotation entry called **y2**, this results from a second 
     ```
     - Channels like 'Oxygen saturation', 'Light' or 'Position' are mostly digital, while EEG, ECG and EMG channels should be analog. Check the results manually to prevent wrong processing.
 3. **Define all pending dataset properties:**
-    - In `_setup_dataset_config`, specify channel names, channel types, channel groups and optional alias_mappings (can be used if many different channel names appear that seem to belong all to the same channel, see [BESTAIR dataset](/dataset_processors/bestair_processor.py))
+    - In `_setup_dataset_config`, specify channel names, channel types, channel groups and optional alias_mappings (can be used if many different channel names appear that seem to belong all to the same channel, see [BESTAIR dataset](/datasets/bestair.py))
 4. **Perform processing:**
     - see [Running the Processing Pipeline](#running-the-processing-pipeline)
 

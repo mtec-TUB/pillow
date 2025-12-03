@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unified dataset processor for sleep datasets.
+Unified dataset processing for sleep datasets.
 This replaces all individual prepare_*.py scripts.
 """
 import os
@@ -12,7 +12,7 @@ from pathlib import Path
 # Add the current directory to the Python path
 sys.path.append(str(Path(__file__).parent))
 
-from dataset_processors import get_processor, DatasetRegistry
+from datasets import get_dataset, DatasetRegistry
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -104,14 +104,14 @@ def _parse_resample(val: str):
         return None
     return val
 
-def _resolve_paths(processor, base_data_dir: str, data_dir: str | None, ann_dir: str | None, output_dir: str | None, resample_val):
+def _resolve_paths(dataset, base_data_dir: str, data_dir: str | None, ann_dir: str | None, output_dir: str | None, resample_val):
     """Return resolved (data_dir, ann_dir, output_dir).
 
     - If data_dir or ann_dir not provided, use proc.dataset_paths() and join with base_data_dir.
     - If output_dir not provided, construct under base_data_dir using dataset_name and resample info.
     """
-    # Start from processor-provided relative paths
-    rel_data_dir, rel_ann_dir = processor.dataset_paths()
+    # Start from dataset-provided relative paths
+    rel_data_dir, rel_ann_dir = dataset.dataset_paths()
 
     data_dir_resolved = data_dir if data_dir else os.path.join(base_data_dir, rel_data_dir)
     ann_dir_resolved = ann_dir if ann_dir else os.path.join(base_data_dir, rel_ann_dir)
@@ -119,7 +119,7 @@ def _resolve_paths(processor, base_data_dir: str, data_dir: str | None, ann_dir:
     if output_dir:
         output_dir_resolved = os.path.join(
             output_dir,
-            f"{processor.dset_name}_harmonized",
+            f"{dataset.dset_name}_harmonized",
             res_label,
         )
     else:
@@ -127,8 +127,8 @@ def _resolve_paths(processor, base_data_dir: str, data_dir: str | None, ann_dir:
         res_label = "orig" if resample_val is None else f"{resample_val}Hz_filt"
         output_dir_resolved = os.path.join(
             base_data_dir,
-            processor.dataset_name,
-            f"{processor.dset_name}_harmonized",
+            dataset.dataset_name,
+            f"{dataset.dset_name}_harmonized",
             res_label,
         )
 
@@ -138,15 +138,14 @@ def _resolve_paths(processor, base_data_dir: str, data_dir: str | None, ann_dir:
 def main(argv: Optional[List[str]] = None):
     args = parse_args(argv)
 
-    # Get the processor for this dataset
-    processor_class = get_processor(args.dataset)
-    processor = processor_class()
+    # Get the dataset
+    dataset = get_dataset(args.dataset)
+    dataset = dataset()
 
-    print(f"Processing dataset: {processor.dset_name}")
-
+    print(f"Processing dataset: {dataset.dset_name}")
     resample_val = _parse_resample(args.resample)
     data_dir, ann_dir, output_dir = _resolve_paths(
-        processor, args.base_data_dir, args.data_dir, args.ann_dir, args.output_dir, resample_val
+        dataset, args.base_data_dir, args.data_dir, args.ann_dir, args.output_dir, resample_val
     )
 
     print(f"Data directory: {data_dir}")
@@ -154,7 +153,7 @@ def main(argv: Optional[List[str]] = None):
     print(f"Output directory: {output_dir}")
 
     # Process the dataset
-    processor.process(args.action, data_dir, ann_dir, output_dir, resample_val, args.channels, args.num_jobs, args.overwrite)
+    dataset.process(args.action, data_dir, ann_dir, output_dir, resample_val, args.channels, args.num_jobs, args.overwrite)
 
 
 if __name__ == "__main__":

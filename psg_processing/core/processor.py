@@ -5,7 +5,7 @@ Main dataset processor for PSG data preparation.
 import logging
 import os
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from decimal import Decimal
 import numpy as np
@@ -46,27 +46,26 @@ def _process_channel_worker(args):
     ) = args
 
     # Reconstruct dataset processor class
-    from dataset_processors.registry import get_processor
+    from datasets.registry import get_dataset
 
-    ProcessorClass = get_processor(dataset_name)
+    Dataset = get_dataset(dataset_name)
     try:
-        ds_processor = ProcessorClass(dataset_name)
+        dataset= Dataset(dataset_name)
     except Exception:
-        ds_processor = ProcessorClass()
+        dataset = Dataset()
 
     # Inject attributes if needed
-    ds_processor.channel_types = channel_types
-    ds_processor.channel_groups = channel_groups
-    ds_processor.file_extensions = file_extensions
-    ds_processor.alias_mapping = alias_mapping
-    ds_processor.keep_folder_structure = keep_folder_structure
-
+    dataset.channel_types = channel_types
+    dataset.channel_groups = channel_groups
+    dataset.file_extensions = file_extensions
+    dataset.alias_mapping = alias_mapping
+    dataset.keep_folder_structure = keep_folder_structure
     # Create local processor and logger
     local_processor = DatasetProcessor(overwrite=overwrite)
     local_processor.logger = local_processor.logging_manager.setup_logger(output_dir, local_processor.overwrite)
 
     # Create file handler factory
-    file_factory = FileHandlerFactory(ds_processor.dataset_name)
+    file_factory = FileHandlerFactory(dataset.dataset_name)
 
     # The handler needs to be obtained inside the worker process
     handler = file_factory.get_handler(local_processor.logger, psg_fname)
@@ -83,7 +82,7 @@ def _process_channel_worker(args):
             data_dir,
             output_dir,
             resample,
-            ds_processor,
+            dataset,
             ann_stage_events,
             ann_Startdatetime,
             epoch_duration,
@@ -110,11 +109,12 @@ class DatasetProcessor:
 
     def prepare_files(
         self,
-        dataset_processor,
+        dataset,
         data_dir,
         ann_dir,
         output_dir,
         resample,
+        *,
         epoch_duration=30,
         num_jobs=None,
     ):
@@ -122,7 +122,7 @@ class DatasetProcessor:
         Main function to prepare dataset files for processing.
 
         Args:
-            dataset_processor: Instance of BaseDatasetProcessor containing all dataset-specific logic
+            dataset: Instance of BaseDataset containing all dataset-specific logic
             data_dir: PSG data directory
             ann_dir: PSG Annotation directory
             output_dir: Output directory for processed files
@@ -132,28 +132,30 @@ class DatasetProcessor:
         try:
             # Set up logger and initialize components
             self.logger = self.logging_manager.setup_logger(output_dir, self.overwrite)
-            file_factory = FileHandlerFactory(dataset_processor.dset_name)
+            file_factory = FileHandlerFactory(dataset.dset_name)
 
             # Get files using dataset-specific extensions
             explorer = Dataset_Explorer(
                 self.logger,
-                dataset_processor.dset_name,
+                dataset.dset_name,
                 data_dir,
                 ann_dir,
-                **dataset_processor.file_extensions,
+                **dataset.file_extensions,
             )
             psg_fnames, ann_fnames = explorer.get_files()
 
             # Process each file
             for i, psg_fname in enumerate(psg_fnames):
                 print(f"\n--- Processing file {i+1}/{len(psg_fnames)} ---")
+                # if ann_fnames:
+                #     self._check_file_matching(psg_fname, ann_fnames[i], allow_missing)
                 self._process_single_file(
                     psg_fname,
                     ann_fnames[i] if ann_fnames is not None else None,
                     data_dir,
                     output_dir,
                     resample,
-                    dataset_processor,
+                    dataset,
                     file_factory,
                     epoch_duration,
                     num_jobs,
@@ -167,6 +169,16 @@ class DatasetProcessor:
             self.logging_manager.cleanup_file_handlers(self.logger)
             self.logger.info("Stopped processing")
 
+    # def _check_file_matching(self, psg_fname, ann_fname):
+    #     """Check if PSG and annotation files match."""
+    #     psg_base = os.path.splitext(os.path.basename(psg_fname))[0]
+    #     ann_base = os.path.splitext(os.path.basename(ann_fname))[0]
+
+    #     if psg_base != ann_base:
+    #         self.logger.warning(
+    #             f"PSG file and annotation file do not match:\n  PSG: {psg_base}\n  ANN: {ann_base}"
+    #         )
+
     def _process_single_file(
         self,
         psg_fname,
@@ -174,7 +186,7 @@ class DatasetProcessor:
         data_dir,
         output_dir,
         resample,
-        dataset_processor,
+        dataset,
         file_factory,
         epoch_duration,
         num_workers=None,
@@ -188,17 +200,17 @@ class DatasetProcessor:
             return
 
         # Load annotations before (same for all channels)
-        ann_stage_events, ann_Startdatetime = dataset_processor.ann_parse(
+        ann_stage_events, ann_Startdatetime = dataset.ann_parse(
             ann_fname, epoch_duration
         )
 
         if ann_stage_events == []:
             return
 
-        # ann_stage_events = dataset_processor.check_labels(self.logger, ann_stage_events, epoch_duration)
+        # ann_stage_events = dataset.check_labels(self.logger, ann_stage_events, epoch_duration)
 
         # List channels to process for this file
-        channels = list(set(dataset_processor.channel_names) & set(handler.get_channels(psg_fname)))
+        channels = list(set(dataset.channel_names) & set(handler.get_channels(psg_fname)))
 
         if num_workers and num_workers != 1:
             # Build channel tasks for multiprocessing
@@ -212,12 +224,12 @@ class DatasetProcessor:
                         data_dir,
                         output_dir,
                         resample,
-                        dataset_processor.dset_name,
-                        dataset_processor.channel_types,
-                        dataset_processor.channel_groups,
-                        dataset_processor.file_extensions,
-                        dataset_processor.alias_mapping,
-                        dataset_processor.keep_folder_structure,
+                        dataset.dset_name,
+                        dataset.channel_types,
+                        dataset.channel_groups,
+                        dataset.file_extensions,
+                        dataset.alias_mapping,
+                        dataset.keep_folder_structure,
                         epoch_duration,
                         self.overwrite,
                         ann_stage_events,
@@ -243,7 +255,7 @@ class DatasetProcessor:
                     data_dir,
                     output_dir,
                     resample,
-                    dataset_processor,
+                    dataset,
                     ann_stage_events,
                     ann_Startdatetime,
                     epoch_duration,
@@ -260,7 +272,7 @@ class DatasetProcessor:
         data_dir,
         output_dir,
         resample,
-        dataset_processor,
+        dataset,
         ann_stage_events,
         ann_Startdatetime,
         epoch_duration,
@@ -269,12 +281,12 @@ class DatasetProcessor:
 
         # Setup channel processing environment
         output_dir, filename = self._setup_channel_output(
-            dataset_processor.keep_folder_structure,
+            dataset.keep_folder_structure,
             channel,
             psg_fname,
             data_dir,
             output_dir,
-            dataset_processor.alias_mapping,
+            dataset.alias_mapping,
         )
 
         # Skip if file already exists
@@ -316,7 +328,7 @@ class DatasetProcessor:
                 )
 
                 # Shorten signal if annotations start later or align front to first common epoch if annotations start before
-                ret, signal, labels = dataset_processor.align_front(
+                ret, signal, labels = dataset.align_front(
                     self.logger,
                     ann_Startdatetime,
                     signal_data["psg_fname"],
@@ -337,15 +349,15 @@ class DatasetProcessor:
         # Print and log labels for every file and channel if desired
         # if self.log_labels():
         #     self._log_labels(signal_data["ann_stage_events"])
-        signal_data["ann_stage_events"] = dataset_processor.ann_label(
+        signal_data["ann_stage_events"] = dataset.ann_label(
             self.logger, signal_data["ann_stage_events"], epoch_duration
         )
 
         # Process the signal (resample, filter, clean)
-        ch_type = self._get_channel_type(channel, dataset_processor.channel_types)
+        ch_type = self._get_channel_type(channel, dataset.channel_types)
 
         processed_data, continue_processing = self._process_signal_data(
-            signal_data, channel, ch_type, resample, dataset_processor, epoch_duration
+            signal_data, channel, ch_type, resample, dataset, epoch_duration
         )
 
         if continue_processing is False:
@@ -450,7 +462,7 @@ class DatasetProcessor:
         channel,
         ch_type,
         resample_freq,
-        dataset_processor,
+        dataset,
         epoch_duration,
     ):
         """Process signal data through the complete pipeline."""
@@ -472,7 +484,7 @@ class DatasetProcessor:
                 signal,
                 channel,
                 ch_type,
-                dataset_processor.channel_groups,
+                dataset.channel_groups,
                 sampling_rate,
                 resample_freq,
             )
@@ -501,7 +513,7 @@ class DatasetProcessor:
 
         if resample_freq != "None":
             # Align labels (some datasets have different length of signal and annotation data)
-            signals, labels = dataset_processor.align_end(
+            signals, labels = dataset.align_end(
                 self.logger,
                 signal_data["psg_fname"],
                 signal_data["ann_fname"],
