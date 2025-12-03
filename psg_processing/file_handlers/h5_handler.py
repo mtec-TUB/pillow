@@ -21,7 +21,7 @@ class H5Handler(FileHandler):
         if isinstance(obj, h5py.Dataset):
             dataset.append((name, obj[:]))
 
-    def get_channels(self, filepath):
+    def get_channels(self, logger, filepath):
         """Extract channel names from H5 files."""
         try:
             with h5py.File(filepath, "r") as f:
@@ -31,10 +31,10 @@ class H5Handler(FileHandler):
                 )
                 return [data[0] for data in dataset]
         except Exception as e:
-            self.logger.error(f"Error reading H5 file {filepath}: {e}")
+            logger.error(f"Error reading H5 file {filepath}: {e}")
             return []
 
-    def read_signal(self, filepath, channel):
+    def read_signal(self, logger, filepath, channel):
         """Read signal from H5 file for specific channel."""
         try:
             with h5py.File(filepath, "r") as f:
@@ -47,10 +47,10 @@ class H5Handler(FileHandler):
                     select_ch_idx = signal_labels.index(channel)
                     return dataset[select_ch_idx][1]
         except Exception as e:
-            self.logger.error(f"Error reading H5 signal from {filepath}: {e}")
+            logger.error(f"Error reading H5 signal from {filepath}: {e}")
         return None
 
-    def get_signal_data(self, filepath, epoch_duration, channel):
+    def get_signal_data(self, logger, filepath, epoch_duration, channel):
         """Get complete H5 signal information for processing."""
         # DOD-O and DOD-H -specific sampling rate
         sampling_rate = 250
@@ -68,10 +68,10 @@ class H5Handler(FileHandler):
                     return None
 
                 select_ch_idx = ch_names.index(channel)
-                self.logger.info(f"Channel selected: {channel}")
+                logger.info(f"Channel selected: {channel}")
 
                 ch_samples = [data[1].shape[0] for data in dataset]
-                self.logger.info(f"Select channel samples: {ch_samples[select_ch_idx]}")
+                logger.info(f"Select channel samples: {ch_samples[select_ch_idx]}")
                 file_duration = ch_samples[select_ch_idx] / sampling_rate
 
                 n_epoch_samples = int(epoch_duration * sampling_rate)
@@ -87,5 +87,5 @@ class H5Handler(FileHandler):
                     "file_duration": file_duration,
                 }
         except Exception as e:
-            self.logger.error(f"Error processing H5 file {filepath}: {e}")
+            logger.error(f"Error processing H5 file {filepath}: {e}")
             raise

@@ -12,7 +12,7 @@ from .base import FileHandler
 class WFDBHandler(FileHandler):
     """Handler for WFDB files."""
 
-    def get_channels(self, filepath):
+    def get_channels(self, logger, filepath):
         """Extract channel names from WFDB files."""
         try:
             psg_fname_no_ext, _ = os.path.splitext(filepath)
@@ -23,10 +23,10 @@ class WFDBHandler(FileHandler):
             #     freqs.append(fields["fs"])
             return record.sig_name #, freqs
         except Exception as e:
-            self.logger.error(f"Error reading WFDB file {filepath}: {e}")
+            logger.error(f"Error reading WFDB file {filepath}: {e}")
             return []
 
-    def read_signal(self, filepath, channel):
+    def read_signal(self, logger, filepath, channel):
         """Read signal from WFDB file for specific channel."""
         try:
             psg_fname_no_ext, _ = os.path.splitext(filepath)
@@ -37,10 +37,10 @@ class WFDBHandler(FileHandler):
                 select_ch_idx = record.sig_name.index(channel)
                 return signal[select_ch_idx]
         except Exception as e:
-            self.logger.error(f"Error reading WFDB signal from {filepath}: {e}")
+            logger.error(f"Error reading WFDB signal from {filepath}: {e}")
         return None
 
-    def get_signal_data(self, filepath, epoch_duration, channel):
+    def get_signal_data(self, logger, filepath, epoch_duration, channel):
         """Get complete WFDB signal information for processing."""
         try:
             psg_fname, _ = os.path.splitext(filepath)
@@ -48,7 +48,7 @@ class WFDBHandler(FileHandler):
             signal_labels = record.sig_name
 
             if channel not in signal_labels:
-                self.logger.info(f"Channel {channel} not found")
+                logger.info(f"Channel {channel} not found")
                 return None
             
             if record.base_datetime:
@@ -60,7 +60,7 @@ class WFDBHandler(FileHandler):
             else:
                 start_datetime = None
 
-            self.logger.info(f"Channel selected: {channel}")
+            logger.info(f"Channel selected: {channel}")
 
             records, fields = wfdb.rdsamp(psg_fname, channel_names=[channel])
             select_ch_idx = fields["sig_name"].index(channel)
@@ -68,7 +68,7 @@ class WFDBHandler(FileHandler):
             sampling_rate = fields["fs"]
             signal = records[:, select_ch_idx]
 
-            self.logger.info(f"Select channel samples: {len(signal)}")
+            logger.info(f"Select channel samples: {len(signal)}")
 
             n_epoch_samples = int(epoch_duration * sampling_rate)
             file_duration = fields["sig_len"] / sampling_rate
@@ -81,5 +81,5 @@ class WFDBHandler(FileHandler):
                 "file_duration": file_duration,
             }
         except Exception as e:
-            self.logger.error(f"Error processing WFDB file {filepath}: {e}")
+            logger.error(f"Error processing WFDB file {filepath}: {e}")
             raise

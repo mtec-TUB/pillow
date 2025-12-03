@@ -9,7 +9,7 @@ from .base import FileHandler
 class EDFHandler(FileHandler):
     """Handler for EDF files."""
 
-    def get_channels(self, filepath):
+    def get_channels(self, logger, filepath):
         """Extract channel names and frequencies from EDF files."""
         try:
             with pyedflib.EdfReader(filepath) as psg_f:
@@ -18,11 +18,11 @@ class EDFHandler(FileHandler):
                 # return labels, freqs 
                 return labels
         except Exception as e:
-            self.logger.error(f"Error processing EDF file: {e}")
-            self.logger.error("Maybe the repair_edfs.py script or EDF Browser header repairer can help.")
+            logger.error(f"Error processing EDF file: {e}")
+            logger.error("Maybe the repair_edfs.py script or EDF Browser header repairer can help.")
             raise
 
-    def read_signal(self, filepath, channel):
+    def read_signal(self, logger, filepath, channel):
         """Read signal from EDF file for specific channel."""
         try:
             with pyedflib.EdfReader(filepath) as psg_f:
@@ -31,11 +31,11 @@ class EDFHandler(FileHandler):
                     ch_idx = ch_names_file.index(channel)
                     return psg_f.readSignal(ch_idx)
         except Exception as e:
-            self.logger.error(f"Error reading EDF signal from: {e}")
-            self.logger.error("Maybe the repair_edfs.py script can help.")
+            logger.error(f"Error reading EDF signal from: {e}")
+            logger.error("Maybe the repair_edfs.py script can help.")
         return None
 
-    def get_signal_data(self, filepath, epoch_duration, channel):
+    def get_signal_data(self, logger, filepath, epoch_duration, channel):
         """Get complete EDF signal information for processing."""
         try:
             psg_f = pyedflib.EdfReader(filepath)
@@ -47,7 +47,7 @@ class EDFHandler(FileHandler):
                 return None
 
             select_ch_idx = ch_names.index(channel)
-            self.logger.info(f"Channel selected: {channel}")
+            logger.info(f"Channel selected: {channel}")
 
             start_datetime = psg_f.getStartdatetime()
             file_duration = psg_f.getFileDuration()
@@ -73,6 +73,6 @@ class EDFHandler(FileHandler):
                 "file_duration": file_duration,
             }
         except Exception as e:
-            self.logger.error(f"Error processing EDF file: {e}")
-            self.logger.error("Maybe the repair_edfs.py script or EDF Browser header repairer can help.")
+            logger.error(f"Error processing EDF file: {e}")
+            logger.error("Maybe the repair_edfs.py script or EDF Browser header repairer can help.")
             raise

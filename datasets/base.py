@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 
 from psg_processing import Dataset_Explorer, DatasetProcessor
+from psg_processing.file_handlers.factory import get_handler
 
 
 class BaseDataset(ABC):
@@ -207,6 +208,8 @@ class BaseDataset(ABC):
         if parent_dir not in sys.path:
             sys.path.insert(0, parent_dir)
 
+        self.psg_file_handler = get_handler(self.dset_name, self.file_extensions['psg_ext'])
+
         if action == "prepare":
 
             # all channels will be processed if empty list
@@ -214,26 +217,25 @@ class BaseDataset(ABC):
                 self.channel_names = channels
 
             # Initialize a new DatasetProcessor
-            processor = DatasetProcessor(overwrite=overwrite)
+            processor = DatasetProcessor(self,data_dir,ann_dir,output_dir,overwrite=overwrite)
 
             # Use the new prepare_files method with dataset-specific parameters
             processor.prepare_files(
-                self,
-                data_dir,
-                ann_dir,
-                output_dir,
                 resample,
                 epoch_duration=30,
                 num_jobs=num_jobs
             )
+
         elif action == "get_channel_names":
-            explorer = Dataset_Explorer(None, self.dset_name, data_dir, ann_dir, **self.file_extensions)
+            explorer = Dataset_Explorer(None, self.psg_file_handler, data_dir, ann_dir, **self.file_extensions)
             channels = list(explorer.get_all_channels())
             print(f"Available channels in {self.dset_name}: {(channels)}")
+
         elif action == "get_channel_types":
-            explorer = Dataset_Explorer(None, self.dset_name, data_dir, ann_dir, **self.file_extensions)
+            explorer = Dataset_Explorer(None, self.psg_file_handler, data_dir, ann_dir, **self.file_extensions)
             explorer.get_all_channels()
             channel_types = explorer.get_channel_type()
             print(f"Channel types in {self.dset_name}: {channel_types}")
+
         else:
             raise ValueError(f"Unknown action: {action}")

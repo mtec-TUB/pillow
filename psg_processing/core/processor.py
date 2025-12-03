@@ -10,7 +10,7 @@ from pathlib import Path
 from decimal import Decimal
 import numpy as np
 
-from ..file_handlers import FileHandlerFactory
+from ..file_handlers.factory import get_handler
 from ..utils.logging_manager import LoggingManager
 from .dataset_explorer import Dataset_Explorer
 from .signal_processor import SignalProcessor
@@ -19,79 +19,73 @@ from .signal_processor import SignalProcessor
 STAGE_DICT = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "MOVE": 5, "UNK": 6}
 
 
-def _process_channel_worker(args):
-    """
-    Worker for processing a single channel. Args is a tuple:
-    (psg_fname, ann_fname, channel, data_dir, output_dir, resample,
-     dataset_name, channel_types, channel_groups, file_extensions, alias_mapping,
-     keep_folder_structure, epoch_duration, overwrite, ann_stage_events, ann_Startdatetime)
-    """
-    (
-        psg_fname,
-        ann_fname,
-        channel,
-        data_dir,
-        output_dir,
-        resample,
-        dataset_name,
-        channel_types,
-        channel_groups,
-        file_extensions,
-        alias_mapping,
-        keep_folder_structure,
-        epoch_duration,
-        overwrite,
-        ann_stage_events,
-        ann_Startdatetime,
-    ) = args
+# def _process_channel_worker(args):
+#     """
+#     Worker for processing a single channel. Args is a tuple:
+#     (psg_fname, ann_fname, channel, data_dir, output_dir, resample,
+#      dataset_name, channel_types, channel_groups, file_extensions, alias_mapping,
+#      keep_folder_structure, epoch_duration, overwrite, ann_stage_events, ann_Startdatetime)
+#     """
+#     (
+#         psg_fname,
+#         ann_fname,
+#         channel,
+#         data_dir,
+#         output_dir,
+#         resample,
+#         dataset_name,
+#         channel_types,
+#         channel_groups,
+#         file_extensions,
+#         alias_mapping,
+#         keep_folder_structure,
+#         epoch_duration,
+#         overwrite,
+#         ann_stage_events,
+#         ann_Startdatetime,
+#     ) = args
 
-    # Reconstruct dataset processor class
-    from datasets.registry import get_dataset
+#     # Reconstruct dataset processor class
+#     from datasets.registry import get_dataset
 
-    Dataset = get_dataset(dataset_name)
-    try:
-        dataset= Dataset(dataset_name)
-    except Exception:
-        dataset = Dataset()
+#     Dataset = get_dataset(dataset_name)
+#     try:
+#         dataset= Dataset(dataset_name)
+#     except Exception:
+#         dataset = Dataset()
 
-    # Inject attributes if needed
-    dataset.channel_types = channel_types
-    dataset.channel_groups = channel_groups
-    dataset.file_extensions = file_extensions
-    dataset.alias_mapping = alias_mapping
-    dataset.keep_folder_structure = keep_folder_structure
-    # Create local processor and logger
-    local_processor = DatasetProcessor(overwrite=overwrite)
-    local_processor.logger = local_processor.logging_manager.setup_logger(output_dir, local_processor.overwrite)
+#     # Inject attributes if needed
+#     dataset.channel_types = channel_types
+#     dataset.channel_groups = channel_groups
+#     dataset.file_extensions = file_extensions
+#     dataset.alias_mapping = alias_mapping
+#     dataset.keep_folder_structure = keep_folder_structure
+#     # Create local processor and logger
+#     local_processor = DatasetProcessor(overwrite=overwrite)
+#     local_processor.logger = local_processor.logging_manager.setup_logger(output_dir, local_processor.overwrite)
 
-    # Create file handler factory
-    file_factory = FileHandlerFactory(dataset.dataset_name)
+#     # Create file handler factory
+#     handler = get_handler(dataset_name, file_extensions['psg_ext'])
 
-    # The handler needs to be obtained inside the worker process
-    handler = file_factory.get_handler(local_processor.logger, psg_fname)
-    if not handler:
-        local_processor.logger.warning(f"Unsupported file format: {psg_fname}")
-        return False
+#     try:
+#         ret = local_processor._process_single_channel(
+#             psg_fname,
+#             ann_fname,
+#             channel,
+#             handler,
+#             data_dir,
+#             output_dir,
+#             resample,
+#             dataset,
+#             ann_stage_events,
+#             ann_Startdatetime,
+#             epoch_duration,
+#         )
+#     except Exception as e:
+#         print(f"Error processing channel {channel} in {psg_fname}: {e}")
+#         raise
 
-    try:
-        ret = local_processor._process_single_channel(
-            psg_fname,
-            ann_fname,
-            channel,
-            handler,
-            data_dir,
-            output_dir,
-            resample,
-            dataset,
-            ann_stage_events,
-            ann_Startdatetime,
-            epoch_duration,
-        )
-    except Exception as e:
-        print(f"Error processing channel {channel} in {psg_fname}: {e}")
-        raise
-
-    return ret
+#     return ret
 
 
 class DatasetProcessor:
@@ -135,12 +129,11 @@ class DatasetProcessor:
         try:
             # Set up logger and initialize components
             self.logger = self.logging_manager.setup_logger(self.output_dir, self.overwrite)
-            self.file_factory = FileHandlerFactory(self.dataset.dset_name)
 
             # Get files using dataset-specific extensions
             explorer = Dataset_Explorer(
                 self.logger,
-                self.dataset.dset_name,
+                self.dataset.psg_file_handler,
                 self.data_dir,
                 self.ann_dir,
                 **self.dataset.file_extensions,
@@ -184,12 +177,6 @@ class DatasetProcessor:
     ):
         """Process a single PSG file for all specified channels."""
 
-        # Get file handler and validate format
-        handler = self.file_factory.get_handler(self.logger, psg_fname)
-        if not handler:
-            self.logger.warning(f"Unsupported file format: {psg_fname}")
-            return
-
         # Load annotations before (same for all channels)
         ann_stage_events, ann_Startdatetime = self.dataset.ann_parse(
             ann_fname, self.epoch_duration
@@ -201,40 +188,41 @@ class DatasetProcessor:
         # ann_stage_events = dataset.check_labels(self.logger, ann_stage_events, epoch_duration)
 
         # List channels to process for this file
-        channels = list(set(self.dataset.channel_names) & set(handler.get_channels(psg_fname)))
+        channels = list(set(self.dataset.channel_names) & set(self.dataset.psg_file_handler.get_channels(psg_fname)))
 
         if num_workers and num_workers != 1:
-            # Build channel tasks for multiprocessing
-            tasks = []
-            for channel in channels:
-                tasks.append(
-                    (
-                        psg_fname,
-                        ann_fname,
-                        channel,
-                        self.data_dir,
-                        self.output_dir,
-                        resample,
-                        dataset.dset_name,
-                        dataset.channel_types,
-                        dataset.channel_groups,
-                        dataset.file_extensions,
-                        dataset.alias_mapping,
-                        dataset.keep_folder_structure,
-                        epoch_duration,
-                        self.overwrite,
-                        ann_stage_events,
-                        ann_Startdatetime,
-                    )
-                )
+            raise NotImplementedError("Multiprocessing not implemented in this version.")
+            # # Build channel tasks for multiprocessing
+            # tasks = []
+            # for channel in channels:
+            #     tasks.append(
+            #         (
+            #             psg_fname,
+            #             ann_fname,
+            #             channel,
+            #             self.data_dir,
+            #             self.output_dir,
+            #             resample,
+            #             dataset.dset_name,
+            #             dataset.channel_types,
+            #             dataset.channel_groups,
+            #             dataset.file_extensions,
+            #             dataset.alias_mapping,
+            #             dataset.keep_folder_structure,
+            #             epoch_duration,
+            #             self.overwrite,
+            #             ann_stage_events,
+            #             ann_Startdatetime,
+            #         )
+            #     )
 
-            from multiprocessing import Pool
+            # from multiprocessing import Pool
 
-            with Pool(processes=num_workers) as pool:
-                for ret in pool.imap_unordered(_process_channel_worker, tasks):
-                    if ret is False:
-                        # if a worker indicates no more channels needed, break
-                        break
+            # with Pool(processes=num_workers) as pool:
+            #     for ret in pool.imap_unordered(_process_channel_worker, tasks):
+            #         if ret is False:
+            #             # if a worker indicates no more channels needed, break
+            #             break
         else:
             # Sequential per-channel processing
             for channel in channels:
@@ -242,7 +230,6 @@ class DatasetProcessor:
                     psg_fname,
                     ann_fname,
                     channel,
-                    handler,
                     ann_stage_events,
                     ann_Startdatetime,
                 )
@@ -254,7 +241,6 @@ class DatasetProcessor:
         psg_fname,
         ann_fname,
         channel,
-        handler,
         ann_stage_events,
         ann_Startdatetime,
     ):
@@ -278,12 +264,14 @@ class DatasetProcessor:
         self.logger.info(f"Signal file: {Path(psg_fname).relative_to(self.data_dir)}")
 
         # Extract and process signal
-        signal_data = self._extract_signal_data(
-            handler, psg_fname, channel, self.epoch_duration
-        )
+        signal_data = self.dataset.psg_file_handler.get_signal_data(psg_fname, self.epoch_duration, channel)
 
         if signal_data is None:
             return True
+
+        self.logger.info(
+            f"File duration: {signal_data['file_duration']} sec, {signal_data['file_duration']/3600:.2f} h"
+        )
 
         # Add more information to signal_data annotations
         signal_data["ann_stage_events"] = ann_stage_events
@@ -418,20 +406,6 @@ class DatasetProcessor:
             print(f"File already exists: {full_path}")
             return True
         return False
-
-    def _extract_signal_data(self, handler, psg_fname, channel, epoch_duration):
-        """Extract signal data using the appropriate handler."""
-
-        signal_data = handler.get_signal_data(psg_fname, epoch_duration, channel)
-
-        if signal_data is None:
-            return None
-
-        self.logger.info(
-            f"File duration: {signal_data['file_duration']} sec, {signal_data['file_duration']/3600:.2f} h"
-        )
-
-        return signal_data
 
     def _process_signal_data(
         self,

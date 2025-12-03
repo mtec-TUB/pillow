@@ -28,15 +28,16 @@ class Dataset_Explorer:
     def __init__(
         self,
         logger,
-        dataset_name: str,
+        psg_file_handler: object,
         data_dir: str,
         ann_dir: str,
         psg_ext: str,
         ann_ext: str,
-        ann_ext2=None,
+        ann_ext2: str = None,
         log_level=logging.INFO,
     ):
         """Initialize the Dataset_Explorer with empty containers and logger."""
+        self.psg_file_handler = psg_file_handler
         self.data_dir = data_dir
         self.ann_dir = ann_dir
         self.psg_ext = psg_ext
@@ -46,7 +47,6 @@ class Dataset_Explorer:
         self.ann_fnames = []
         self.ch_names = []
         self.get_channel_types = []
-        self.file_factory = FileHandlerFactory(dataset_name)
 
         # Setup logger with StreamHandler (console only)
         if not logger:
@@ -109,12 +109,12 @@ class Dataset_Explorer:
         self.ann_fnames = np.asarray(self.ann_fnames)
 
         # Validate that we have matching numbers of files
-        if self.ann_ext != "":
-            assert len(self.ann_fnames) == len(self.psg_fnames), (
-                f"\nAnnotation files: {len(self.ann_fnames)} "
-                f"\nPSG files: {len(self.psg_fnames)} "
-                f"\n-> Counts don't match"
-            )
+        # if self.ann_ext != "":
+        #     assert len(self.ann_fnames) == len(self.psg_fnames), (
+        #         f"\nAnnotation files: {len(self.ann_fnames)} "
+        #         f"\nPSG files: {len(self.psg_fnames)} "
+        #         f"\n-> Counts don't match"
+        #     )
 
         return self.psg_fnames, self.ann_fnames
 
@@ -135,15 +135,10 @@ class Dataset_Explorer:
 
         # Use tqdm for clean progress bar
         for psg_fname in tqdm(self.psg_fnames, desc="Processing files", unit="file"):
-            handler = self.file_factory.get_handler(self.logger, psg_fname)
-
-            if handler:
-                channels = handler.get_channels(psg_fname)
-                # for label, freq in zip(channels, freqs):
-                #     self.ch_names.add((label, float(freq)))
-                self.ch_names.update(channels)
-            else:
-                self.logger.warning(f"Unsupported file format for {psg_fname}")
+            channels = self.psg_file_handler.get_channels(psg_fname)
+            # for label, freq in zip(channels, freqs):
+            #     self.ch_names.add((label, float(freq)))
+            self.ch_names.update(channels)
 
         self.logger.info(
             f"Discovery complete! Found {len(self.ch_names)} unique channels across all files."
@@ -195,17 +190,13 @@ class Dataset_Explorer:
                 )
 
                 for psg_fname in file_progress:
-                    handler = self.file_factory.get_handler(self.logger, psg_fname)
-
-                    if not handler:
-                        continue
 
                     # Update file progress description with current file
                     file_progress.set_postfix_str(
                         f"{os.path.basename(psg_fname)[:25]}..."
                     )
 
-                    signal = handler.read_signal(psg_fname, channel)
+                    signal = self.psg_file_handler.read_signal(psg_fname, channel)
 
                     if signal is None:
                         continue  # Channel not found in this file

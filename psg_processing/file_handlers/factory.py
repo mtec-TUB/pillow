@@ -8,48 +8,44 @@ from .h5_handler import H5Handler
 from .wfdb_handler import WFDBHandler
 from .dreamt_csv_handler import DreamtCSVHandler
 
+    
+# Handler based on file extension
+handlers = {
+        ".mat": MATHandler,
+        ".rec": EDFHandler,
+        ".edf": EDFHandler,
+        ".h5": H5Handler,
+        ".hea": WFDBHandler,
+    }
+# Dataset-specific CSV handlers
+csv_handlers = {
+        "DREAMT": DreamtCSVHandler,
+        # Future: "OTHER_DATASET": OtherCSVHandler,
+    }
 
-class FileHandlerFactory:
-    """Factory class to get the appropriate file handler."""
 
-    def __init__(self, dataset_name=None):
-        self.dataset_name = dataset_name
-        self.handlers = {
-            ".mat": MATHandler,
-            ".rec": EDFHandler,
-            ".edf": EDFHandler,
-            ".h5": H5Handler,
-            ".hea": WFDBHandler,
-        }
+def get_handler(self, dataset_name, psg_ext):
+    """
+    Get the appropriate handler for a file based on its extension and dataset context.
+    
+    Args:
+        filepath: Path to the file to determine handler for
         
-        # Dataset-specific CSV handlers
-        self.csv_handlers = {
-            "DREAMT": DreamtCSVHandler,
-            # Future: "OTHER_DATASET": OtherCSVHandler,
-        }
-
-    def get_handler(self, logger, filepath):
-        """
-        Get the appropriate handler for a file based on its extension and dataset context.
-        
-        Args:
-            logger: Logger instance to pass to the handler
-            filepath: Path to the file to determine handler for
-            
-        Returns:
-            FileHandler instance or None if no handler supports the file
-        """
-        filepath_lower = filepath.lower()
-        
-        # Handle CSV files with dataset-specific logic
-        if ".csv" in filepath_lower:
-            if self.dataset_name and self.dataset_name in self.csv_handlers:
-                handler_class = self.csv_handlers[self.dataset_name]
-                return handler_class(logger)
-            return None  # No appropriate CSV handler found
-        
-        # Handle other file types
-        for ext, handler_class in self.handlers.items():
-            if ext in filepath_lower:
-                return handler_class(logger)
-        return None
+    Returns:
+        FileHandler instance or None if no handler supports the file
+    """
+    psg_ext_lower = psg_ext.lower()
+    
+    # Handle CSV files with dataset-specific logic
+    if psg_ext_lower == ".csv":
+        if dataset_name and dataset_name in csv_handlers:
+            handler_class = csv_handlers[dataset_name]
+            return handler_class
+        print(f"No CSV handler found for dataset: {dataset_name}")
+        return None  # No appropriate CSV handler found
+    
+    # Handle other file types
+    if psg_ext_lower in handlers:
+        return handlers[psg_ext_lower]
+    print(f"No handler found for file extension: {psg_ext_lower}")
+    return None
