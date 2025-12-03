@@ -89,6 +89,8 @@ def build_parser() -> argparse.ArgumentParser:
     
     parser.add_argument("--overwrite", action="store_true", help="Overwrite existing files")
 
+    parser.add_argument("--allow_missing", action="store_true", help="Allow missing psg or annotation files during processing")
+
     return parser
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -153,7 +155,7 @@ def main(argv: Optional[List[str]] = None):
     print(f"Output directory: {output_dir}")
 
     # Process the dataset
-    dataset.process(args.action, data_dir, ann_dir, output_dir, resample_val, args.channels, args.num_jobs, args.overwrite)
+    dataset.process(args.action, data_dir, ann_dir, output_dir, resample_val, args.channels, args.num_jobs, args.overwrite, args.allow_missing)
 
 
 if __name__ == "__main__":

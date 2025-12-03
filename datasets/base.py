@@ -49,6 +49,11 @@ class BaseDataset(ABC):
         """
         pass
 
+    def get_file_identifier(self, psg_fname, ann_fname):
+        psg_ext = self.file_extensions['psg_ext'].split('*')[-1]
+        ann_ext = self.file_extensions['ann_ext'].split('*')[-1]
+        return psg_fname.split(psg_ext)[0], ann_fname.split(ann_ext)[0]
+
     def dataset_paths(self) -> List[str]:
         """
         The folder paths where this dataset is stored.
@@ -193,7 +198,7 @@ class BaseDataset(ABC):
         """
         pass
 
-    def process(self, action, data_dir, ann_dir, output_dir, resample, channels, num_jobs, overwrite):
+    def process(self, action, data_dir, ann_dir, output_dir, resample, channels, num_jobs, overwrite, allow_missing):
         """
         Main processing entry point.
         This calls the prepare_files function with dataset-specific parameters.
@@ -217,13 +222,15 @@ class BaseDataset(ABC):
                 self.channel_names = channels
 
             # Initialize a new DatasetProcessor
-            processor = DatasetProcessor(self,data_dir,ann_dir,output_dir,overwrite=overwrite)
+            processor = DatasetProcessor(self,data_dir,ann_dir,output_dir)
 
             # Use the new prepare_files method with dataset-specific parameters
             processor.prepare_files(
                 resample,
                 epoch_duration=30,
-                num_jobs=num_jobs
+                num_jobs=num_jobs,
+                overwrite=overwrite,
+                allow_missing=allow_missing
             )
 
         elif action == "get_channel_names":

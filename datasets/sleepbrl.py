@@ -40,8 +40,9 @@ class SLEEPBRL(BaseDataset):
         
         self.file_extensions = {
             'psg_ext': '*.edf',
-            'ann_ext': '*.atr'
+            'ann_ext': '*.edf.atr'
         }
+
     
     def dataset_paths(self) -> Tuple[str, str]:
         """

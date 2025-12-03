@@ -95,7 +95,7 @@ class DatasetProcessor:
     handling file processing, signal cleaning, and output generation.
     """
 
-    def __init__(self, dataset, data_dir,ann_dir, output_dir,overwrite=False):
+    def __init__(self, dataset, data_dir,ann_dir, output_dir,):
         """ 
         data_dir: PSG data directory
         ann_dir: PSG Annotation directory
@@ -107,13 +107,15 @@ class DatasetProcessor:
         self.data_dir = data_dir
         self.ann_dir = ann_dir
         self.output_dir = output_dir
-        self.overwrite = overwrite
+        
 
     def prepare_files(
         self,
         resample,
         epoch_duration=30,
         num_jobs=None,
+        overwrite=False,
+        allow_missing=False,
     ):
         """
         Main function to prepare dataset files for processing.
@@ -125,6 +127,7 @@ class DatasetProcessor:
         """
         self.resample = resample
         self.epoch_duration = epoch_duration
+        self.overwrite = overwrite
         try:
             # Set up logger and initialize components
             self.logger = self.logging_manager.setup_logger(self.output_dir, self.overwrite)
@@ -137,16 +140,26 @@ class DatasetProcessor:
                 self.ann_dir,
                 **self.dataset.file_extensions,
             )
-            psg_fnames, ann_fnames = explorer.get_files()
+            psg_fnames, ann_fnames = explorer.get_files(allow_missing)
 
             # Process each file
-            for i, psg_fname in enumerate(psg_fnames):
-                print(f"\n--- Processing file {i+1}/{len(psg_fnames)} ---")
-                # if ann_fnames:
-                #     self._check_file_matching(psg_fname, ann_fnames[i], allow_missing)
+            ann_idx = 0
+            for psg_idx, psg_fname in enumerate(psg_fnames):
+                print(f"\n--- Processing file {psg_idx+1}/{len(psg_fnames)} ---")
+                if ann_fnames is not None:
+                    ann_fname, ann_idx = self._find_matching_annotation(
+                        psg_fname, ann_fnames, ann_idx, allow_missing
+                    )
+                    if ann_fname is None:
+                        self.logger.warning(
+                            f"No matching annotation found for PSG: "
+                            f"{Path(psg_fname).relative_to(self.data_dir)}. Skipping file."
+                        )
+                        continue
+
                 self._process_single_file(
                     psg_fname,
-                    ann_fnames[i] if ann_fnames is not None else None,
+                    ann_fname if ann_fnames is not None else None,
                     num_jobs,
                 )
 
@@ -158,14 +171,29 @@ class DatasetProcessor:
             self.logging_manager.cleanup_file_handlers(self.logger)
             self.logger.info("Stopped processing")
 
-    def _check_file_matching(self, psg_fname, ann_fname):
-        """Check if PSG and annotation files match."""
-        psg_base = os.path.splitext(os.path.basename(psg_fname))[0]
-        ann_base = os.path.splitext(os.path.basename(ann_fname))[0]
+    def _find_matching_annotation(self, psg_fname, ann_fnames, start_idx, allow_missing=False):
+        """
+        Scan annotation files from start_idx forward and return the first match.
+        Return (ann_fname, new_index).
+        If no match is found:
+            - If allow_missing=True -> return (None, start_idx)
+            - else -> raise
+        """
+        psg_base = str(Path(psg_fname).relative_to(self.data_dir))
 
-        if psg_base != ann_base:
-            self.logger.warning(
-                f"PSG file and annotation file do not match:\n  PSG: {psg_base}\n  ANN: {ann_base}"
+        for i in range(start_idx, len(ann_fnames)):
+            ann_base = str(Path(ann_fnames[i]).relative_to(self.ann_dir))
+            psg_id, ann_id = self.dataset.get_file_identifier(psg_base, ann_base)  # adapt as needed
+
+            if psg_id == ann_id:
+                return ann_fnames[i], i + 1  # move annotation pointer past this match
+
+        # No match found
+        if allow_missing:
+            return None, start_idx
+        else:
+            raise Exception(
+                f"No matching annotation found for PSG: {psg_base}"
             )
 
     def _process_single_file(
