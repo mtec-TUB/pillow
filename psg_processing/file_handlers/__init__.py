@@ -8,7 +8,6 @@ from .edf_handler import EDFHandler
 from .h5_handler import H5Handler
 from .wfdb_handler import WFDBHandler
 from .dreamt_csv_handler import DreamtCSVHandler
-from .factory import FileHandlerFactory
 
 __all__ = [
     "FileHandler",
@@ -17,5 +16,4 @@ __all__ = [
     "H5Handler",
     "DreamtCSVHandler",
     "WFDBHandler",
-    "FileHandlerFactory",
 ]

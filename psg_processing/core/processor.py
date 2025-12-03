@@ -10,7 +10,6 @@ from pathlib import Path
 from decimal import Decimal
 import numpy as np
 
-from ..file_handlers.factory import get_handler
 from ..utils.logging_manager import LoggingManager
 from .dataset_explorer import Dataset_Explorer
 from .signal_processor import SignalProcessor
@@ -188,7 +187,7 @@ class DatasetProcessor:
         # ann_stage_events = dataset.check_labels(self.logger, ann_stage_events, epoch_duration)
 
         # List channels to process for this file
-        channels = list(set(self.dataset.channel_names) & set(self.dataset.psg_file_handler.get_channels(psg_fname)))
+        channels = list(set(self.dataset.channel_names) & set(self.dataset.psg_file_handler.get_channels(self.logger,psg_fname)))
 
         if num_workers and num_workers != 1:
             raise NotImplementedError("Multiprocessing not implemented in this version.")
@@ -264,7 +263,7 @@ class DatasetProcessor:
         self.logger.info(f"Signal file: {Path(psg_fname).relative_to(self.data_dir)}")
 
         # Extract and process signal
-        signal_data = self.dataset.psg_file_handler.get_signal_data(psg_fname, self.epoch_duration, channel)
+        signal_data = self.dataset.psg_file_handler.get_signal_data(self.logger,psg_fname, self.epoch_duration, channel)
 
         if signal_data is None:
             return True

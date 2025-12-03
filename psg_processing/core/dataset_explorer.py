@@ -10,7 +10,6 @@ from tqdm import tqdm
 from natsort import natsorted
 import logging
 
-from ..file_handlers import FileHandlerFactory
 from ..utils.logging_manager import LoggingManager
 
 # Amplitude resolution threshold (2^7)

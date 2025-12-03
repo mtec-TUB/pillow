@@ -11,11 +11,11 @@ from .dreamt_csv_handler import DreamtCSVHandler
     
 # Handler based on file extension
 handlers = {
-        ".mat": MATHandler,
-        ".rec": EDFHandler,
-        ".edf": EDFHandler,
-        ".h5": H5Handler,
-        ".hea": WFDBHandler,
+        "mat": MATHandler,
+        "rec": EDFHandler,
+        "edf": EDFHandler,
+        "h5": H5Handler,
+        "hea": WFDBHandler,
     }
 # Dataset-specific CSV handlers
 csv_handlers = {
@@ -24,7 +24,7 @@ csv_handlers = {
     }
 
 
-def get_handler(self, dataset_name, psg_ext):
+def get_handler(dataset_name, psg_ext):
     """
     Get the appropriate handler for a file based on its extension and dataset context.
     
@@ -34,18 +34,16 @@ def get_handler(self, dataset_name, psg_ext):
     Returns:
         FileHandler instance or None if no handler supports the file
     """
-    psg_ext_lower = psg_ext.lower()
+    psg_ext_lower = psg_ext.lower().split('.')[-1]
     
     # Handle CSV files with dataset-specific logic
-    if psg_ext_lower == ".csv":
+    if psg_ext_lower == "csv":
         if dataset_name and dataset_name in csv_handlers:
             handler_class = csv_handlers[dataset_name]
             return handler_class
-        print(f"No CSV handler found for dataset: {dataset_name}")
-        return None  # No appropriate CSV handler found
+        raise ValueError(f"No CSV handler found for dataset: {dataset_name}")
     
     # Handle other file types
     if psg_ext_lower in handlers:
         return handlers[psg_ext_lower]
-    print(f"No handler found for file extension: {psg_ext_lower}")
-    return None
+    raise ValueError(f"No handler found for file extension: {psg_ext_lower}")

@@ -12,7 +12,6 @@ from .file_handlers import (
     H5Handler,
     DreamtCSVHandler,
     WFDBHandler,
-    FileHandlerFactory,
 )
 from .core import Dataset_Explorer, DatasetProcessor, SignalProcessor
 from .utils import LoggingManager
@@ -27,7 +26,6 @@ __all__ = [
     "H5Handler",
     "DreamtCSVHandler",
     "WFDBHandler",
-    "FileHandlerFactory",
     # Core Processing
     "Dataset_Explorer",
     "DatasetProcessor",
