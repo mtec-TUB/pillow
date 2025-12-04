@@ -49,8 +49,8 @@ class UCDDB(BaseDataset):
         }
         
         self.file_extensions = {
-            'psg_ext': '**/*.rec',
-            'ann_ext': '**/*stage.txt'
+            'psg_ext': '*.rec',
+            'ann_ext': '*_stage.txt'
         }
     
     def dataset_paths(self) -> Tuple[str, str]:

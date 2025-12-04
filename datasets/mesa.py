@@ -18,14 +18,6 @@ class MESA(BaseDataset):
             "Stage 4 sleep": 3, # Follow AASM Manual
             "REM sleep": 4,
             "Unscored": 6,
-            # "Movement": 5,
-            # '0': 0,  # Wake
-            # '1': 1,  # Stage 1
-            # '2': 2,  # Stage 2  
-            # '3': 3,  # Stage 3
-            # '4': 3,  # Stage 4 -> Stage 3 (AASM)
-            # '5': 4,  # REM
-            # '9': 6   # Unscored
         }
         
 
@@ -51,5 +43,5 @@ class MESA(BaseDataset):
         
         self.file_extensions = {
             'psg_ext': '*.edf',
-            'ann_ext': '*.xml'
+            'ann_ext': '*-nsrr.xml'
         }

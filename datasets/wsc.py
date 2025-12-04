@@ -64,9 +64,22 @@ class WSC(BaseDataset):
         
         self.file_extensions = {
             'psg_ext': '*.edf',
-            'ann_ext': '*stg.txt',
-            'ann_ext2': '*allscore.txt'  # WSC has dual annotation file types
+            'ann_ext': '*.stg.txt',
+            'ann_ext2': '*.allscore.txt'  # WSC has dual annotation file types
         }
+
+    def get_file_identifier(self, psg_fname, ann_fname):
+        psg_ext = self.file_extensions['psg_ext'].split('*')[-1]
+        ann_ext = self.file_extensions['ann_ext'].split('*')[-1]
+        ann_ext2 = self.file_extensions['ann_ext2'].split('*')[-1]
+
+        psg_id = psg_fname.split(psg_ext)[0]
+        if ann_fname.endswith(ann_ext):
+            ann_id = ann_fname.split(ann_ext)[0]
+            return psg_id, ann_id
+        else:
+            ann_id = ann_fname.split(ann_ext2)[0]
+            return psg_fname.split(psg_ext)[0], ann_fname.split(ann_ext2)[0]
     
     def dataset_paths(self) -> Tuple[str, str]:
         """

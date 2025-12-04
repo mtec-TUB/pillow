@@ -79,7 +79,7 @@ class ISRUC(BaseDataset):
         
         self.file_extensions = {
             'psg_ext': '*/*.rec',
-            'ann_ext': '*/*1.txt'
+            'ann_ext': '*/*_1.txt'
         }
     
     def dataset_paths(self) -> Tuple[str, str]:
@@ -93,7 +93,7 @@ class ISRUC(BaseDataset):
     def ann_parse(self, ann_fname: str, epoch_duration=None) -> Tuple[List[List[Dict]], datetime]:
         """Parse ISRUC annotation files (multiple scorers in separate files)"""
         # ISRUC typically has two annotation files: *1.txt and *2.txt
-        base_fname = ann_fname.replace('1.txt', '').replace('2.txt', '')
+        base_fname = ann_fname.replace('1.txt', '')
         
         ann_stage_events_1 = []
         ann_stage_events_2 = []
@@ -158,9 +158,9 @@ class ISRUC(BaseDataset):
 
                 total_duration += duration_sec
 
-                logger.info("Include onset:{}, duration:{}, label:{} ({})".format(
-                    onset_sec, duration_sec, label, ann_str
-                ))
+                # logger.info("Include onset:{}, duration:{}, label:{} ({})".format(
+                #     onset_sec, duration_sec, label, ann_str
+                # ))
 
         # Pad shorter annotation to match longer one
         if len(labels[0]) != len(labels[1]):

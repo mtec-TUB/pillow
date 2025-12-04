@@ -48,8 +48,8 @@ class DCSM(BaseDataset):
         }
         
         self.file_extensions = {
-            'psg_ext': '*.edf',
-            'ann_ext': '*.ids'
+            'psg_ext': '*_psg.edf',
+            'ann_ext': '*_hypnogram.ids'
         }
 
     def dataset_paths(self) -> Tuple[str, str]:

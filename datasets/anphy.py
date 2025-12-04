@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from .base import BaseDataset
 from .registry import register_dataset
@@ -75,6 +76,12 @@ class ANPHY(BaseDataset):
             'psg_ext': '**/*.edf',
             'ann_ext': '**/*.txt'
         }
+
+    def get_file_identifier(self, psg_fname, ann_fname):
+        psg_id = Path(psg_fname).parent
+        ann_id = Path(ann_fname).parent
+        return psg_id, ann_id
+        
     
     def dataset_paths(self) -> Tuple[str, str]:
         """

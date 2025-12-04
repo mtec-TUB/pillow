@@ -72,7 +72,7 @@ class FDCSR(BaseDataset):
         
         self.file_extensions = {
             'psg_ext': '*/*.edf',
-            'ann_ext': '*/*score.csv'
+            'ann_ext': '*/*_score.csv'
         }
         
 

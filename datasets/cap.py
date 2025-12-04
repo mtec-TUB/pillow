@@ -83,8 +83,8 @@ class CAP(BaseDataset):
         
         
         self.file_extensions = {
-            'psg_ext': '**/*.edf',
-            'ann_ext': '**/*.txt'
+            'psg_ext': '*.edf',
+            'ann_ext': '*.txt'
         }
     
     def dataset_paths(self) -> Tuple[str, str]:

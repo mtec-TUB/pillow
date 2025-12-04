@@ -61,7 +61,7 @@ class MROS(BaseDataset):
         
         self.file_extensions = {
             'psg_ext': '**/*.edf',
-            'ann_ext': '**/*.xml'
+            'ann_ext': '**/*-nsrr.xml'
         }
 
 

@@ -61,6 +61,11 @@ class CPS(BaseDataset):
             'ann_ext': '*/PSG/Analysedaten/Schlafprofil.txt'
         }
 
+    def get_file_identifier(self, psg_fname, ann_fname):
+        psg_id = psg_fname.split('/PSG/')[0]
+        ann_id = ann_fname.split('/PSG/')[0]
+        return psg_id, ann_id
+
 
     def dataset_paths(self) -> Tuple[str, str]:
         """Dataset paths for CPS dataset"""

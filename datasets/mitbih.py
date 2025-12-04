@@ -50,8 +50,8 @@ class MITBIH(BaseDataset):
         
         
         self.file_extensions = {
-            'psg_ext': '**/*.hea',
-            'ann_ext': '**/slp*.st'
+            'psg_ext': '*.hea',
+            'ann_ext': 'slp*.st'
         }
     
     def dataset_paths(self) -> Tuple[str, str]:
