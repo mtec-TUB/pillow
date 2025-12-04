@@ -156,7 +156,6 @@ class DatasetProcessor:
                             f"{Path(psg_fname).relative_to(self.data_dir)}. Skipping file."
                         )
                         continue
-
                 self._process_single_file(
                     psg_fname,
                     ann_fname if ann_fnames is not None else None,
@@ -289,6 +288,7 @@ class DatasetProcessor:
         self.logging_manager.setup_channel_file_logging(self.logger, self.output_dir)
 
         self.logger.info(f"Signal file: {Path(psg_fname).relative_to(self.data_dir)}")
+        self.logger.info(f"Annotation file: {Path(ann_fname).relative_to(self.ann_dir)}")
 
         # Extract and process signal
         signal_data = self.dataset.psg_file_handler.get_signal_data(self.logger,psg_fname, self.epoch_duration, channel)
