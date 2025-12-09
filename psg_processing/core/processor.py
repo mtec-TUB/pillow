@@ -318,7 +318,7 @@ class DatasetProcessor:
                 isinstance(ann_Startdatetime, (int, float,Decimal)) and ann_Startdatetime != 0
             ):
                 print(
-                    f"Start of signal:{signal_data["start_datetime"]} \nStart of labels: {ann_Startdatetime}"
+                    f"Start of signal: {signal_data['start_datetime']} \nStart of labels: {ann_Startdatetime}"
                 )
 
                 # Shorten signal if annotations start later or align front to first common epoch if annotations start before
