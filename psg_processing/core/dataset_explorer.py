@@ -127,14 +127,14 @@ class Dataset_Explorer:
         """
         self.logger.info("Getting all available channel names ...")
 
-        self.get_files()
+        self.get_files(allow_missing=True)
         self.logger.info(f"Found {len(self.psg_fnames)} files to process")
 
         self.ch_names = set()
 
         # Use tqdm for clean progress bar
         for psg_fname in tqdm(self.psg_fnames, desc="Processing files", unit="file"):
-            channels = self.psg_file_handler.get_channels(psg_fname)
+            channels = self.psg_file_handler.get_channels(self.logger,psg_fname)
             # for label, freq in zip(channels, freqs):
             #     self.ch_names.add((label, float(freq)))
             self.ch_names.update(channels)
@@ -195,7 +195,7 @@ class Dataset_Explorer:
                         f"{os.path.basename(psg_fname)[:25]}..."
                     )
 
-                    signal = self.psg_file_handler.read_signal(psg_fname, channel)
+                    signal = self.psg_file_handler.read_signal(self.logger,psg_fname, channel)
 
                     if signal is None:
                         continue  # Channel not found in this file
