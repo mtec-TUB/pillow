@@ -11,7 +11,7 @@ class EESM23(BaseDataset):
     """Ear-EEG Sleep Monitoring 2023 (EESM23) dataset"""
     
     def __init__(self):
-        super().__init__("EESM23","Ear-EEG Sleep Monitoring 2023 (EESM23) dataset")
+        super().__init__("EESM23","Ear-EEG Sleep Monitoring 2023 (EESM23)", keep_folder_structure=False)
     
     def _setup_dataset_config(self):
         self.ann2label = {
