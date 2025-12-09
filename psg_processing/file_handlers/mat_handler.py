@@ -10,7 +10,7 @@ class MATHandler(FileHandler):
     """Handler for mat files."""
 
     def get_channels(self, logger, filepath):
-        """Extract channel names and frequencies from EDF files."""
+        """Extract channel names and frequencies from mat files."""
         try:
             psg_f = loadmat(filepath)['Data']
             return psg_f.dtype.names
