@@ -273,7 +273,7 @@ class DatasetProcessor:
         """Process a single channel from a single file."""
 
         # Setup channel processing environment
-        filename = self._setup_channel_output(
+        file_output_dir, file_output_path = self._setup_channel_output(
             self.dataset.keep_folder_structure,
             channel,
             psg_fname,
@@ -281,11 +281,11 @@ class DatasetProcessor:
         )
 
         # Skip if file already exists
-        if not self.overwrite and self._output_file_exists(filename):
+        if not self.overwrite and self._output_file_exists(file_output_path):
             return True
 
         # Setup logging for this channel
-        self.logging_manager.setup_channel_file_logging(self.logger, self.output_dir)
+        self.logging_manager.setup_channel_file_logging(self.logger, file_output_dir)
 
         self.logger.info(f"Signal file: {Path(psg_fname).relative_to(self.data_dir)}")
         self.logger.info(f"Annotation file: {Path(ann_fname).relative_to(self.ann_dir)}")
@@ -365,7 +365,7 @@ class DatasetProcessor:
 
         # Save processed data
         self._save_processed_data(
-            signal_data, filename, channel, self.epoch_duration
+            signal_data, file_output_path, channel, self.epoch_duration
         )
 
         self.logger.info("=" * 40)
@@ -416,21 +416,22 @@ class DatasetProcessor:
         else:
             relative_path = ""
 
-        self.output_dir = os.path.join(self.output_dir, relative_path, "npz", ch_name_path)
-        os.makedirs(self.output_dir, exist_ok=True)
+        file_output_dir = os.path.join(self.output_dir, relative_path, "npz", ch_name_path)
+        os.makedirs(file_output_dir, exist_ok=True)
 
         # Generate safe file and folder name
         base_filename = os.path.splitext(os.path.basename(psg_fname))[0] + ".npz"
         ch_name_safe = re.sub(r"[^a-zA-Z0-9._\-\s]", "_", channel)
         filename = f"{ch_name_safe}_{base_filename}"
 
-        return filename
+        file_output_path = os.path.join(file_output_dir, filename)
 
-    def _output_file_exists(self, filename):
+        return file_output_dir,file_output_path
+
+    def _output_file_exists(self, file_output_path):
         """Check if output file already exists."""
-        full_path = os.path.join(self.output_dir, filename)
-        if os.path.exists(full_path):
-            print(f"File already exists: {full_path}")
+        if os.path.exists(file_output_path):
+            print(f"File already exists: {file_output_path}")
             return True
         return False
 
@@ -587,7 +588,7 @@ class DatasetProcessor:
         return x, y, select_idx[0]
 
     def _save_processed_data(
-        self, signal_data, filename, channel, epoch_duration
+        self, signal_data, file_output_path, channel, epoch_duration
     ):
         """Save processed data to file."""
 
@@ -615,7 +616,5 @@ class DatasetProcessor:
         if "unit" in signal_data:
             save_dict["unit"] = signal_data["unit"]
 
-        output_path = os.path.join(self.output_dir, filename)
-
-        np.savez(output_path, **save_dict)
-        self.logger.info(f"Successfully saved: {filename}")
+        np.savez(file_output_path, **save_dict)
+        self.logger.info(f"Successfully saved: {file_output_path}")
