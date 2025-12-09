@@ -464,7 +464,7 @@ class DatasetProcessor:
                 ch_type,
                 dataset.channel_groups,
                 sampling_rate,
-                resample_freq,
+                int(resample_freq),
             )
 
         # Reshape into epochs based on annotation start

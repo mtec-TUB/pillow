@@ -80,8 +80,6 @@ class SignalProcessor:
         """
         self.logger.info(f"Sample rate before: {sampling_rate}")
 
-        resample_freq = int(resample_freq)
-
         channel_group, [low, high] = self.get_filt_freq(select_ch, channel_groups)
 
         # center signals, that will be filtered later on, around zero
