@@ -54,7 +54,7 @@ class Physio2018(BaseDataset):
     
     def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[List[Dict], datetime]:
         """
-        Parse Physio2018 XML annotation files.
+        Parse Physio2018 annotation files.
         """
         ann_stage_events = []
         
@@ -66,6 +66,7 @@ class Physio2018(BaseDataset):
         start_time_label = None
 
         for i, (sample, aux_note) in enumerate(zip(annot.sample, annot.aux_note)):
+            print(sample,aux_note)
             if not any(note in aux_note for note in ['resp_hypoventilation','resp_cheynestokesbreath','arousal_bruxism','arousal_noise','arousal_plm','arousal_snore','arousal_rera','arousal_spontaneous','resp_partialobstructive','resp_centralapnea','resp_mixedapnea','resp_obstructiveapnea','resp_hypopnea']):
                 if aux_note not in self.ann2label:
                        print(aux_note)
@@ -98,7 +99,7 @@ class Physio2018(BaseDataset):
                   ) -> Tuple[np.ndarray, np.ndarray]:
         
         if len(signals) > len(labels):
-            logger.info(f"Signal (len: {len(signals)}) is shortend to match label length (len: {len(labels)})")
+            logger.info(f"Signal (len: {len(signals)}) is shortend to match label (len: {len(labels)})")
             signals = signals[:len(labels)]
         
         assert len(signals) == len(labels), f"Length mismatch: signal={len(signals)}, labels={len(labels)} \n TODO: implement alignment function"

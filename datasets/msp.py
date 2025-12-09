@@ -92,7 +92,7 @@ class MSP(BaseDataset):
     def align_end(self, logger, psg_fname, ann_fname, signals, labels):
 
         if len(labels) > len(signals):
-            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal length ({len(signals)})")
+            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
             labels = labels[:len(signals)]
 
         assert len(signals) == len(labels), f"Length mismatch: signal={len(signals)}, labels={len(labels)} \n TODO: implement alignment function"

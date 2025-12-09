@@ -132,7 +132,7 @@ class APOE(BaseDataset):
         # Alignment necessary due to cropping signal to whole epochs
 
         if len(labels) == len(signals) + 1:
-            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal length ({len(signals)})")
+            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
             labels = labels[:len(signals)]
 
         assert len(signals) == len(labels), f"Length mismatch: signal ({os.path.basename(psg_fname)})={len(signals)}, labels({os.path.basename(ann_fname)})={len(labels)} TODO: implement alignment function"

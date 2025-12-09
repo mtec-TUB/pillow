@@ -121,7 +121,7 @@ class CPS(BaseDataset):
 
         start_seconds= (ann_Startdatetime - psg_start_datetime).total_seconds()
       
-        if start_seconds%(1/fs) != 0:
+        if not (start_seconds*fs).is_integer():
             raise Exception("Annotations start at timestamp outside of sample rate")
 
         if start_seconds < 0:
@@ -141,11 +141,11 @@ class CPS(BaseDataset):
                   ) -> Tuple[np.ndarray, np.ndarray]:
 
         # if len(signals) > len(labels):
-        #     logger.info(f"Signal (len: {len(signals)}) is shortend to match label length (len: {len(labels)})")
+        #     logger.info(f"Signal (len: {len(signals)}) is shortend to match label (len: {len(labels)})")
         #     signals = signals[:len(labels)]
         
         if len(labels) == len(signals) +1:
-            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal length ({len(signals)})")
+            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
             labels = labels[:len(signals)]
         
         assert len(signals) == len(labels), f"Length mismatch: signal={len(signals)}, labels={len(labels)} \n TODO: implement alignment function"

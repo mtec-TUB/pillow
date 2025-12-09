@@ -7,7 +7,7 @@ import numpy as np
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
-from psg_processing import Dataset_Explorer, DatasetProcessor
+from psg_processing.core import Dataset_Explorer, DatasetProcessor
 from psg_processing.file_handlers.factory import get_handler
 
 
@@ -184,7 +184,7 @@ class BaseDataset(ABC):
         """Align end part of signals and labels, handling dataset-specific issues."""
 
         # if len(labels) > len(signals):
-        #     logger.info(f"Labels (len: {len(labels)}) are shortend to match signal length ({len(signals)})")
+        #     logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
         #     labels = labels[:len(signals)]
 
         assert len(signals) == len(labels), f"Length mismatch: signal ({os.path.basename(psg_fname)})={len(signals)}, labels({os.path.basename(ann_fname)})={len(labels)} TODO: implement alignment function"

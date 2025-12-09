@@ -128,11 +128,11 @@ class FDCSR(BaseDataset):
                   ) -> Tuple[np.ndarray, np.ndarray]:
         
         if len(labels) == len(signals)+1:
-            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal length ({len(signals)})")
+            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
             labels = labels[:len(signals)]
             
         if len(signals) == len(labels)+1:
-            logger.info(f"Signal (len: {len(signals)}) is shortend to match label length (len: {len(labels)})")
+            logger.info(f"Signal (len: {len(signals)}) is shortend to match label (len: {len(labels)})")
             signals = signals[:len(labels)]
         
         assert len(signals) == len(labels), f"{os.path.basename(psg_fname)}: Length mismatch: signal={len(signals)}, labels={len(labels)} \n TODO: implement alignment function"

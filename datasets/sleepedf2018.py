@@ -144,7 +144,7 @@ class SleepEDF2018(BaseDataset):
             signals = signals[:len(labels)]
 
         if len(labels) > len(signals):
-            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal length ({len(signals)})")
+            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
             labels = labels[:len(signals)]
 
         

@@ -127,11 +127,11 @@ class ANPHY(BaseDataset):
     def align_end(self, logger, psg_fname, ann_fname, signals, labels):
 
         if len(labels) > len(signals):
-            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal length ({len(signals)})")
+            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
             labels = labels[:len(signals)]
 
         if len(signals) > len(labels):
-            logger.info(f"Signal (len: {len(signals)}) is shortend to match label length (len: {len(labels)})")
+            logger.info(f"Signal (len: {len(signals)}) is shortend to match label (len: {len(labels)})")
             signals = signals[:len(labels)]
 
         assert len(signals) == len(labels), f"Length mismatch: signal ({os.path.basename(psg_fname)})={len(signals)}, labels({os.path.basename(ann_fname)})={len(labels)} TODO: implement alignment function"
