@@ -54,7 +54,7 @@ class Dataset_Explorer:
         else:
             self.logger = logger
 
-    def get_files(self, allow_missing):
+    def get_files(self, allow_missing=True):
         """
         Discover and collect PSG signal files and annotation files.
 
