@@ -7,6 +7,7 @@ from .edf_handler import EDFHandler
 from .h5_handler import H5Handler
 from .wfdb_handler import WFDBHandler
 from .dreamt_csv_handler import DreamtCSVHandler
+from .eeglab_handler import EEGLABHandler
 
     
 # Handler based on file extension
@@ -14,6 +15,7 @@ handlers = {
         "mat": MATHandler,
         "rec": EDFHandler,
         "edf": EDFHandler,
+        "set": EEGLABHandler,
         "h5": H5Handler,
         "hea": WFDBHandler,
     }
