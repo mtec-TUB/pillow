@@ -87,6 +87,7 @@ STAGE_DICT = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "MOVE": 5, "UNK": 6}
 #     return ret
 
 
+
 class DatasetProcessor:
     """
     Main processor for PSG dataset preparation and signal processing.
@@ -95,7 +96,7 @@ class DatasetProcessor:
     handling file processing, signal cleaning, and output generation.
     """
 
-    def __init__(self, dataset, data_dir,ann_dir, output_dir,):
+    def __init__(self, dataset, config):
         """ 
         data_dir: PSG data directory
         ann_dir: PSG Annotation directory
@@ -104,19 +105,10 @@ class DatasetProcessor:
         self.logging_manager = LoggingManager(level=logging.INFO)
         self.logger = None
         self.dataset = dataset
-        self.data_dir = data_dir
-        self.ann_dir = ann_dir
-        self.output_dir = output_dir
+        self.config = config
         
 
-    def prepare_files(
-        self,
-        resample,
-        epoch_duration=30,
-        num_jobs=None,
-        overwrite=False,
-        allow_missing=False,
-    ):
+    def prepare_files(self):
         """
         Main function to prepare dataset files for processing.
 
@@ -125,22 +117,22 @@ class DatasetProcessor:
             resample: Resample frequency (given in Hz, or None)
             epoch_duration: Duration of each epoch in seconds (default: 30)
         """
-        self.resample = resample
-        self.epoch_duration = epoch_duration
-        self.overwrite = overwrite
+        self.resample = self.config.resample
+        self.epoch_duration = self.config.epoch_duration
+        self.overwrite = self.config.overwrite
         try:
             # Set up logger and initialize components
-            self.logger = self.logging_manager.setup_logger(self.output_dir, self.overwrite)
+            self.logger = self.logging_manager.setup_logger(self.config.output_dir, self.overwrite)
 
             # Get files using dataset-specific extensions
             explorer = Dataset_Explorer(
                 self.logger,
                 self.dataset.psg_file_handler,
-                self.data_dir,
-                self.ann_dir,
+                self.config.data_dir,
+                self.config.ann_dir,
                 **self.dataset.file_extensions,
             )
-            psg_fnames, ann_fnames = explorer.get_files(allow_missing)
+            psg_fnames, ann_fnames = explorer.get_files(self.config.allow_missing)
 
             # Process each file
             ann_idx = 0
@@ -148,7 +140,7 @@ class DatasetProcessor:
                 print(f"\n--- Processing file {psg_idx+1}/{len(psg_fnames)} ---")
                 if ann_fnames is not None:
                     ann_fname, ann_idx = self._find_matching_annotation(
-                        psg_fname, ann_fnames, ann_idx, allow_missing
+                        psg_fname, ann_fnames, ann_idx, self.config.allow_missing
                     )
                     if ann_fname is None:
                         self.logger.warning(
@@ -159,7 +151,7 @@ class DatasetProcessor:
                 self._process_single_file(
                     psg_fname,
                     ann_fname if ann_fnames is not None else None,
-                    num_jobs,
+                    self.config.num_jobs,
                 )
 
             # Finalize processing
@@ -178,10 +170,10 @@ class DatasetProcessor:
             - If allow_missing=True -> return (None, start_idx)
             - else -> raise
         """
-        psg_base = str(Path(psg_fname).relative_to(self.data_dir))
+        psg_base = str(Path(psg_fname).relative_to(self.config.data_dir))
 
         for i in range(start_idx, len(ann_fnames)):
-            ann_base = str(Path(ann_fnames[i]).relative_to(self.ann_dir))
+            ann_base = str(Path(ann_fnames[i]).relative_to(self.config.ann_dir))
             psg_id, ann_id = self.dataset.get_file_identifier(psg_base, ann_base)  # adapt as needed
 
             if psg_id == ann_id:
@@ -205,7 +197,7 @@ class DatasetProcessor:
 
         # Load annotations before (same for all channels)
         ann_stage_events, ann_Startdatetime = self.dataset.ann_parse(
-            ann_fname, self.epoch_duration
+            ann_fname, self.config.epoch_duration
         )
 
         if ann_stage_events == []:
@@ -274,24 +266,22 @@ class DatasetProcessor:
 
         # Setup channel processing environment
         file_output_dir, file_output_path = self._setup_channel_output(
-            self.dataset.keep_folder_structure,
             channel,
             psg_fname,
-            self.dataset.alias_mapping,
         )
 
         # Skip if file already exists
-        if not self.overwrite and self._output_file_exists(file_output_path):
+        if not self.config.overwrite and self._output_file_exists(file_output_path):
             return True
 
         # Setup logging for this channel
         self.logging_manager.setup_channel_file_logging(self.logger, file_output_dir)
 
-        self.logger.info(f"Signal file: {Path(psg_fname).relative_to(self.data_dir)}")
-        self.logger.info(f"Annotation file: {Path(ann_fname).relative_to(self.ann_dir)}")
+        self.logger.info(f"Signal file: {Path(psg_fname).relative_to(self.config.data_dir)}")
+        self.logger.info(f"Annotation file: {Path(ann_fname).relative_to(self.config.ann_dir)}")
 
         # Extract and process signal
-        signal_data = self.dataset.psg_file_handler.get_signal_data(self.logger,psg_fname, self.epoch_duration, channel)
+        signal_data = self.dataset.psg_file_handler.get_signal_data(self.logger,psg_fname, self.config.epoch_duration, channel)
 
         if signal_data is None:
             return True
@@ -315,7 +305,7 @@ class DatasetProcessor:
                 isinstance(ann_Startdatetime, datetime)
                 and signal_data["start_datetime"].time() != ann_Startdatetime.time()
             ) or (
-                isinstance(ann_Startdatetime, (int, float,Decimal)) and ann_Startdatetime != 0
+                isinstance(ann_Startdatetime, (int, float, Decimal)) and ann_Startdatetime != 0
             ):
                 print(
                     f"Start of signal: {signal_data['start_datetime']} \nStart of labels: {ann_Startdatetime}"
@@ -344,14 +334,14 @@ class DatasetProcessor:
         # if self.log_labels():
         #     self._log_labels(signal_data["ann_stage_events"])
         signal_data["ann_stage_events"] = self.dataset.ann_label(
-            self.logger, signal_data["ann_stage_events"], self.epoch_duration
+            self.logger, signal_data["ann_stage_events"], self.config.epoch_duration
         )
 
         # Process the signal (resample, filter, clean)
-        ch_type = self._get_channel_type(channel, self.dataset.channel_types)
+        ch_type = self._get_channel_type(channel)
 
         processed_data, continue_processing = self._process_signal_data(
-            signal_data, channel, ch_type, self.resample, self.dataset, self.epoch_duration
+            signal_data, channel, ch_type
         )
 
         if continue_processing is False:
@@ -365,7 +355,7 @@ class DatasetProcessor:
 
         # Save processed data
         self._save_processed_data(
-            signal_data, file_output_path, channel, self.epoch_duration
+            signal_data, file_output_path, channel
         )
 
         self.logger.info("=" * 40)
@@ -380,9 +370,9 @@ class DatasetProcessor:
 
     #         self.logger.info("Include onset:{}, duration:{}, label:{} ({})".format(onset_sec, duration_sec, label, ann_str))
 
-    def _get_channel_type(self, channel, channel_types):
+    def _get_channel_type(self, channel):
         """Get the type (analog/digital) for a specific channel."""
-        for ch_type, channels in channel_types.items():
+        for ch_type, channels in self.dataset.channel_types.items():
             if channel in channels:
                 return ch_type
 
@@ -390,33 +380,30 @@ class DatasetProcessor:
 
     def _setup_channel_output(
         self,
-        keep_folder_structure,
         channel,
         psg_fname,
-        alias_mapping,
     ):
         """Setup output directory and filename for a channel."""
 
         # Handle channel name aliasing
         ch_name_path = channel
-        if alias_mapping:
+        if self.dataset.alias_mapping:
             alias_checking = [
-                key for key, aliases in alias_mapping.items() if channel in aliases
+                key for key, aliases in self.dataset.alias_mapping.items() if channel in aliases
             ]
             if alias_checking:
                 ch_name_path = alias_checking[0]
 
         # replace slash in folder names to avoid nester output structure and colon because it is often not accepted in folder names
-        ch_name_path = re.sub(r"[\/]", "_", ch_name_path)
-        ch_name_path = re.sub(r"[:]", "_", ch_name_path)
+        ch_name_path = re.sub(r"[:/]", "_", ch_name_path)
 
         # Create output directory
-        if keep_folder_structure:
-            relative_path = os.path.split(Path(psg_fname).relative_to(self.data_dir))[0]
+        if self.dataset.keep_folder_structure:
+            relative_path = os.path.split(Path(psg_fname).relative_to(self.config.data_dir))[0]
         else:
             relative_path = ""
 
-        file_output_dir = os.path.join(self.output_dir, relative_path, "npz", ch_name_path)
+        file_output_dir = os.path.join(self.config.output_dir, relative_path, "npz", ch_name_path)
         os.makedirs(file_output_dir, exist_ok=True)
 
         # Generate safe file and folder name
@@ -440,9 +427,6 @@ class DatasetProcessor:
         signal_data,
         channel,
         ch_type,
-        resample_freq,
-        dataset,
-        epoch_duration,
     ):
         """Process signal data through the complete pipeline."""
 
@@ -456,31 +440,31 @@ class DatasetProcessor:
             self.logger.info(f"Signal too short, only {len(signal)} samples")
             return None, True
 
-        if resample_freq != "None":
+        if self.resample is not None:
             # Resample and filter
             signal_processor = SignalProcessor(self.logger)
             signal, sampling_rate = signal_processor.resample_filter_signal(
                 signal,
                 channel,
                 ch_type,
-                dataset.channel_groups,
+                self.dataset.channel_groups,
                 sampling_rate,
-                int(resample_freq),
+                self.config.resample,
             )
 
         # Reshape into epochs based on annotation start
-        n_epoch_samples = int(epoch_duration * sampling_rate)
+        n_epoch_samples = int(self.config.epoch_duration * sampling_rate)
         n_epochs = len(signal) // n_epoch_samples
         print(
-            f"Seconds in unfilled epoch: {len(signal)/sampling_rate - (n_epochs * epoch_duration):.4f} sec"
+            f"Seconds in unfilled epoch: {len(signal)/sampling_rate - (n_epochs * self.config.epoch_duration):.4f} sec"
         )
-        signals = signal[0 : n_epochs * epoch_duration * sampling_rate].reshape(
+        signals = signal[0 : int(n_epochs * self.config.epoch_duration * sampling_rate)].reshape(
             -1, n_epoch_samples
         )
 
-        if resample_freq == "None":
+        if self.config.resample is None:
             # zero pad last eventually not full epoch
-            last_epoch = signal[n_epochs * epoch_duration * sampling_rate :]
+            last_epoch = signal[n_epochs * self.config.epoch_duration * sampling_rate :]
             n_last_epoch = len(last_epoch)
             if n_last_epoch > 0:
                 last_epoch = np.pad(
@@ -490,9 +474,9 @@ class DatasetProcessor:
                 ).reshape(1, -1)
                 signals = np.append(signals, last_epoch, axis=0)
 
-        if resample_freq != "None":
+        if self.config.resample is not None:
             # Align labels (some datasets have different length of signal and annotation data)
-            signals, labels = dataset.align_end(
+            signals, labels = self.dataset.align_end(
                 self.logger,
                 signal_data["psg_fname"],
                 signal_data["ann_fname"],
@@ -588,7 +572,7 @@ class DatasetProcessor:
         return x, y, select_idx[0]
 
     def _save_processed_data(
-        self, signal_data, file_output_path, channel, epoch_duration
+        self, signal_data, file_output_path, channel
     ):
         """Save processed data to file."""
 
@@ -598,7 +582,7 @@ class DatasetProcessor:
             "ch_label": channel,
             "start_datetime": signal_data["start_datetime"],
             "file_duration": signal_data["file_duration"],
-            "epoch_duration": epoch_duration,
+            "epoch_duration": self.config.epoch_duration,
             "n_all_epochs": signal_data["n_all_epochs"],
             "n_epochs": len(signal_data["x"]),
             "rm_start_epochs": signal_data["rm_start_epochs"],

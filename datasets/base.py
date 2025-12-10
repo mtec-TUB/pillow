@@ -7,10 +7,6 @@ import numpy as np
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
-from psg_processing.core import Dataset_Explorer, DatasetProcessor
-from psg_processing.file_handlers import get_handler
-
-
 class BaseDataset(ABC):
     """
     Abstract base class for datasets.
@@ -197,52 +193,3 @@ class BaseDataset(ABC):
         Can include new sorting and copying/renaming
         """
         pass
-
-    def process(self, action, data_dir, ann_dir, output_dir, resample, channels, num_jobs, overwrite, allow_missing):
-        """
-        Main processing entry point.
-        This calls the prepare_files function with dataset-specific parameters.
-        """
-
-        # Add the parent directory to the path so we can import psg_processing
-        parent_dir = os.path.dirname(os.path.dirname(__file__))
-        if parent_dir not in sys.path:
-            sys.path.insert(0, parent_dir)
-
-        self.psg_file_handler = get_handler(self.dset_name, self.file_extensions['psg_ext'])()
-
-        ret = self.preprocess(data_dir, ann_dir, output_dir)
-        if ret is False:
-            return
-
-        if action == "prepare":
-
-            # all channels will be processed if empty list
-            if channels != []:
-                self.channel_names = channels
-
-            # Initialize a new DatasetProcessor
-            processor = DatasetProcessor(self,data_dir,ann_dir,output_dir)
-
-            # Use the new prepare_files method with dataset-specific parameters
-            processor.prepare_files(
-                resample,
-                epoch_duration=30,
-                num_jobs=num_jobs,
-                overwrite=overwrite,
-                allow_missing=allow_missing
-            )
-
-        elif action == "get_channel_names":
-            explorer = Dataset_Explorer(None, self.psg_file_handler, data_dir, ann_dir, **self.file_extensions)
-            channels = list(explorer.get_all_channels())
-            print(f"Available channels in {self.dset_name}: {(channels)}")
-
-        elif action == "get_channel_types":
-            explorer = Dataset_Explorer(None, self.psg_file_handler, data_dir, ann_dir, **self.file_extensions)
-            explorer.get_all_channels()
-            channel_types = explorer.get_channel_type()
-            print(f"Channel types in {self.dset_name}: {channel_types}")
-
-        else:
-            raise ValueError(f"Unknown action: {action}")
