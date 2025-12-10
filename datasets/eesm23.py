@@ -41,7 +41,6 @@ class EESM23(BaseDataset):
         
         self.file_extensions = {'psg_ext': '**/*_task-sleep_acq-PSG_eeg.set',
                                 'ann_ext': '**/*_task-sleep_acq-scoring_events.tsv'}
-        
     def dataset_paths(self) -> tuple[str, str]:
         """
         EESM23 dataset paths.
@@ -83,9 +82,9 @@ class EESM23(BaseDataset):
     
     def align_end(self, logger, psg_fname, ann_fname, signals, labels):
 
-        # if len(labels) > len(signals):
-        #     logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
-        #     labels = labels[:len(signals)]
+        if len(labels) == len(signals) +1:
+            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
+            labels = labels[:len(signals)]
 
         if len(signals) > len(labels):
             logger.info(f"Signal (len: {len(signals)}) is shortend to match label (len: {len(labels)})")
