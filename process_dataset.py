@@ -69,7 +69,7 @@ class ProcessorConfig:
     rm_move: bool
     rm_unk: bool
     n_wake_epochs: int
-    min_sleep_time: int
+    min_sleep_epochs: int
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -187,7 +187,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--min_sleep_time",
+        "--min_sleep_epochs",
         type=int,
         default=1,
         help="Minimum required sleep epochs (N1,N2,N3,REM) after preprocessing (if less, the recording is discarded)",
