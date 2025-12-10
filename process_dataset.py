@@ -37,13 +37,14 @@ VS_CODE_CONFIG = {
     "ann_dir": None,   # Set to override automatic path
     "output_dir": None,  # Set to override automatic path
     "action": "prepare",
-    "resample": None,  # or None for original sampling rate
+    "resample": 100,  # or None for original sampling rate
+    "filter": True,
     "channels": [],  # Empty list means all channels
     "num_jobs": 1,
     "epoch_duration": 30,
     "rm_move": True,
     "rm_unk": True,
-    "rm_wake": True,
+    "n_wake_epochs": "60",
     "min_sleep_time": 1,
     "overwrite": False,
     "allow_missing": False,
@@ -59,6 +60,7 @@ class ProcessorConfig:
     output_dir: Path
     action: str
     resample: int
+    filter: bool
     channels: list[str]
     epoch_duration: int
     overwrite: bool
@@ -66,7 +68,7 @@ class ProcessorConfig:
     num_jobs: int
     rm_move: bool
     rm_unk: bool
-    rm_wake: bool
+    n_wake_epochs: int
     min_sleep_time: int
 
 
@@ -135,6 +137,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--filter",
+        type=bool,
+        default=True,
+        help="Whether to apply filtering according to AASM guidelines after resampling"
+    )
+
+    parser.add_argument(
         "--channels", 
         nargs='+',
         default=[], # all
@@ -171,17 +180,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--rm_wake",
-        type=bool,
-        default=True,
-        help="Whether to remove extensive Wake epochs during processing (more than 30min at front and end)"
+        "--n_wake_epochs",
+        type=str,
+        default="60",
+        help="Number of wake epochs at start and end to keep during processing (default 30min), or 'all' to keep all"
     )
 
     parser.add_argument(
         "--min_sleep_time",
         type=int,
         default=1,
-        help="Minimum required epochs after preprocessing (if less, the recording is discarded)",
+        help="Minimum required sleep epochs (N1,N2,N3,REM) after preprocessing (if less, the recording is discarded)",
     )
     
     parser.add_argument("--overwrite", action="store_true", help="Overwrite existing files")

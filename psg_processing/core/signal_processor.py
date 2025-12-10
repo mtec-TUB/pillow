@@ -61,15 +61,14 @@ class SignalProcessor:
         # If channel not found in any group, return default (no filtering)
         return "default", self.FILTER_FREQUENCIES["default"]
 
-    def resample_filter_signal(
-        self, signal, select_ch, ch_type, channel_groups, sampling_rate, resample_freq
+    def resample_signal(
+        self, signal, ch_type, sampling_rate, resample_freq
     ):
         """
         Resample and filter signal based on channel type and parameters.
 
         Args:
             signal: Input signal data
-            select_ch: Channel name
             ch_type: Channel type ('analog' or 'digital')
             sampling_rate: Current sampling rate
             resample_freq: Target sampling rate
@@ -79,15 +78,9 @@ class SignalProcessor:
             tuple: (processed_signal, final_sampling_rate)
         """
         self.logger.info(f"Sample rate before: {sampling_rate}")
-
-        channel_group, [low, high] = self.get_filt_freq(select_ch, channel_groups)
-
-        # center signals, that will be filtered later on, around zero
-        if channel_group != "default":
-            signal = signal - np.mean(signal)
         
         # Store clipping threshold
-        self.signal_min, self.signal_max = np.min(signal), np.max(signal)
+        self.signal_min, self.signal_max = np.min(signal)-np.mean(signal), np.max(signal)-np.mean(signal)
 
         # if fs not already desired resample fs -> resample
         if resample_freq != sampling_rate:
@@ -98,25 +91,6 @@ class SignalProcessor:
             elif ch_type == "analog":
                 signal = self.resample_ana(signal, sampling_rate, resample_freq)
 
-        # Filter signal according to AASM Manual
-        if not (low is None and high is None) and (ch_type == "analog"):
-                
-            self.logger.info(
-                f"Filter signal with low: {low} Hz and high: {high} Hz bandpass"
-            )
-            
-            signal = filter_data(
-                signal,
-                resample_freq,
-                low,
-                high if (high and high < resample_freq/2) else None,
-                method="fir",
-                n_jobs='cuda' if cupy.cuda.is_available() else -1,
-                verbose="WARNING",
-            )
-
-        # Final clipping to original signal range
-        signal = np.clip(signal, a_min=self.signal_min, a_max=self.signal_max)
 
         sampling_rate = resample_freq
         self.logger.info(f"Sample rate after: {sampling_rate}")
@@ -165,3 +139,32 @@ class SignalProcessor:
         )
 
         return signal_resampled
+    
+    def filter_signal(self, signal, fs, select_ch, channel_groups, ch_type):
+
+        # Store clipping threshold if no resampling has been done yet
+        if self.signal_max is None or self.signal_min is None:
+            self.signal_min, self.signal_max = np.min(signal)-np.mean(signal), np.max(signal)-np.mean(signal)
+
+        channel_group, [low, high] = self.get_filt_freq(select_ch, channel_groups)
+
+        # Filter signal according to AASM Manual
+        if not (low is None and high is None) and (ch_type == "analog"):
+                
+            self.logger.info(
+                f"Filter signal with low: {low} Hz and high: {high} Hz bandpass"
+            )
+            
+            signal = filter_data(
+                signal,
+                fs,
+                low,
+                high if (high and high < fs/2) else None,
+                method="fir",
+                n_jobs='cuda' if cupy.cuda.is_available() else -1,
+                verbose="WARNING",
+            )
+
+        # Final clipping to original signal range
+        signal = np.clip(signal, a_min=self.signal_min, a_max=self.signal_max)
+        return signal

@@ -97,11 +97,7 @@ class DatasetProcessor:
     """
 
     def __init__(self, dataset, config):
-        """ 
-        data_dir: PSG data directory
-        ann_dir: PSG Annotation directory
-        output_dir: Output directory for processed files
-        """
+
         self.logging_manager = LoggingManager(level=logging.INFO)
         self.logger = None
         self.dataset = dataset
@@ -109,20 +105,10 @@ class DatasetProcessor:
         
 
     def prepare_files(self):
-        """
-        Main function to prepare dataset files for processing.
 
-        Args:
-            dataset: Instance of BaseDataset containing all dataset-specific logic
-            resample: Resample frequency (given in Hz, or None)
-            epoch_duration: Duration of each epoch in seconds (default: 30)
-        """
-        self.resample = self.config.resample
-        self.epoch_duration = self.config.epoch_duration
-        self.overwrite = self.config.overwrite
         try:
             # Set up logger and initialize components
-            self.logger = self.logging_manager.setup_logger(self.config.output_dir, self.overwrite)
+            self.logger = self.logging_manager.setup_logger(self.config.output_dir, self.config.overwrite)
 
             # Get files using dataset-specific extensions
             explorer = Dataset_Explorer(
@@ -440,16 +426,23 @@ class DatasetProcessor:
             self.logger.info(f"Signal too short, only {len(signal)} samples")
             return None, True
 
-        if self.resample is not None:
-            # Resample and filter
-            signal_processor = SignalProcessor(self.logger)
-            signal, sampling_rate = signal_processor.resample_filter_signal(
+        signal_processor = SignalProcessor(self.logger)
+        if self.config.resample is not None:
+            # Resample signal
+            signal, sampling_rate = signal_processor.resample_signal(
                 signal,
-                channel,
                 ch_type,
-                self.dataset.channel_groups,
                 sampling_rate,
                 self.config.resample,
+            )
+        if self.config.filter:
+            # Filter signal according to AASM
+            signal = signal_processor.filter_signal(
+                signal,
+                sampling_rate,
+                channel,
+                self.dataset.channel_groups,
+                ch_type,
             )
 
         # Reshape into epochs based on annotation start
@@ -462,33 +455,28 @@ class DatasetProcessor:
             -1, n_epoch_samples
         )
 
-        if self.config.resample is None:
-            # zero pad last eventually not full epoch
-            last_epoch = signal[n_epochs * self.config.epoch_duration * sampling_rate :]
-            n_last_epoch = len(last_epoch)
-            if n_last_epoch > 0:
-                last_epoch = np.pad(
-                    last_epoch,
-                    pad_width=(0, n_epoch_samples - n_last_epoch),
-                    constant_values=0,
-                ).reshape(1, -1)
-                signals = np.append(signals, last_epoch, axis=0)
+        # if self.config.resample is None:
+        #     # zero pad last eventually not full epoch
+        #     last_epoch = signal[n_epochs * self.config.epoch_duration * sampling_rate :]
+        #     n_last_epoch = len(last_epoch)
+        #     if n_last_epoch > 0:
+        #         last_epoch = np.pad(
+        #             last_epoch,
+        #             pad_width=(0, n_epoch_samples - n_last_epoch),
+        #             constant_values=0,
+        #         ).reshape(1, -1)
+        #         signals = np.append(signals, last_epoch, axis=0)
 
-        if self.config.resample is not None:
-            # Align labels (some datasets have different length of signal and annotation data)
-            signals, labels = self.dataset.align_end(
-                self.logger,
-                signal_data["psg_fname"],
-                signal_data["ann_fname"],
-                signals,
-                labels,
-            )
-            # Clean signal data
-            signals, labels, select_start = self._clean_signal(
-                signals, labels, STAGE_DICT
-            )
-        else:
-            select_start = 0
+        # Align labels (some datasets have different length of signal and annotation data)
+        signals, labels = self.dataset.align_end(
+            self.logger,
+            signal_data["psg_fname"],
+            signal_data["ann_fname"],
+            signals,
+            labels,
+        )
+        # Clean signal data
+        signals, labels, select_start = self._clean_signal(signals, labels)
 
         if signals is None:
             return None, False
