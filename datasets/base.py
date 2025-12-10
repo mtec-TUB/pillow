@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 
 from psg_processing.core import Dataset_Explorer, DatasetProcessor
-from psg_processing.file_handlers.factory import get_handler
+from psg_processing.file_handlers import get_handler
 
 
 class BaseDataset(ABC):
@@ -203,10 +203,6 @@ class BaseDataset(ABC):
         Main processing entry point.
         This calls the prepare_files function with dataset-specific parameters.
         """
-        ret = self.preprocess(data_dir, ann_dir, output_dir)
-
-        if ret is False:
-            return
 
         # Add the parent directory to the path so we can import psg_processing
         parent_dir = os.path.dirname(os.path.dirname(__file__))
@@ -214,6 +210,10 @@ class BaseDataset(ABC):
             sys.path.insert(0, parent_dir)
 
         self.psg_file_handler = get_handler(self.dset_name, self.file_extensions['psg_ext'])()
+
+        ret = self.preprocess(data_dir, ann_dir, output_dir)
+        if ret is False:
+            return
 
         if action == "prepare":
 

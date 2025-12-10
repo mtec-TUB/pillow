@@ -1,5 +1,8 @@
-from .base import BaseDataset
-from .registry import DatasetRegistry, register_dataset, get_dataset
+"""
+Dataset implementations for various polysomnography datasets.
+
+Note: Dataset modules auto-register on import.
+"""
 
 # Import all datasets to register them
 from .abc import ABC
@@ -31,6 +34,6 @@ from .shhs import SHHS
 from .sleepedf2018 import SleepEDF2018
 from .sleepbrl import SLEEPBRL
 from .sof import SOF
-from .stages  import STAGES
+from .stages import STAGES
 from .ucddb import UCDDB
 from .wsc import WSC
