@@ -472,7 +472,7 @@ class DatasetProcessor:
         n_epoch_samples = int(epoch_duration * sampling_rate)
         n_epochs = len(signal) // n_epoch_samples
         print(
-            f"Seconds in unfilled epoch: {len(signal)/sampling_rate - (n_epochs * epoch_duration)}"
+            f"Seconds in unfilled epoch: {len(signal)/sampling_rate - (n_epochs * epoch_duration):.4f} sec"
         )
         signals = signal[0 : n_epochs * epoch_duration * sampling_rate].reshape(
             -1, n_epoch_samples
