@@ -5,8 +5,8 @@ from datetime import datetime, date
 import numpy as np
 import pandas as pd
 
-from .base import BaseDataset
-from .registry import register_dataset
+from datasets.base import BaseDataset
+from datasets.registry import register_dataset
 
 
 @register_dataset("CPS")

@@ -2,8 +2,8 @@ import numpy as np
 import pyedflib
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
-from .base import BaseDataset
-from .registry import register_dataset
+from datasets.base import BaseDataset
+from datasets.registry import register_dataset
 
 @register_dataset("SLEEP-EDF")
 class SleepEDF2018(BaseDataset):

@@ -3,7 +3,7 @@ Registry system for datasets.
 """
 
 from typing import Dict, Type, Optional
-from .base import BaseDataset
+from datasets.base import BaseDataset
 
 
 class DatasetRegistry:

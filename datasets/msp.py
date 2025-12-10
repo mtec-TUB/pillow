@@ -4,8 +4,8 @@ MSP - Maternal Sleep in Pregnancy and the Fetus
 import pandas as pd
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
-from .base import BaseDataset
-from .registry import register_dataset
+from datasets.base import BaseDataset
+from datasets.registry import register_dataset
 
 @register_dataset("MSP")
 class MSP(BaseDataset):

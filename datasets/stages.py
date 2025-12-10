@@ -6,8 +6,8 @@ import pandas as pd
 import pyedflib
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, date
-from .base import BaseDataset
-from .registry import register_dataset
+from datasets.base import BaseDataset
+from datasets.registry import register_dataset
 
 @register_dataset("STAGES")
 class STAGES(BaseDataset):

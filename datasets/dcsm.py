@@ -4,8 +4,8 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
-from .base import BaseDataset
-from .registry import register_dataset
+from datasets.base import BaseDataset
+from datasets.registry import register_dataset
 
 
 @register_dataset("DCSM")

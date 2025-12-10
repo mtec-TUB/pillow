@@ -6,8 +6,8 @@ from decimal import Decimal
 import numpy as np
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
-from .base import BaseDataset
-from .registry import register_dataset
+from datasets.base import BaseDataset
+from datasets.registry import register_dataset
 
 @register_dataset("NCHSDB")
 class NCHSDB(BaseDataset):

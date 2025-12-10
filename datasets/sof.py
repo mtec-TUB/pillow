@@ -1,7 +1,7 @@
 from typing import Dict, List, Union
 
-from .base import BaseDataset
-from .registry import register_dataset
+from datasets.base import BaseDataset
+from datasets.registry import register_dataset
 
 @register_dataset("SOF")
 class SOF(BaseDataset):

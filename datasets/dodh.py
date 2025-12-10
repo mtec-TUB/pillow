@@ -1,8 +1,8 @@
 import h5py
 from typing import Dict, List, Optional, Tuple, Union
 from datetime import datetime
-from .base import BaseDataset
-from .registry import register_dataset
+from datasets.base import BaseDataset
+from datasets.registry import register_dataset
 
 @register_dataset("DOD-H")
 class DODH(BaseDataset):

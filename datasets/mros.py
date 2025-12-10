@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple, Union
-from .base import BaseDataset
-from .registry import register_dataset
+from datasets.base import BaseDataset
+from datasets.registry import register_dataset
 
 import numpy as np
 

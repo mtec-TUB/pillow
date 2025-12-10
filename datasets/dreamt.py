@@ -4,8 +4,8 @@ DREAMT (Dataset for Real-time sleep stage EstimAtion using Multisensor wearable 
 import numpy as np
 import pandas as pd
 from typing import Dict, List, Optional, Tuple
-from .base import BaseDataset
-from .registry import register_dataset
+from datasets.base import BaseDataset
+from datasets.registry import register_dataset
 
 @register_dataset("DREAMT")
 class DREAMT(BaseDataset):
