@@ -503,14 +503,13 @@ class DatasetProcessor:
             "rm_start_epochs": select_start,
         }, True
 
-    def _clean_signal(self, x, y, stage_dict):
+    def _clean_signal(self, x, y):
         """
         Clean signal by removing movement/unknown epochs and selecting sleep periods.
 
         Args:
             x: Signal epochs array
             y: Stage labels array
-            stage_dict: Dictionary mapping stage names to integers
 
         Returns:
             Tuple of (cleaned_x, cleaned_y) or (None, None) if no sleep detected
@@ -519,45 +518,40 @@ class DatasetProcessor:
             f"Starting signal cleaning - Input shape: x={x.shape}, y={y.shape}"
         )
 
-        # Remove movement and unknown epochs
-        move_idx = np.where(y == stage_dict["MOVE"])[0]
-        unk_idx = np.where(y == stage_dict["UNK"])[0]
+        # Remove movement and unknown epochs if configured
+        move_idx = np.where(y == STAGE_DICT["MOVE"])[0] if self.config.rm_move else []
+        if len(move_idx) > 0:
+            self.logger.info(f"  Removing Movement epochs: {len(move_idx)}")
+
+        unk_idx = np.where(y == STAGE_DICT["UNK"])[0] if self.config.rm_unk else []
+        if len(unk_idx) > 0:
+            self.logger.info(f"  Removing Unknown epochs: {len(unk_idx)}")
 
         remove_idx = []
+        remove_idx = np.union1d(move_idx, unk_idx)
 
-        if len(move_idx) > 0 or len(unk_idx) > 0:
-            remove_idx = np.union1d(move_idx, unk_idx)
-            self.logger.info("Removing irrelevant stages:")
-            if len(move_idx) > 0:
-                self.logger.info(f"  Movement epochs: {len(move_idx)}")
-            if len(unk_idx) > 0:
-                self.logger.info(f"  Unknown epochs: {len(unk_idx)}")
-
-            # move_unk_select_idx = np.setdiff1d(np.arange(len(x)), remove_idx)
-
-            # select_idx = np.setdiff1d(np.arange(len(x)), remove_idx)
-            # x = x[select_idx]
-            # y = y[select_idx]
-
-        # Select only sleep periods (30 min buffer around sleep)
-        w_edge_mins = 30
-        nw_idx = np.where(
-            (y != stage_dict["W"])
-            & (y != stage_dict["MOVE"])
-            & (y != stage_dict["UNK"])
+        sleep_idx = np.where(
+            (y != STAGE_DICT["W"])
+            & (y != STAGE_DICT["MOVE"])
+            & (y != STAGE_DICT["UNK"])
         )[0]
 
-        if len(nw_idx) == 0:
-            self.logger.warning("File contains no sleep stages (only Wake)")
+        if len(sleep_idx) <= self.config.min_sleep_epochs:
+            self.logger.warning("File contains less sleep epochs than required. Skipping")
             return None, None, None
 
-        # Calculate sleep period boundaries with buffer
-        start_idx = max(0, nw_idx[0] - (w_edge_mins * 2))
-        end_idx = min(len(y) - 1, nw_idx[-1] + (w_edge_mins * 2))
+        if self.config.n_wake_epochs == "all":
+            start_idx = 0
+            end_idx = len(y) - 1
+        else:
+            # Remove extensive wake epochs at start and end as given in config
+            n_wake_epochs = int(self.config.n_wake_epochs)
+            start_idx = max(0, sleep_idx[0] - n_wake_epochs)
+            end_idx = min(len(y) - 1, sleep_idx[-1] + n_wake_epochs)
 
-        self.logger.info(
-            f"  Outside 30min wake epochs: {start_idx + (len(x)-end_idx)-1}"
-        )
+            self.logger.info(
+                f"  Outside {int(self.config.n_wake_epochs)/2}min wake epochs: {start_idx + (len(x)-end_idx)-1}"
+            )
 
         select_idx = np.setdiff1d(np.arange(start_idx, end_idx + 1), remove_idx)
 
