@@ -267,7 +267,7 @@ class DatasetProcessor:
         self.logger.info(f"Annotation file: {Path(ann_fname).relative_to(self.config.ann_dir)}")
 
         # Extract and process signal
-        signal_data = self.dataset.psg_file_handler.get_signal_data(self.logger,psg_fname, self.config.epoch_duration, channel)
+        signal_data = self.dataset.psg_file_handler.get_signal_data(self.logger,psg_fname, channel)
 
         if signal_data is None:
             return True
@@ -419,7 +419,6 @@ class DatasetProcessor:
         signal = signal_data["signal"]
         labels = signal_data["ann_stage_events"]
         sampling_rate = signal_data["sampling_rate"]
-        n_epoch_samples = signal_data["n_epoch_samples"]
 
         # Check signal length
         if len(signal) // n_epoch_samples <= 1:
@@ -507,15 +506,20 @@ class DatasetProcessor:
         )
 
         # Remove movement and unknown epochs if configured
-        move_idx = np.where(y == STAGE_DICT["MOVE"])[0] if self.config.rm_move else []
+        if self.config.rm_move:
+            move_idx = np.where(y == STAGE_DICT["MOVE"])[0]  
+        else:
+            move_idx = []
         if len(move_idx) > 0:
             self.logger.info(f"  Removing Movement epochs: {len(move_idx)}")
 
-        unk_idx = np.where(y == STAGE_DICT["UNK"])[0] if self.config.rm_unk else []
+        if self.config.rm_unk:
+            unk_idx = np.where(y == STAGE_DICT["UNK"])[0]
+        else:
+            unk_idx = []
         if len(unk_idx) > 0:
             self.logger.info(f"  Removing Unknown epochs: {len(unk_idx)}")
 
-        remove_idx = []
         remove_idx = np.union1d(move_idx, unk_idx)
 
         sleep_idx = np.where(
