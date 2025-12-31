@@ -50,7 +50,7 @@ class H5Handler(FileHandler):
             logger.error(f"Error reading H5 signal from {filepath}: {e}")
         return None
 
-    def get_signal_data(self, logger, filepath, epoch_duration, channel):
+    def get_signal_data(self, logger, filepath, channel):
         """Get complete H5 signal information for processing."""
         # DOD-O and DOD-H -specific sampling rate
         sampling_rate = 250
@@ -74,15 +74,11 @@ class H5Handler(FileHandler):
                 logger.info(f"Select channel samples: {ch_samples[select_ch_idx]}")
                 file_duration = ch_samples[select_ch_idx] / sampling_rate
 
-                n_epoch_samples = int(epoch_duration * sampling_rate)
                 signal = dataset[select_ch_idx][1]
-                n_epochs = signal.shape[0] // n_epoch_samples
-                signal = signal[0 : n_epochs * epoch_duration * sampling_rate]
 
                 return {
                     "signal": signal,
                     "sampling_rate": sampling_rate,
-                    "n_epoch_samples": n_epoch_samples,
                     "start_datetime": None,
                     "file_duration": file_duration,
                 }

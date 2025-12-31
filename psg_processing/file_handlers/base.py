@@ -14,6 +14,6 @@ class FileHandler:
         """Read signal data for a specific channel."""
         raise NotImplementedError
 
-    def get_signal_data(self, logger, filepath, epoch_duration, channel):
+    def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for processing."""
         raise NotImplementedError

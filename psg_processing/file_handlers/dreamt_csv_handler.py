@@ -33,7 +33,7 @@ class DreamtCSVHandler(FileHandler):
             logger.error(f"Error reading DREAMT CSV signal from {filepath}: {e}")
         return None
 
-    def get_signal_data(self, logger, filepath, epoch_duration, channel):
+    def get_signal_data(self, logger, filepath, channel):
         """Get complete DREAMT CSV signal information for processing."""
         try:
             # DREAMT-specific sampling rate
@@ -52,13 +52,11 @@ class DreamtCSVHandler(FileHandler):
             logger.info(f"Channel selected: {channel}")
             logger.info(f"Select channel samples: {len(signal)}")
 
-            n_epoch_samples = sampling_rate * epoch_duration
             file_duration = len(signal) / sampling_rate
 
             return {
                 "signal": signal,
                 "sampling_rate": sampling_rate,
-                "n_epoch_samples": n_epoch_samples,
                 "start_datetime": None,
                 "file_duration": file_duration,
             }

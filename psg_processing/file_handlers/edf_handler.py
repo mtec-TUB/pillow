@@ -35,7 +35,7 @@ class EDFHandler(FileHandler):
             logger.error("Maybe the repair_edfs.py script can help.")
         return None
 
-    def get_signal_data(self, logger, filepath, epoch_duration, channel):
+    def get_signal_data(self, logger, filepath, channel):
         """Get complete EDF signal information for processing."""
         try:
             psg_f = pyedflib.EdfReader(filepath)
@@ -57,7 +57,6 @@ class EDFHandler(FileHandler):
             ch_freq = psg_f.getSampleFrequencies()
 
             sampling_rate = ch_freq[select_ch_idx]
-            n_epoch_samples = epoch_duration * sampling_rate
             signal = psg_f.readSignal(select_ch_idx)
             
             unit = psg_f.getPhysicalDimension(select_ch_idx)
@@ -68,7 +67,6 @@ class EDFHandler(FileHandler):
                 "signal": signal,
                 "sampling_rate": sampling_rate,
                 "unit": unit,
-                "n_epoch_samples": n_epoch_samples,
                 "start_datetime": start_datetime,
                 "file_duration": file_duration,
             }

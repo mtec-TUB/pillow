@@ -40,7 +40,7 @@ class WFDBHandler(FileHandler):
             logger.error(f"Error reading WFDB signal from {filepath}: {e}")
         return None
 
-    def get_signal_data(self, logger, filepath, epoch_duration, channel):
+    def get_signal_data(self, logger, filepath, channel):
         """Get complete WFDB signal information for processing."""
         try:
             psg_fname, _ = os.path.splitext(filepath)
@@ -70,13 +70,11 @@ class WFDBHandler(FileHandler):
 
             logger.info(f"Select channel samples: {len(signal)}")
 
-            n_epoch_samples = int(epoch_duration * sampling_rate)
             file_duration = fields["sig_len"] / sampling_rate
 
             return {
                 "signal": signal,
                 "sampling_rate": sampling_rate,
-                "n_epoch_samples": n_epoch_samples,
                 "start_datetime": start_datetime,
                 "file_duration": file_duration,
             }

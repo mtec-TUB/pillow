@@ -28,7 +28,7 @@ class MATHandler(FileHandler):
             logger.error(f"Error reading mat signal from {filepath}: {e}")
         return None
 
-    def get_signal_data(self, logger, filepath, epoch_duration, channel):
+    def get_signal_data(self, logger, filepath, channel):
         """Get complete EDF signal information for processing."""
         try:
             psg_f = loadmat(filepath)['Data']
@@ -45,13 +45,11 @@ class MATHandler(FileHandler):
             logger.info(f"Select channel samples: {samples}")
 
             sampling_rate = psg_f[0,0]['fs'][0,0]
-            n_epoch_samples = sampling_rate * epoch_duration
             file_duration = samples / sampling_rate
 
             return {
                 "signal": signal,
                 "sampling_rate": sampling_rate,
-                "n_epoch_samples": n_epoch_samples,
                 "start_datetime": None,
                 "file_duration": file_duration,
             }

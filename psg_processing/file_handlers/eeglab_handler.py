@@ -28,7 +28,7 @@ class EEGLABHandler(FileHandler):
             logger.error(f"Error reading signal from {filepath}: {e}")
         return None
 
-    def get_signal_data(self, logger, filepath, epoch_duration, channel):
+    def get_signal_data(self, logger, filepath, channel):
         """Get complete EDF signal information for processing."""
         try:
             raw_data = read_raw_eeglab(filepath, verbose=False, preload=True)
@@ -45,7 +45,6 @@ class EEGLABHandler(FileHandler):
             logger.info(f"Select channel samples: {samples}")
 
             sampling_rate = raw_data.info['sfreq']
-            n_epoch_samples = sampling_rate * epoch_duration
             file_duration = samples / sampling_rate
             assert file_duration == raw_data.duration
 
@@ -53,7 +52,6 @@ class EEGLABHandler(FileHandler):
             return {
                 "signal": signal,
                 "sampling_rate": sampling_rate,
-                "n_epoch_samples": n_epoch_samples,
                 "start_datetime": start_datetime,
                 "file_duration": file_duration,
             }
