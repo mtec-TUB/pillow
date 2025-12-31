@@ -1,10 +1,40 @@
 """
-Logging management utilities for PSG data processing.
+Utilities for PSG data processing.
 """
 
 import os
 import logging
 import glob
+
+# alignment options
+class Alignment(Enum):
+    """Options for aligning signal and annotation lengths at front and/or end."""
+    MATCH_SHORTER = "match shorter"     # no padding, but cropping if necessary
+    MATCH_LONGER = "match longer"   # no cropping, but padding with custom values
+    MATCH_SIGNAL = "match signal length"    # pad/crop to signal length
+    MATCH_ANNOT = "match annot length"  # pad/crop to annotation length
+
+@dataclass
+class ProcessorConfig:
+    dataset: str
+    base_data_dir: str
+    data_dir: Path
+    ann_dir: Path
+    output_dir: Path
+    action: str
+    resample: int
+    filter: bool
+    channels: list[str]
+    epoch_duration: int
+    overwrite: bool
+    allow_missing: bool
+    num_jobs: int
+    rm_move: bool
+    rm_unk: bool
+    n_wake_epochs: int
+    alignment: Alignment
+    pad_values: list
+    min_sleep_epochs: int
 
 
 class LoggingManager:

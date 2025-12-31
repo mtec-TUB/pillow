@@ -2,4 +2,5 @@
 Utils package for PSG processing.
 """
 
-from .logging_manager import LoggingManager
+from .utils import Alignment, LoggingManager, ProcessorConfig
+

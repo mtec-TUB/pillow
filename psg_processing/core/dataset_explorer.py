@@ -10,7 +10,7 @@ from tqdm import tqdm
 from natsort import natsorted
 import logging
 
-from ..utils.logging_manager import LoggingManager
+from ..utils import LoggingManager
 
 # Amplitude resolution threshold (2^7)
 DIGITAL_SIGNAL_MAX_UNIQUE_VALUES = 128

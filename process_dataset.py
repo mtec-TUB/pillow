@@ -14,6 +14,7 @@ import os
 import argparse
 import sys
 from pathlib import Path
+from enum import Enum
 
 from dataclasses import dataclass
 from typing import Optional
@@ -21,9 +22,11 @@ from typing import Optional
 # Add the current directory to the Python path
 sys.path.append(str(Path(__file__).parent))
 
+from psg_processing.utils import Alignment
 from datasets.registry import get_dataset, DatasetRegistry
 from psg_processing.core import Dataset_Explorer, DatasetProcessor
 from psg_processing.file_handlers import get_handler
+
 
 # ============================================================================
 # VS CODE CONFIGURATION
@@ -45,32 +48,12 @@ VS_CODE_CONFIG = {
     "rm_move": True,
     "rm_unk": True,
     "n_wake_epochs": "60",
-    "min_sleep_time": 1,
+    "alignment": Alignment.MATCH_SHORTER,
+    "pad_values": [None, None],
+    "min_sleep_epochs": 1,
     "overwrite": False,
     "allow_missing": False,
 }
-# ============================================================================
-
-@dataclass
-class ProcessorConfig:
-    dataset: str
-    base_data_dir: str
-    data_dir: Path
-    ann_dir: Path
-    output_dir: Path
-    action: str
-    resample: int
-    filter: bool
-    channels: list[str]
-    epoch_duration: int
-    overwrite: bool
-    allow_missing: bool
-    num_jobs: int
-    rm_move: bool
-    rm_unk: bool
-    n_wake_epochs: int
-    min_sleep_epochs: int
-
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -184,6 +167,21 @@ def build_parser() -> argparse.ArgumentParser:
         type=str,
         default="60",
         help="Number of wake epochs at start and end to keep during processing (default 30min), or 'all' to keep all"
+    )
+
+    parser.add_argument(
+        "--alignment",
+        type=str,
+        default="match shorter",
+        choices=[a.value for a in Alignment],
+        help="How to align signal and annotation lengths, specify pad_value for padding options"
+    )
+
+    parser.add_argument(
+        "--pad_values",
+        nargs=2,
+        default=[None, None],
+        help="Padding value for signal and labels when using alignment option that require padding (default: None for both)"
     )
 
     parser.add_argument(

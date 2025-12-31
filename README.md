@@ -32,7 +32,7 @@ The codebase is organized into three main components:
 │   │   ├── processor.py           # Main processing pipeline
 │   │   └── signal_processor.py    # Filtering & resampling
 │   ├── file_handlers/             # Support for various file formats
-│   └── utils/                     # Logging, helper functions
+│   └── utils/                     # Logging, helper functions and classes
 └── process_dataset.py             # Main command-line interface
 ```
 
