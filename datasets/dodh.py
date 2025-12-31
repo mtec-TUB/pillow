@@ -97,12 +97,13 @@ class DODH(BaseDataset):
             dataset.append((name, obj[:]))
     
     
-    def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         DOD-H doesn't use separate annotation files.
         Annotations are embedded in H5 files.
         """
         ann_stage_events = []
+        epoch_duration = 30  # DOD-H uses 30-second epochs
 
         with h5py.File(ann_fname, "r") as f:
             dataset = []

@@ -122,7 +122,7 @@ class NCHSDB(BaseDataset):
         ann_dir = "NCHSDB - NCH Sleep DataBank/sleep_data"
         return data_dir, ann_dir
         
-    def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         function to parse the annotation file of the dataset into sleep stage events with start and duration
 
@@ -131,6 +131,8 @@ class NCHSDB(BaseDataset):
         ann_stage_events = []
         ann_df = pd.read_csv(ann_fname,header = 0, sep='\t')
         start_time_label = None
+
+        epoch_duration = 30  # NCHSDB uses 30-second epochs
 
         for i,row in ann_df.iterrows():
             event = row['description']

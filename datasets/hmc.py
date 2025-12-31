@@ -57,13 +57,12 @@ class HMC(BaseDataset):
         ann_dir = "HMC - Haaglanden Medisch Centrum sleep staging database/1.1/recordings"
         return data_dir, ann_dir
     
-    def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Parse HMC CSV annotation files.
         
         Args:
             ann_fname: Path to CSV annotation file
-            epoch_duration: Duration of each epoch in seconds
             
         Returns:
             Tuple of (sleep_stage_events, start_datetime)

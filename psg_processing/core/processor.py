@@ -182,9 +182,7 @@ class DatasetProcessor:
         """Process a single PSG file for all specified channels."""
 
         # Load annotations before (same for all channels)
-        ann_stage_events, ann_Startdatetime = self.dataset.ann_parse(
-            ann_fname, self.config.epoch_duration
-        )
+        ann_stage_events, ann_Startdatetime = self.dataset.ann_parse(ann_fname)
 
         if ann_stage_events == []:
             return

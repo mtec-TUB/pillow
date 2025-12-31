@@ -61,7 +61,7 @@ class DCSM(BaseDataset):
         return data_dir, ann_dir
     
 
-    def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Parse DCSM .ids annotation files.
         
@@ -70,7 +70,6 @@ class DCSM(BaseDataset):
         
         Args:
             ann_fname: Path to .ids annotation file
-            epoch_duration: Duration of each epoch in seconds (unused for DCSM)
             
         Returns:
             Tuple of (sleep_stage_events, start_datetime)

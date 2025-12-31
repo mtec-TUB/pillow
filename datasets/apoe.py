@@ -99,7 +99,7 @@ class APOE(BaseDataset):
             "APOE - Sleep Disordered Breathing, ApoE and Lipid Metabolism/original/PSG"
         )
 
-    def ann_parse(self, ann_fname: str, epoch_duration: int = 30) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Parse APOE STA annotation files.
         STA files contain space or tab-separated values with epoch number and sleep stage.
@@ -112,6 +112,7 @@ class APOE(BaseDataset):
             Tuple of (sleep_stage_events, start_datetime)
         """
         ann_stage_events = []
+        epoch_duration = 30  # APOE uses 30-second epochs
         
         with open(ann_fname, 'r') as file:
             # Try space delimiter first

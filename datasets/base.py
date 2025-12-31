@@ -58,7 +58,7 @@ class BaseDataset(ABC):
         ann_dir = os.path.join(self.dataset_name, "polysomnography", "annotations-events-nsrr")
         return data_dir, ann_dir
 
-    def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Generic parse annotation file and extract sleep stage events.
         This works for datasets like
@@ -66,7 +66,6 @@ class BaseDataset(ABC):
 
         Args:
             ann_fname: Path to annotation file
-            epoch_duration: Duration of each epoch in seconds (optional)
 
         Returns:
             Tuple of (sleep_stage_events, start_datetime)
@@ -136,7 +135,7 @@ class BaseDataset(ABC):
 
         for event in ann_stage_events:
             onset_sec = int(event["Start"])
-            duration_sec = int(event["Duration"])
+            ann_duration = int(event["Duration"])
             ann_str = event["Stage"]
 
             # Sanity check
@@ -150,16 +149,16 @@ class BaseDataset(ABC):
                 raise Exception(f"Something unexpected: label {ann_str} not found")
 
             # Compute # of epoch for this stage
-            if duration_sec % epoch_duration != 0:
-                logger.info(f"Something wrong: {duration_sec} {epoch_duration}")
-                raise Exception(f"Something wrong: {duration_sec} {epoch_duration}")
-            duration_epoch = int(duration_sec / epoch_duration)
+            if ann_duration % epoch_duration != 0:
+                logger.info(f"Something wrong: {ann_duration} {epoch_duration}")
+                raise Exception(f"Something wrong: {ann_duration} {epoch_duration}")
+            n_epochs = int(ann_duration / epoch_duration)
 
             # Generate sleep stage labels
-            label_epoch = np.ones(duration_epoch, dtype=np.int32) * label
+            label_epoch = np.ones(n_epochs, dtype=np.int32) * label
             labels.append(label_epoch)
 
-            total_duration += duration_sec
+            total_duration += ann_duration
 
             # logger.info("Include onset:{}, duration:{}, label:{} ({})".format(onset_sec, duration_sec, label, ann_str))
 

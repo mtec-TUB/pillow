@@ -89,19 +89,20 @@ class WSC(BaseDataset):
         ann_dir = "WSC - Wisconsin Sleep Cohort/polysomnography"
         return data_dir, ann_dir
     
-    def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Parse WSC CSV annotation files.
         
         Args:
             ann_fname: Path to CSV annotation file
-            epoch_duration: Duration of each epoch in seconds
             
         Returns:
             Tuple of (sleep_stage_events, start_datetime)
         """
         ann_stage_events = []
         
+        epoch_duration = 30  # WSC uses 30-second epochs
+
         if 'stg.txt' in ann_fname:
             ann_Startdatetime = None
             data = pd.read_csv(ann_fname, sep="\t", header=0, names=['Epoch','Stage', 'CAST_Stage'])

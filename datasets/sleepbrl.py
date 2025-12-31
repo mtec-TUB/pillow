@@ -52,7 +52,7 @@ class SLEEPBRL(BaseDataset):
         ann_dir = "SLEEPBRL - Sleep Bioradiolocation Database"
         return data_dir, ann_dir
     
-    def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Parse SLEEPBRL .atr annotation files.
         """
@@ -60,6 +60,8 @@ class SLEEPBRL(BaseDataset):
         
         record_name, extension = os.path.splitext(ann_fname)
         annot = wfdb.rdann(record_name, extension.strip('.'))
+
+        epoch_duration = 30  # SLEEPBRL uses default 30-second epochs, is calculated afterwards
 
         fs = 50 # 50 Hz for all channels
 

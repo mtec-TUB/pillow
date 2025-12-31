@@ -91,7 +91,7 @@ class ANPHY(BaseDataset):
         ann_dir = "ANPHY/osfstorage-archive"
         return data_dir, ann_dir
     
-    def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Parse ANPHY annotation files.
         """

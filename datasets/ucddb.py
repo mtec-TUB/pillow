@@ -61,10 +61,12 @@ class UCDDB(BaseDataset):
         ann_dir = "UCDDB - St. Vincent's University Hospital, University College Dublin Sleep Apnea Database"
         return data_dir, ann_dir
     
-    def ann_parse(self, ann_fname: str, epoch_duration = None) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """Parse ISRUC annotation files (multiple scorers in separate files)"""
         
         ann_stage_events = []
+
+        epoch_duration = 30  # UCDDB uses 30-second epochs
 
         stages = np.loadtxt(ann_fname, dtype=int)
         for i, stage in enumerate(stages):

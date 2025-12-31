@@ -85,14 +85,16 @@ class FDCSR(BaseDataset):
         ann_dir = "FDCSR - Forced Desynchrony with and without Chronic Sleep Restriction /subjects"
         return data_dir, ann_dir
     
-    def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Parse FDCSR annotation files with custom datetime handling.
         """
 
         # recordings only contain information about month and day (not year),
         # recordings took place between 2000 and 2016, default value 1900 to distinguish
-        study_start_datetime = datetime(year=1900,month=1,day=1)        
+        study_start_datetime = datetime(year=1900,month=1,day=1)     
+
+        epoch_duration = 30  # FDCSR uses 30-second epochs   
 
         ann_df = pd.read_csv(ann_fname,sep=',',header=0)
     

@@ -95,7 +95,7 @@ class CAP(BaseDataset):
         ann_dir = "CAPSLPDB - CAP Sleep Database/1.0.0"
         return data_dir, ann_dir
     
-    def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Parse MIT-BIH .st annotation files.
         """

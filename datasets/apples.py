@@ -53,7 +53,7 @@ class APPLES(BaseDataset):
             "APPLES - Apnea Positive Pressure Long-term Efficacy Study/polysomnography"
         ]
     
-    def ann_parse(self, ann_fname: str, epoch_duration: int = 30) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Parse APPLES annotation files.
         """

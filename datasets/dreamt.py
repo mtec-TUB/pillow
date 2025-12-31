@@ -51,12 +51,12 @@ class DREAMT(BaseDataset):
         ann_dir = "DREAMT - Dataset for Real-time sleep stage EstimAtion using Multisensor wearable Technology/data"
         return data_dir, ann_dir
     
-    def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[np.ndarray, int, List[Dict]]:
+    def ann_parse(self, ann_fname: str) -> Tuple[np.ndarray, int, List[Dict]]:
         """
         DREAMT annotation parsing.
         """
         sampling_rate = 64
-        epoch_duration = 30
+        epoch_duration = 30 # DREAMT uses 30-second epochs
         dataset = pd.read_csv(ann_fname, sep=",", header=0)
         
         # Prepare dataset to get labels:

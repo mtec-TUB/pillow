@@ -90,10 +90,12 @@ class ISRUC(BaseDataset):
         ann_dir = "ISRUC/Data"
         return data_dir, ann_dir
     
-    def ann_parse(self, ann_fname: str, epoch_duration=None) -> Tuple[List[List[Dict]], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[List[Dict]], datetime]:
         """Parse ISRUC annotation files (multiple scorers in separate files)"""
         # ISRUC typically has two annotation files: *1.txt and *2.txt
         base_fname = ann_fname.replace('1.txt', '')
+
+        epoch_duration = 30  # ISRUC uses 30-second epochs
         
         ann_stage_events_1 = []
         ann_stage_events_2 = []
@@ -104,7 +106,7 @@ class ISRUC(BaseDataset):
             df = pd.read_csv(ann_fname_1, names=['Stage'])
             for i, row in df.iterrows():
                 ann_stage_events_1.append({
-                    'Start': i * epoch_duration,  # Assuming 30-second epochs
+                    'Start': i * epoch_duration,
                     'Duration': epoch_duration,
                     'Stage': row['Stage']
                 })
@@ -115,7 +117,7 @@ class ISRUC(BaseDataset):
             df = pd.read_csv(ann_fname_2, names=['Stage'])
             for i, row in df.iterrows():
                 ann_stage_events_2.append({
-                    'Start': i * epoch_duration,  # Assuming 30-second epochs
+                    'Start': i * epoch_duration,
                     'Duration': epoch_duration,
                     'Stage': row['Stage']
                 })

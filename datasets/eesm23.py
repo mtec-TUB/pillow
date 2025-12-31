@@ -49,7 +49,7 @@ class EESM23(BaseDataset):
         ann_dir = "Ear-EEG Sleep Monitoring 2023 (EESM23)"
         return data_dir, ann_dir
     
-    def ann_parse(self, ann_fname, epoch_duration = None):
+    def ann_parse(self, ann_fname):
         annot = pd.read_csv(ann_fname,sep='\t', header=0)
 
         ann_stage_events = []

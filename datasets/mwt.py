@@ -42,22 +42,22 @@ class MWT(BaseDataset):
             "MWT - Maintenance of Wakefulness Test"
         ]
     
-    def ann_parse(self, ann_fname: str, epoch_duration: int = 30) -> Tuple[List[List[Dict]], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[List[Dict]], datetime]:
         """
         Parse MWT annotation files.
         """
         ann_stage_events = []
         
         ann_f = loadmat(ann_fname)['Data']
-
         labels_1 = ann_f[0,0]['labels_O1']
-
         fs = ann_f[0,0]['fs'][0,0]
         
+        epoch_duration = 30  # MWT uses 30-second epochs
+
         for i, stage in enumerate(labels_1):
             if (i/fs)%epoch_duration == 0:
                 ann_stage_events.append({
-                    'Start': i/fs,  # Assuming 30-second epochs
+                    'Start': i/fs,
                     'Duration': epoch_duration,
                     'Stage': stage[0]
                 })

@@ -73,7 +73,7 @@ class MNC(BaseDataset):
         ann_dir = "MNC - Mignot Nature Communications/sleep_data"
         return data_dir, ann_dir
 
-    def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         function to parse the annotation file of the dataset into sleep stage events with start and duration
     

@@ -66,13 +66,12 @@ class SleepEDF2018(BaseDataset):
         ann_dir = "Sleep-EDFX - Sleep-EDF Expanded/1.0.0"
         return data_dir, ann_dir
     
-    def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Parse Sleep-EDF-2018 EDF annotation files using PyEDF.
         
         Args:
             ann_fname: Path to EDF hypnogram file
-            epoch_duration: Duration of each epoch in seconds
             
         Returns:
             Tuple of (sleep_stage_events, start_datetime)

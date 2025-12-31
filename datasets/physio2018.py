@@ -52,7 +52,7 @@ class Physio2018(BaseDataset):
         ann_dir = "Physio2018 - PysioNet Challenge 2018/1.0.0/training"
         return data_dir, ann_dir
     
-    def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Parse Physio2018 annotation files.
         """
@@ -62,6 +62,8 @@ class Physio2018(BaseDataset):
         annot = wfdb.rdann(record_name, extension.strip('.'))
         
         fs = annot.fs
+
+        epoch_duration = 30  # Physio2018 uses default 30-second epochs, is calculated afterwards
         
         start_time_label = None
 

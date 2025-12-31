@@ -62,7 +62,7 @@ class MITBIH(BaseDataset):
         ann_dir = "MIT-BIH - Polysomnographic Database"
         return data_dir, ann_dir
     
-    def ann_parse(self, ann_fname: str, epoch_duration: Optional[int] = None) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Parse MIT-BIH .st annotation files.
         """
@@ -72,6 +72,8 @@ class MITBIH(BaseDataset):
         annot = wfdb.rdann(record_name, extension.strip('.'))
         
         fs = annot.fs
+
+        epoch_duration = 30  # default epoch duration, is calculated afterwards
 
         start_time_label = None
         

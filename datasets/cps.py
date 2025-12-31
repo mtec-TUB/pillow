@@ -74,20 +74,21 @@ class CPS(BaseDataset):
             "CPS - Comprehensive Polysomnography Dataset (A Resource for Sleep-Related Arousal Research)/1.0.0/data"
         )
     
-    def ann_parse(self, ann_fname: str, epoch_duration: int = 30) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Parse CPS annotation files.
         CPS uses semicolon-separated CSV files with German sleep stage names.
         
         Args:
             ann_fname: Path to annotation file (Schlafprofil.txt)
-            epoch_duration: Duration of each epoch in seconds (default: 30)
             
         Returns:
             Tuple of (sleep_stage_events, start_datetime)
         """
         ann_stage_events = []
         ann_startdatetime = None
+
+        epoch_duration = 30  # CPS uses 30-second epochs
         
         data = pd.read_csv(ann_fname, sep=";", names=['Timestamp', 'Stage'], 
                             skipinitialspace=True, skiprows=6)
