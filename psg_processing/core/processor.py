@@ -172,7 +172,7 @@ class DatasetProcessor:
         )
 
         # Add more information to signal_data annotations
-        signal_data["ann_stage_events"] = ann_stage_events
+        signal_data["labels"] = ann_stage_events
         signal_data["psg_fname"] = psg_fname
         signal_data["ann_fname"] = ann_fname
 
@@ -183,9 +183,11 @@ class DatasetProcessor:
         # If annotations holds a start datetime, check if alignment is needed
         if ann_Startdatetime != None:
 
-            if (isinstance(ann_Startdatetime, datetime) and
-                signal_data["start_datetime"].time() != ann_Startdatetime.time()):
-                start_time = (ann_Startdatetime - psg_start_datetime).total_seconds()
+            if isinstance(ann_Startdatetime, datetime):
+                if signal_data["start_datetime"].time() != ann_Startdatetime.time():
+                    start_time = (ann_Startdatetime - signal_data["start_datetime"]).total_seconds()
+                else:
+                    start_time=0
 
             elif isinstance(ann_Startdatetime, (int, float, Decimal)):  # ann_Startdatetime can be in seconds or samples (depends on dataset)
                 start_time = ann_Startdatetime
@@ -193,7 +195,7 @@ class DatasetProcessor:
                 print(
                     f"Start of signal: {signal_data['start_datetime']} \nStart of labels: {ann_Startdatetime}"
                 )
-
+             
             if start_time != 0:
                 # Shorten signal if annotations start later or align front to first common epoch if annotations start before
                 signal, labels = self.dataset.align_front(
@@ -342,7 +344,7 @@ class DatasetProcessor:
         print(
             f"Seconds in unfilled (cropped) epoch: {len(signal)/sampling_rate - (n_epochs * self.config.epoch_duration):.4f} sec"
         )
-        signal_epoched = signal[:n_epochs * n_epoch_samples].reshape(-1, n_epoch_samples)
+        signal_epoched = signal[:n_epochs * int(self.config.epoch_duration * sampling_rate)].reshape(n_epochs, -1)
 
         # Not sure about this part
         # if self.config.alignment == Alignment.MATCH_ANNOT:
@@ -412,7 +414,7 @@ class DatasetProcessor:
             self.logger.info(f"  Removing Movement epochs: {len(move_idx)}")
 
         if self.config.rm_unk:
-            unk_idx = np.where(labels == STAGE_DICT["UNK"])[0]
+            unk_idx = np.where(labels == self.STAGE_DICT["UNK"])[0]
         else:
             unk_idx = []
         if len(unk_idx) > 0:

@@ -7,7 +7,7 @@
 #                    DREAMT, EESM23, FDCSR, HMC, HOMEPAP, ISRUC, MESA, MITBIH, MNC, MROS, 
 #                    MSP, MWT, NCHSDB, PHYSIO2018, SHHS, SLEEPBRL, SLEEPEDF2018, SOF, STAGES, 
 #                    UCDDB, WSC
-dataset: "EESM23"
+dataset: "APPLES"
 
 # Base directory where your sleep datasets are stored
 base_data_dir: "/media/linda/Elements/sleep_data"
@@ -34,12 +34,12 @@ filter: true
 # Filter frequency mappings for different signal groups (default: AASM guidelines)
 filter_freq:
   eeg_eog: [0.3, 35]  # EEG and EOG channels: 0.3-35 Hz
-  emg: [10, None]  # EMG channels: 10+ Hz (high-pass)
-  ecg: [0.3, None]  # ECG channels: 0.3+ Hz (high-pass)
+  emg: [10, null]  # EMG channels: 10+ Hz (high-pass)
+  ecg: [0.3, null]  # ECG channels: 0.3+ Hz (high-pass)
   thoraco_abdo_resp: [0.1, 15]  # thoraco_abdo_resp signals: 0.1-15 Hz
-  nasal_pressure: [0.03, None]  # Nasal pressure: 0.03+ Hz (high-pass)
-  snoring: [10, None]  # Snoring: 10+ Hz (high-pass)
-  default: [None, None]  # Default: no filtering
+  nasal_pressure: [0.03, null]  # Nasal pressure: 0.03+ Hz (high-pass)
+  snoring: [10, null]  # Snoring: 10+ Hz (high-pass)
+  default: [null, null]  # Default: no filtering
   
 # List of specific channel names to process (empty list = process all channels)
 # Example: ["C3", "C4", "EOG-L", "EOG-R", "EMG", "ECG"]

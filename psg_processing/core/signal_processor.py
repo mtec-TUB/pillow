@@ -166,7 +166,7 @@ class SignalProcessor:
                 n_jobs='cuda' if cupy.cuda.is_available() else -1,
                 verbose="WARNING",
             )
-        elif ch_type == "digital":
+        elif not (low is None and high is None) and ch_type == "digital":
             raise Exception("Digital channels cannot be filtered.")
 
         # Final clipping to original signal range

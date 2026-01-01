@@ -21,7 +21,7 @@ from typing import Optional
 # Add the current directory to the Python path
 sys.path.append(str(Path(__file__).parent))
 
-from psg_processing.utils import Alignment, load_config_file, merge_configs
+from psg_processing.utils import Alignment, load_config_file, merge_configs, ProcessorConfig
 from datasets.registry import get_dataset, DatasetRegistry
 from psg_processing.core import Dataset_Explorer, DatasetProcessor
 from psg_processing.file_handlers import get_handler
