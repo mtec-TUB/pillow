@@ -74,21 +74,15 @@ class EESM23(BaseDataset):
         if not (delay_sec*fs).is_integer():
             raise Exception("Annotations start at timestamp outside of sample rate")
 
-        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels)
-    
-    def align_end(self, logger, psg_fname, ann_fname, signals, labels):
+        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels) 
 
-        if len(labels) == len(signals) +1:
-            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
-            labels = labels[:len(signals)]
+    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
+
+        if len(labels) == len(signals) + 1:
+            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
 
         if len(signals) > len(labels):
-            logger.info(f"Signal (len: {len(signals)}) is shortend to match label (len: {len(labels)})")
-            signals = signals[:len(labels)]
-
-        assert len(signals) == len(labels), f"Length mismatch: signal ({os.path.basename(psg_fname)})={len(signals)}, labels({os.path.basename(ann_fname)})={len(labels)} TODO: implement alignment function"
-
-        return signals, labels
+            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
     
     def preprocess(self, data_dir, ann_dir, output_dir):
         print("\n EESM23 files originally contain NaN values in signals. \n")

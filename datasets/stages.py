@@ -199,16 +199,11 @@ class STAGES(BaseDataset):
 
         return self.base_align_front(logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs)
 
-    def align_end(self, logger, psg_fname, ann_fname, signals, labels):
+    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
         if len(labels) > len(signals):
-            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
-            labels = labels[:len(signals)]
+            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
 
         if len(signals) > len(labels):
-            logger.info(f"Signal (len: {len(signals)}) is shortend to match label (len: {len(labels)})")
-            signals = signals[:len(labels)]
-
-        assert len(signals) == len(labels), f"Length mismatch: signal={len(signals)}, labels={len(labels)} \n TODO: implement alignment function"
-        
-        return signals, labels
+            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)        
+    

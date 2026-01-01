@@ -73,15 +73,9 @@ class MROS(BaseDataset):
         data_dir = "MROS - MrOS Sleep Study/polysomnography/edfs"
         ann_dir = "MROS - MrOS Sleep Study/polysomnography/annotations-events-nsrr"
         return data_dir, ann_dir
-    
-    def align_end(self, logger, psg_fname: str, ann_fname: str, signals: np.ndarray,
-                  labels: np.ndarray,
-                  ) -> Tuple[np.ndarray, np.ndarray]:
-        
+
+    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
+
         if ann_fname == "mros-visit1-aa2931-nsrr.xml" and len(signals) > len(labels):
-            logger.info(f"Signal (len: {len(signals)}) is shortened to match label length ({len(labels)})")
-            signals = signals[:len(labels)]
-        
-        assert len(signals) == len(labels), f"Length mismatch: signal={len(signals)}, labels={len(labels)} \n TODO: implement alignment function"
-        
-        return signals, labels
+            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)        
+    

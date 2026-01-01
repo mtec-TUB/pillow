@@ -148,25 +148,15 @@ class WSC(BaseDataset):
                                                 'Duration': duration})
 
         return ann_stage_events, ann_Startdatetime
-    
-    
-    def align_end(self, logger, psg_fname: str, ann_fname: str, signals: np.ndarray,
-                  labels: np.ndarray,
-                  ) -> Tuple[np.ndarray, np.ndarray]:
-        
+
+    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
+
         if ('allscore.txt' in ann_fname):
             if len(signals) > len(labels):
-                logger.info(f"Signal (len: {len(signals)}) is shortened to match label length ({len(labels)})")
-                signals = signals[:len(labels)]
+                return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels) 
             if len(labels) > len(signals):
-                logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
-                labels = labels[:len(signals)]
+                return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
 
-        
         if ('stg.txt' in ann_fname) and len(signals) == len(labels) + 1:
-            logger.info(f"Signal (len: {len(signals)}) is shortened to match label length ({len(labels)})")
-            signals = signals[:len(labels)]
-
-        assert len(signals) == len(labels), f"Length mismatch: signal={len(signals)}, labels={len(labels)} \n TODO: implement alignment function"
-        
-        return signals, labels
+            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)        
+    

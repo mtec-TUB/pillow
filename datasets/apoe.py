@@ -128,14 +128,8 @@ class APOE(BaseDataset):
                     })
             
         return ann_stage_events, None  # APOE doesn't provide start datetime in STA files
-    
-    def align_end(self, logger, psg_fname, ann_fname, signals, labels):
-        # Alignment necessary due to cropping signal to whole epochs
+
+    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
         if len(labels) == len(signals) + 1:
-            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
-            labels = labels[:len(signals)]
-
-        assert len(signals) == len(labels), f"Length mismatch: signal ({os.path.basename(psg_fname)})={len(signals)}, labels({os.path.basename(ann_fname)})={len(labels)} TODO: implement alignment function"
-
-        return signals, labels
+            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)

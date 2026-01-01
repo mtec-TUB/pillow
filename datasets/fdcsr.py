@@ -125,21 +125,13 @@ class FDCSR(BaseDataset):
 
         return ann_stage_events, ann_Startdatetime
 
-    def align_end(self, logger, psg_fname: str, ann_fname: str, signals: np.ndarray,
-                  labels: np.ndarray,
-                  ) -> Tuple[np.ndarray, np.ndarray]:
-        
-        if len(labels) == len(signals)+1:
-            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
-            labels = labels[:len(signals)]
-            
-        if len(signals) == len(labels)+1:
-            logger.info(f"Signal (len: {len(signals)}) is shortend to match label (len: {len(labels)})")
-            signals = signals[:len(labels)]
-        
-        assert len(signals) == len(labels), f"{os.path.basename(psg_fname)}: Length mismatch: signal={len(signals)}, labels={len(labels)} \n TODO: implement alignment function"
-        
-        return signals, labels
+    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
+
+        if len(labels) == len(signals) + 1:
+            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
+
+        if len(signals) == len(labels) + 1:
+            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
     
     def preprocess(self, data_dir, ann_dir, output_dir):
         print("\n FDCSR files originally are stored in an unsupported format and therefor need to be preprocessed/resorted \n")

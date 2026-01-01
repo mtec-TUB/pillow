@@ -83,13 +83,8 @@ class HMC(BaseDataset):
                                             'Duration': duration})
 
         return ann_stage_events, ann_Startdatetime
-    
-    def align_end(self, logger, psg_fname, ann_fname, signals, labels):
 
-        # all signals are one epoch longer than the labels
-        if len(signals) == len(labels) +1:
-            signals = signals[:-1]
+    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
-        assert len(signals) == len(labels), f"Length mismatch: signal={len(signals)}, labels={len(labels)} \n TODO: implement alignment function"
-
-        return signals, labels
+        if len(signals) == len(labels) + 1:
+            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)

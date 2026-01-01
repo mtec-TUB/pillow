@@ -92,15 +92,9 @@ class Physio2018(BaseDataset):
 
         return self.base_align_front(logger, start_seconds, alignment, pad_values, epoch_duration, signal, labels)
 
-    def align_end(self, logger, psg_fname: str, ann_fname: str, signals: np.ndarray,
-                  labels: np.ndarray
-                  ) -> Tuple[np.ndarray, np.ndarray]:
-        
+    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
+
         if len(signals) > len(labels):
-            logger.info(f"Signal (len: {len(signals)}) is shortend to match label (len: {len(labels)})")
-            signals = signals[:len(labels)]
-        
-        assert len(signals) == len(labels), f"Length mismatch: signal={len(signals)}, labels={len(labels)} \n TODO: implement alignment function"
-        
-        return signals, labels
+            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)        
+    
     

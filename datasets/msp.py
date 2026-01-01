@@ -88,13 +88,9 @@ class MSP(BaseDataset):
                                         'Duration': duration})
 
         return ann_stage_events, ann_Startdatetime
-
-    def align_end(self, logger, psg_fname, ann_fname, signals, labels):
+        
+    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
         if len(labels) > len(signals):
-            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
-            labels = labels[:len(signals)]
-
-        assert len(signals) == len(labels), f"Length mismatch: signal={len(signals)}, labels={len(labels)} \n TODO: implement alignment function"
-        
-        return signals, labels
+            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)    
+    

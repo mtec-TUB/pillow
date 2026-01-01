@@ -464,16 +464,20 @@ class DatasetProcessor:
         #         ).reshape(1, -1)
         #         signals = np.append(signals, last_epoch, axis=0)
 
-        # Align labels (some datasets have different length of signal and annotation data)
-        signals, labels = self.dataset.align_end(
-            self.logger,
-            self.config.alignment,
-            self.config.pad_values,
-            signal_data["psg_fname"],
-            signal_data["ann_fname"],
-            signals,
-            labels,
-        )
+        if len(signals) != len(labels):
+            # Align labels (some datasets have different length of signal and annotation data)
+            signals, labels = self.dataset.align_end(
+                self.logger,
+                self.config.alignment,
+                self.config.pad_values,
+                signal_data["psg_fname"],
+                signal_data["ann_fname"],
+                signals,
+                labels,
+            )
+            
+        assert len(signals) == len(labels), f"Length mismatch: signal ({os.path.basename(signal_data['psg_fname'])})={len(signals)}, labels({os.path.basename(signal_data['ann_fname'])})={len(labels)} TODO: implement alignment function"
+
         # Clean signal data
         signals, labels, select_start = self._clean_signal(signals, labels)
 

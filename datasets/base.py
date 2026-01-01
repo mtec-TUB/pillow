@@ -195,16 +195,29 @@ class BaseDataset(ABC):
         signals: np.ndarray,
         labels: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Align end part of signals and labels, handling dataset-specific issues."""
-
-        # if len(labels) > len(signals):
-        #     logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
-        #     labels = labels[:len(signals)]
-
-        assert len(signals) == len(labels), f"Length mismatch: signal ({os.path.basename(psg_fname)})={len(signals)}, labels({os.path.basename(ann_fname)})={len(labels)} TODO: implement alignment function"
-
-        return signals, labels
+        raise NotImplementedError("Subclass has no end alignment implemented but is required")
     
+    def base_align_end_labels_longer(self, logger, alignment, pad_values, signals, labels):
+        if alignment == Alignment.MATCH_SHORTER or alignment == Alignment.MATCH_SIGNAL:
+            logger.info(f"Labels (len:{len(labels)}) are shortend to match signal (len:{len(signals)})")
+            labels = labels[:len(signals)]
+        elif alignment == Alignment.MATCH_LONGER or alignment == Alignment.MATCH_ANNOT:
+            n_pad = (len(labels) - len(signals))
+            logger.info(f"Signal (len:{len(signals)}) will be padded at the end with {n_pad} epochs of constant value:{pad_values[0]} to match labels length (len:{len(labels)})")
+            signals = np.vstack((signals, np.full((n_pad, signals.shape[1]), pad_values[0])))
+        return signals,labels
+
+    def base_align_end_signals_longer(self, logger, alignment, pad_values, signals, labels):
+        if alignment == Alignment.MATCH_SHORTER or alignment == Alignment.MATCH_ANNOT:
+            logger.info(f"Signal (len:{len(signals)}) is shortend to match label (len:{len(labels)})")
+            signals = signals[:len(labels)]
+        elif alignment == Alignment.MATCH_LONGER or alignment == Alignment.MATCH_SIGNAL:
+            n_pad = int((len(signals) - len(labels)) / epoch_duration)
+            logger.info(f"Labels (len:{len(labels)}) will be padded at the end with {n_pad} epochs of value:{pad_values[1]} to match signals (len:{len(signals)}))")
+            labels = labels + n_pad*[pad_values[1]]
+        return signals, labels
+
+
     def preprocess(self, data_dir, ann_dir, output_dir):
         """
         Preprocess files before they can be processed
