@@ -65,14 +65,13 @@ class SignalProcessor:
         self, signal, ch_type, sampling_rate, resample_freq
     ):
         """
-        Resample and filter signal based on channel type and parameters.
+        Resample signal based on channel type and parameters.
 
         Args:
             signal: Input signal data
             ch_type: Channel type ('analog' or 'digital')
             sampling_rate: Current sampling rate
             resample_freq: Target sampling rate
-            get_filter_freq: Function to get filter frequencies
 
         Returns:
             tuple: (processed_signal, final_sampling_rate)
@@ -141,6 +140,19 @@ class SignalProcessor:
         return signal_resampled
     
     def filter_signal(self, signal, fs, select_ch, channel_groups, ch_type):
+        """
+        Filter signal based on channel type and parameters.
+
+        Args:
+            signal: Input signal data
+            fs: Sampling rate of signal
+            ch_type: Channel type ('analog' or 'digital')
+            sampling_rate: Current sampling rate
+            resample_freq: Target sampling rate
+
+        Returns:
+            tuple: (processed_signal, final_sampling_rate)
+        """
 
         # Store clipping threshold if no resampling has been done yet
         if self.signal_max is None or self.signal_min is None:
@@ -164,6 +176,8 @@ class SignalProcessor:
                 n_jobs='cuda' if cupy.cuda.is_available() else -1,
                 verbose="WARNING",
             )
+        elif ch_type == "digital":
+            raise Exception("Digital channels cannot be filtered.")
 
         # Final clipping to original signal range
         signal = np.clip(signal, a_min=self.signal_min, a_max=self.signal_max)
