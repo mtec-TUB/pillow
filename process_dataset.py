@@ -101,12 +101,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--channels", 
         nargs='+',
         help="List of desired channel names to process"
-    )    
-
-    parser.add_argument(
-        "--num_jobs", 
-        type=int,
-        help="Number of parallel jobs to use for processing"
     )
 
     parser.add_argument(

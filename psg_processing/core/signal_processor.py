@@ -19,7 +19,7 @@ class SignalProcessor:
     during processing.
     """
 
-    def __init__(self, logger):
+    def __init__(self, logger, filter_freq):
         """
         Initialize the SignalProcessor.
 
@@ -29,21 +29,11 @@ class SignalProcessor:
         self.logger = logger
         self.signal_min = None
         self.signal_max = None
-
-    # Standard filter frequency mappings for different signal groups
-    FILTER_FREQUENCIES = {
-        "eeg_eog": [0.3, 35],  # EEG and EOG channels: 0.3-35 Hz
-        "emg": [10, None],  # EMG channels: 10+ Hz (high-pass)
-        "ecg": [0.3, None],  # ECG channels: 0.3+ Hz (high-pass)
-        "thoraco_abdo_resp": [0.1, 15],  # thoraco_abdo_resp signals: 0.1-15 Hz
-        "nasal_pressure": [0.03, None],  # Nasal pressure: 0.03+ Hz (high-pass)
-        "snoring": [10, None],  # Snoring: 10+ Hz (high-pass)
-        "default": [None, None],  # Default: no filtering
-    }        
+        self.filter_freq = filter_freq   
 
     def get_filt_freq(
         self, ch_name: str, channel_groups: Dict[str, List[str]]
-    ) -> tuple[str, List[Union[float, None]]]:
+    ) -> List[Union[float, None]]:
         """
         Get filter frequencies for a given channel using the centralized mapping.
 
@@ -56,10 +46,10 @@ class SignalProcessor:
         # Look up which group this channel belongs to
         for group_name, channels in channel_groups.items():
             if ch_name in channels:
-                return group_name, self.FILTER_FREQUENCIES.get(group_name)
+                return self.filter_freq.get(group_name)
 
         # If channel not found in any group, return default (no filtering)
-        return "default", self.FILTER_FREQUENCIES["default"]
+        return self.filter_freq["default"]
 
     def resample_signal(
         self, signal, ch_type, sampling_rate, resample_freq
@@ -158,7 +148,7 @@ class SignalProcessor:
         if self.signal_max is None or self.signal_min is None:
             self.signal_min, self.signal_max = np.min(signal)-np.mean(signal), np.max(signal)-np.mean(signal)
 
-        channel_group, [low, high] = self.get_filt_freq(select_ch, channel_groups)
+        [low, high] = self.get_filt_freq(select_ch, channel_groups)
 
         # Filter signal according to AASM Manual
         if not (low is None and high is None) and (ch_type == "analog"):

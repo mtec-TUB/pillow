@@ -20,6 +20,7 @@ class ProcessorConfig:
     action: str
     resample: int
     filter: bool
+    filter_freq: dict
     channels: list[str]
     epoch_duration: int
     overwrite: bool

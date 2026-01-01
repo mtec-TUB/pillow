@@ -31,12 +31,19 @@ resample: 100
 # Apply AASM filtering guidelines after resampling
 filter: true
 
+# Filter frequency mappings for different signal groups (default: AASM guidelines)
+filter_freq:
+  eeg_eog: [0.3, 35]  # EEG and EOG channels: 0.3-35 Hz
+  emg: [10, None]  # EMG channels: 10+ Hz (high-pass)
+  ecg: [0.3, None]  # ECG channels: 0.3+ Hz (high-pass)
+  thoraco_abdo_resp: [0.1, 15]  # thoraco_abdo_resp signals: 0.1-15 Hz
+  nasal_pressure: [0.03, None]  # Nasal pressure: 0.03+ Hz (high-pass)
+  snoring: [10, None]  # Snoring: 10+ Hz (high-pass)
+  default: [None, None]  # Default: no filtering
+  
 # List of specific channel names to process (empty list = process all channels)
 # Example: ["C3", "C4", "EOG-L", "EOG-R", "EMG", "ECG"]
 channels: []
-
-# Number of parallel jobs for processing (1 = sequential processing)
-num_jobs: 1
 
 # Epoch duration in seconds
 # Options: 1, 2, 3, 5, 10, 15, 30
