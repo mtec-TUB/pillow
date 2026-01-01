@@ -6,8 +6,6 @@ from typing import Dict, List, Optional, Tuple
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
-from ..psg_processing.utils import Alignment
-
 @register_dataset("ANPHY")
 class ANPHY(BaseDataset):
     """ANPHY dataset"""

@@ -104,7 +104,7 @@ class DatasetProcessor:
         self.config = config
         
 
-    def prepare_files(self):
+    def process_files(self):
 
         try:
             # Set up logger and initialize components

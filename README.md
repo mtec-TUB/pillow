@@ -33,7 +33,12 @@ The codebase is organized into three main components:
 │   │   └── signal_processor.py    # Filtering & resampling
 │   ├── file_handlers/             # Support for various file formats
 │   └── utils/                     # Logging, helper functions and classes
+│       ├── alignment.py           # Enum for available alignment options
+│       ├── config.py              # Helper functions and classes for loading the configuration
+│       └── logging_manager.py     # Helper class for logging
+├── config.yaml                    # Configuration file
 └── process_dataset.py             # Main command-line interface
+
 ```
 
 ---
@@ -62,7 +67,7 @@ The codebase is organized into three main components:
 
 The main script is [`process_dataset.py`](process_dataset.py). It provides the following actions:
 
-- **prepare**: Starts processing and harmonization of a dataset.
+- **process**: Starts processing and harmonization of a dataset.
 - **get_channel_names**: Lists all channels of a dataset.
 - **get_channel_types**: Lists all channel types of a dataset.
 

@@ -1,0 +1,78 @@
+# Sleep Dataset Processing Configuration
+# This configuration file contains all parameters for the dataset processing pipeline.
+# Edit these values according to your needs.
+
+# Dataset to process (required)
+# Available options: ABC, ANPHY, APOE, APPLES, BESTAIR, CAP, CFS, CPS, DCSM, DODH, DODO, 
+#                    DREAMT, EESM23, FDCSR, HMC, HOMEPAP, ISRUC, MESA, MITBIH, MNC, MROS, 
+#                    MSP, MWT, NCHSDB, PHYSIO2018, SHHS, SLEEPBRL, SLEEPEDF2018, SOF, STAGES, 
+#                    UCDDB, WSC
+dataset: "EESM23"
+
+# Base directory where your sleep datasets are stored
+base_data_dir: "/media/linda/Elements/sleep_data"
+
+# Specific data directory (null = use automatic path from dataset definition)
+data_dir: null
+
+# Specific annotation directory (null = use automatic path from dataset definition)
+ann_dir: null
+
+# Specific output directory (null = use automatic path under base_data_dir)
+output_dir: null
+
+# Action to perform
+# Options: "process", "get_channel_names", "get_channel_types"
+action: "process"
+
+# Resample frequency in Hz (null = keep original sampling rate)
+resample: 100
+
+# Apply AASM filtering guidelines after resampling
+filter: true
+
+# List of specific channel names to process (empty list = process all channels)
+# Example: ["C3", "C4", "EOG-L", "EOG-R", "EMG", "ECG"]
+channels: []
+
+# Number of parallel jobs for processing (1 = sequential processing)
+num_jobs: 1
+
+# Epoch duration in seconds
+# Options: 1, 2, 3, 5, 10, 15, 30
+epoch_duration: 30
+
+# Remove Movement epochs during processing
+rm_move: true
+
+# Remove Unknown epochs during processing
+rm_unk: true
+
+# Number of wake epochs to keep at start and end
+# Can be a number (e.g., "60" for 30 minutes with 30s epochs) or "all"
+n_wake_epochs: "60"
+
+# How to align signal and annotation lengths
+# Most datasets already have aligned signals and annotations, these options are for edge cases
+# If labels do not matter for your application and you want to keep the signals as much as possible, use "match_signal" (they will only be cropped to full epochs)
+# Options: "match_shorter", "match_longer", "match_signal", "match_annot"
+# - match shorter one (crop the longer one at front and/or end)
+# - match longer one (pad signal with VALUE to match annotations (with 0, None or whatever), and/or pad annotations with VALUE (with Unknown, None or whatever))
+# - match signal length (crop or pad Annot with VALUE if needed but never change signal)
+# - match annot length (crop or pad signal with VALUE if needed but never change annot)
+alignment: "match_shorter"
+
+# Padding values for signal and labels when using alignment options that require padding
+# Format: [signal_pad_value, label_pad_value]
+# default padding with null will use None for signals and labels
+pad_values: [null, null]
+
+# Minimum required sleep epochs (N1, N2, N3, REM) after preprocessing
+# Recordings with fewer sleep epochs will be discarded
+min_sleep_epochs: 1 # only wake files are discarded
+
+# Overwrite existing output files
+overwrite: false
+
+# Allow missing PSG or annotation files during processing
+allow_missing: false  # raises an error if there is a psg file without annotation or vice versa

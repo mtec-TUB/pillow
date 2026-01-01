@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Unified dataset processing for sleep datasets.
-This replaces all individual prepare_*.py scripts.
+Main entry point for processing a sleep dataset.
 
 Usage:
   From command line:
-    python process_dataset.py --dataset MESA --action prepare --resample 100
+    python process_dataset.py --config custom_config.json
+    python process_dataset.py --dataset ABC --data_dir /path/to/ABC/polysomnograpy --output_dir /path/to/output --action process --resample None
 
   From VS Code (interactive):
-    Edit the VS_CODE_CONFIG dict below with your parameters, then run the script.
+    Edit the config.json with your parameters, then run the script.
 """
 import os
 import argparse
@@ -16,44 +16,15 @@ import sys
 from pathlib import Path
 from enum import Enum
 
-from dataclasses import dataclass
 from typing import Optional
 
 # Add the current directory to the Python path
 sys.path.append(str(Path(__file__).parent))
 
-from psg_processing.utils import Alignment
+from psg_processing.utils import Alignment, load_config_file, merge_configs
 from datasets.registry import get_dataset, DatasetRegistry
 from psg_processing.core import Dataset_Explorer, DatasetProcessor
 from psg_processing.file_handlers import get_handler
-
-
-# ============================================================================
-# VS CODE CONFIGURATION
-# ============================================================================
-# Edit these values to run the script interactively from VS Code
-# When running from command line, these will be overridden by CLI arguments
-VS_CODE_CONFIG = {
-    "dataset": "EESM23",
-    "base_data_dir": "/media/linda/Elements/sleep_data",
-    "data_dir": None,  # Set to override automatic path
-    "ann_dir": None,   # Set to override automatic path
-    "output_dir": None,  # Set to override automatic path
-    "action": "prepare",
-    "resample": 100,  # or None for original sampling rate
-    "filter": True,
-    "channels": [],  # Empty list means all channels
-    "num_jobs": 1,
-    "epoch_duration": 30,
-    "rm_move": True,
-    "rm_unk": True,
-    "n_wake_epochs": "60",
-    "alignment": Alignment.MATCH_SHORTER,
-    "pad_values": [None, None],
-    "min_sleep_epochs": 1,
-    "overwrite": False,
-    "allow_missing": False,
-}
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -63,17 +34,21 @@ def build_parser() -> argparse.ArgumentParser:
                 Available datasets:
                 {', '.join(DatasetRegistry.list_datasets())}
                 
-                Examples:
-                    python process_dataset.py --dataset ABC --data_dir /path/to/ABC/polysomnograpy --output_dir /path/to/output --action prepare --resample None
-                    python process_dataset.py --dataset MESA --data_dir /path/to/MESA/ --action get_channel_names
-                    python process_dataset.py --dataset SOF --data_dir /path/to/SOF/data --action get_channel_types
-                        """,
+                Modify config.json or provide a custom config file with --config to set parameters.
+                Command line arguments override config file settings.""",
+    )
+
+    # Configuration file (optional)
+    parser.add_argument(
+        "--config",
+        type=str,
+        help="Path to JSON configuration file. CLI arguments override config file values.",
     )
 
     # Required arguments
     parser.add_argument(
         "--dataset",
-        required=True,
+        required=False,  # Changed to False since it can come from config file
         choices=DatasetRegistry.list_datasets(),
         type=str.upper,
         help="Dataset to process",
@@ -82,7 +57,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--base_data_dir",
         type=str,
-        default="/media/linda/Elements/sleep_data",  # Your current base path
         help="Base directory where all sleep datasets are stored",
     )
 
@@ -107,7 +81,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--action",
         type=str,
-        default="prepare",
         choices=["prepare", "get_channel_names", "get_channel_types"],
         help="Action to perform",
     )
@@ -115,35 +88,30 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--resample",
         type=lambda x: None if x.lower() == "none" else int(x),
-        default=100,
         help="Integer resample frequency (Hz) or None"
     )
 
     parser.add_argument(
         "--filter",
         type=bool,
-        default=True,
         help="Whether to apply filtering according to AASM guidelines after resampling"
     )
 
     parser.add_argument(
         "--channels", 
         nargs='+',
-        default=[], # all
         help="List of desired channel names to process"
     )    
 
     parser.add_argument(
         "--num_jobs", 
         type=int,
-        default=1,
         help="Number of parallel jobs to use for processing"
     )
 
     parser.add_argument(
         "--epoch_duration",
         type=int,
-        default=30,
         choices=[1,2,3,5,10,15,30],
         help="Epoch duration in seconds"
     )
@@ -151,28 +119,24 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--rm_move",
         type=bool,
-        default=True,
         help="Whether to remove Movement epochs during processing"
     )
 
     parser.add_argument(
         "--rm_unk",
         type=bool,
-        default=True,
         help="Whether to remove Unknown epochs during processing"
     )
 
     parser.add_argument(
         "--n_wake_epochs",
         type=str,
-        default="60",
         help="Number of wake epochs at start and end to keep during processing (default 30min), or 'all' to keep all"
     )
 
     parser.add_argument(
         "--alignment",
         type=str,
-        default="match shorter",
         choices=[a.value for a in Alignment],
         help="How to align signal and annotation lengths, specify pad_value for padding options"
     )
@@ -180,14 +144,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--pad_values",
         nargs=2,
-        default=[None, None],
         help="Padding value for signal and labels when using alignment option that require padding (default: None for both)"
     )
 
     parser.add_argument(
         "--min_sleep_epochs",
         type=int,
-        default=1,
         help="Minimum required sleep epochs (N1,N2,N3,REM) after preprocessing (if less, the recording is discarded)",
     )
     
@@ -255,14 +217,14 @@ def main(config):
     if ret is False:
         return
 
-    if config.action == "prepare":
+    if config.action == "process":
         # all channels will be processed if empty list
         if config.channels != []:
             dataset.channel_names = config.channels
 
         # Initialize a new DatasetProcessor
         processor = DatasetProcessor(dataset, config)
-        processor.prepare_files()
+        processor.process_files()
 
     elif config.action == "get_channel_names":
         explorer = Dataset_Explorer(None, dataset.psg_file_handler, config.data_dir, config.ann_dir, **dataset.file_extensions)
@@ -280,15 +242,39 @@ def main(config):
 
 
 if __name__ == "__main__":
+    # Load defaults from config.yaml (located in same directory as this script)
+    script_dir = Path(__file__).parent
+    default_config_path = script_dir / "config.yaml"
+    defaults = load_config_file(str(default_config_path))
+    
     # Determine if we're running from CLI or VS Code interactive mode
     is_vscode_mode = len(sys.argv) == 1
     
     if is_vscode_mode:
-        # Create a namespace from VS_CODE_CONFIG and pass to main
-        args = argparse.Namespace(**VS_CODE_CONFIG)
+        # VS Code mode: use defaults from config.yaml
+        args = argparse.Namespace(**defaults)
         main(args)
     else:
         # Normal CLI execution
         parser = build_parser()
-        args = parser.parse_args(sys.argv[1:])
+        cli_args = parser.parse_args(sys.argv[1:])
+        
+        # Load user's config file if specified
+        file_config = None
+        if cli_args.config:
+            file_config = load_config_file(cli_args.config)
+        
+        # Extract only explicitly set CLI args (not None and not 'config' key)
+        cli_args_dict = {k: v for k, v in vars(cli_args).items() 
+                        if v is not None and k != 'config'}
+        
+        # Merge with precedence: CLI > user config file > defaults
+        merged_config = merge_configs(defaults, file_config, cli_args_dict)
+        
+        # Validate that dataset is provided
+        if not merged_config.get('dataset'):
+            parser.error("--dataset is required (via CLI, config file, or config.yaml)")
+        
+        # Create namespace from merged config
+        args = argparse.Namespace(**merged_config)
         main(args)
