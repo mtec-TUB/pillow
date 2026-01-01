@@ -114,8 +114,6 @@ class DatasetProcessor:
         if ann_stage_events == []:
             return
 
-        # ann_stage_events = dataset.check_labels(self.logger, ann_stage_events, epoch_duration)
-
         # List channels to process for this file
         channels = list(set(self.dataset.channel_names) & set(self.dataset.psg_file_handler.get_channels(self.logger,psg_fname)))
 
@@ -207,9 +205,6 @@ class DatasetProcessor:
 
         self.logger.info(f"Start datetime: {signal_data['start_datetime']}")
 
-        # Print and log labels for every file and channel if desired
-        # if self.log_labels():
-        #     self._log_labels(signal_data["ann_stage_events"])
         signal_data["ann_stage_events"] = self.dataset.ann_label(
             self.logger, signal_data["ann_stage_events"], self.config.epoch_duration
         )
@@ -238,14 +233,6 @@ class DatasetProcessor:
         self.logger.info("=" * 40)
     
         return True
-
-    # def _log_labels(self, ann_stage_events):
-    #     for event in ann_stage_events:
-    #         onset_sec = int(event["Start"])
-    #         duration_sec = int(event["Duration"])
-    #         ann_str = event["Stage"]
-
-    #         self.logger.info("Include onset:{}, duration:{}, label:{} ({})".format(onset_sec, duration_sec, label, ann_str))
 
     def _get_channel_type(self, channel):
         """Get the type (analog/digital) for a specific channel."""
