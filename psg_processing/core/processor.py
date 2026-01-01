@@ -10,7 +10,7 @@ from pathlib import Path
 from decimal import Decimal
 import numpy as np
 
-from ..utils import LoggingManager
+from ..utils import LoggingManager, Alignment
 from .dataset_explorer import Dataset_Explorer
 from .signal_processor import SignalProcessor
 
@@ -57,7 +57,7 @@ class DatasetProcessor:
                     ann_fname, ann_idx = self._find_matching_annotation(
                         psg_fname, ann_fnames, ann_idx, self.config.allow_missing
                     )
-                    if ann_fname is None:
+                    if ann_fname is None and not self.config.ignore_annot:
                         self.logger.warning(
                             f"No matching annotation found for PSG: "
                             f"{Path(psg_fname).relative_to(self.data_dir)}. Skipping file."
@@ -108,11 +108,15 @@ class DatasetProcessor:
     ):
         """Process a single PSG file for all specified channels."""
 
-        # Load annotations before (same for all channels)
-        ann_stage_events, ann_Startdatetime = self.dataset.ann_parse(ann_fname)
+        if not self.config.ignore_annot:
+            # Load annotations before (same for all channels)
+            ann_stage_events, ann_Startdatetime = self.dataset.ann_parse(ann_fname)
 
-        if ann_stage_events == []:
-            return
+            if ann_stage_events == []:
+                return
+        else:
+            ann_stage_events = []
+            ann_Startdatetime = None
 
         # List channels to process for this file
         channels = list(set(self.dataset.channel_names) & set(self.dataset.psg_file_handler.get_channels(self.logger,psg_fname)))
@@ -153,7 +157,9 @@ class DatasetProcessor:
         self.logging_manager.setup_channel_file_logging(self.logger, file_output_dir)
 
         self.logger.info(f"Signal file: {Path(psg_fname).relative_to(self.config.data_dir)}")
-        self.logger.info(f"Annotation file: {Path(ann_fname).relative_to(self.config.ann_dir)}")
+
+        if not self.config.ignore_annot:
+            self.logger.info(f"Annotation file: {Path(ann_fname).relative_to(self.config.ann_dir)}")
 
         # Extract and process signal
         signal_data = self.dataset.psg_file_handler.get_signal_data(self.logger,psg_fname, channel)
@@ -205,10 +211,10 @@ class DatasetProcessor:
 
         self.logger.info(f"Start datetime: {signal_data['start_datetime']}")
 
-        
-        signal_data["labels"] = self.dataset.ann_label(
-            self.logger, signal_data["labels"], self.config.epoch_duration
-        )
+        if not self.config.ignore_annot:
+            signal_data["labels"] = self.dataset.ann_label(
+                self.logger, signal_data["labels"], self.config.epoch_duration
+            )
 
         # Process the signal (resample, filter, clean)
         ch_type = self._get_channel_type(channel)
@@ -298,10 +304,19 @@ class DatasetProcessor:
         signal = signal_data["signal"]
         labels = signal_data["labels"]
         sampling_rate = signal_data["sampling_rate"]
+        n_epoch_samples = self.config.epoch_duration * sampling_rate
+        if not n_epoch_samples.is_integer():
+            raise Exception(
+                f"Epoch duration {self.config.epoch_duration} sec with sampling rate {sampling_rate} Hz "
+                f"does not result in integer number of samples per epoch."
+            )
+        else:
+            n_epoch_samples = int(n_epoch_samples)
 
-        # Check signal length
-        if len(signal) // n_epoch_samples <= 1:
-            self.logger.info(f"Signal too short, only {len(signal)} samples")
+        # Check signal length (at least one epoch required)
+        n_epochs = int(len(signal) // n_epoch_samples)
+        if n_epochs < 1:
+            self.logger.info(f"File does not hold at least one epoch, only {len(signal)} samples")
             return None, True
 
         signal_processor = SignalProcessor(self.logger, self.config.filter_freq)
@@ -323,17 +338,14 @@ class DatasetProcessor:
                 ch_type,
             )
 
-        # Reshape into epochs based on annotation start
-        n_epoch_samples = int(self.config.epoch_duration * sampling_rate)
-        n_epochs = len(signal) // n_epoch_samples
+        # Reshape into epochs
         print(
-            f"Seconds in unfilled epoch: {len(signal)/sampling_rate - (n_epochs * self.config.epoch_duration):.4f} sec"
+            f"Seconds in unfilled (cropped) epoch: {len(signal)/sampling_rate - (n_epochs * self.config.epoch_duration):.4f} sec"
         )
-        signal_epoched = signal[0 : int(n_epochs * self.config.epoch_duration * sampling_rate)].reshape(
-            -1, n_epoch_samples
-        )
+        signal_epoched = signal[:n_epochs * n_epoch_samples].reshape(-1, n_epoch_samples)
 
-        # if self.config.resample is None:
+        # Not sure about this part
+        # if self.config.alignment == Alignment.MATCH_ANNOT:
         #     # zero pad last eventually not full epoch
         #     last_epoch = signal[n_epochs * self.config.epoch_duration * sampling_rate :]
         #     n_last_epoch = len(last_epoch)
@@ -343,9 +355,9 @@ class DatasetProcessor:
         #             pad_width=(0, n_epoch_samples - n_last_epoch),
         #             constant_values=0,
         #         ).reshape(1, -1)
-        #         signals = np.append(signals, last_epoch, axis=0)
+        #         signal_epoched = np.append(signal_epoched, last_epoch, axis=0)
 
-        if len(signal_epoched) != len(labels):
+        if not self.config.ignore_annot and len(signal_epoched) != len(labels):
             # Align labels (some datasets have different length of signal and annotation data)
             signal_epoched, labels = self.dataset.align_end(
                 self.logger,
@@ -357,9 +369,11 @@ class DatasetProcessor:
                 labels,
             )
             
-        assert len(signal_epoched) == len(labels), f"Length mismatch: signal ({os.path.basename(signal_data['psg_fname'])})={len(signal_epoched)}, labels({os.path.basename(signal_data['ann_fname'])})={len(labels)} TODO: implement alignment function"
-        # Clean signal data
-        signal_epoched, labels, select_start = self._clean_signal(signal_epoched, labels)
+            assert len(signal_epoched) == len(labels), f"Length mismatch: signal ({os.path.basename(signal_data['psg_fname'])})={len(signal_epoched)}, labels({os.path.basename(signal_data['ann_fname'])})={len(labels)} TODO: implement alignment function"
+        
+        if not self.config.ignore_annot:
+            # Clean signal data based on annotations
+            signal_epoched, labels, select_start = self._clean_signal(signal_epoched, labels)
 
         if signal_epoched is None:
             return None, False

@@ -214,7 +214,7 @@ class BaseDataset(ABC):
         elif alignment == Alignment.MATCH_LONGER or alignment == Alignment.MATCH_SIGNAL:
             n_pad = int((len(signals) - len(labels)) / epoch_duration)
             logger.info(f"Labels (len:{len(labels)}) will be padded at the end with {n_pad} epochs of value:{pad_values[1]} to match signals (len:{len(signals)}))")
-            labels = labels + n_pad*[pad_values[1]]
+            labels = np.hstack((labels, np.full((n_pad,),pad_values[1])))
         return signals, labels
 
 

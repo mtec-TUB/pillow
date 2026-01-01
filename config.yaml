@@ -82,4 +82,8 @@ min_sleep_epochs: 1 # only wake files are discarded
 overwrite: false
 
 # Allow missing PSG or annotation files during processing
+# if true, psg files without annotation will be skipped or processed solely depending on 'ignore_annot' setting
 allow_missing: false  # raises an error if there is a psg file without annotation or vice versa
+
+# Ignore annotations (could be used if only signals are needed for example for unsupervised tasks or if dataset has no annotations)
+ignore_annot: false

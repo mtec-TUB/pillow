@@ -25,7 +25,7 @@ class ProcessorConfig:
     epoch_duration: int
     overwrite: bool
     allow_missing: bool
-    num_jobs: int
+    ignore_annot: bool
     rm_move: bool
     rm_unk: bool
     n_wake_epochs: int
