@@ -118,21 +118,9 @@ class SleepEDF2018(BaseDataset):
         ann_f.close()
         return ann_stage_events, ann_startdatetime
 
-    def align_front(self, logger, ann_Startdatetime, psg_fname, ann_fname, signal, labels, fs):
+    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
 
-        psg_f = pyedflib.EdfReader(psg_fname)
-        psg_start_datetime = psg_f.getStartdatetime()
-
-        print(f"Start time in signal file: {psg_start_datetime}")
-        print(f"Start time in annot file: {ann_Startdatetime}")
-
-        start_seconds= (ann_Startdatetime - psg_start_datetime).total_seconds()
-
-        if start_seconds > 0:
-            logger.info(f"Labeling started {start_seconds/60:.2f} min after signal start, signal will be shortened at the front to match")
-            signal = signal[int(start_seconds*fs):]
-
-        return True, signal, labels
+        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels)
 
     def align_end(self, logger, psg_fname: str, ann_fname: str, signals: np.ndarray,
                   labels: np.ndarray,

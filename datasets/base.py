@@ -164,13 +164,32 @@ class BaseDataset(ABC):
 
         return np.concatenate(labels)
 
-    def align_front(self, logger, ann_Startdatetime, psg_fname, ann_fname: str, signal: np.ndarray, labels, fs) -> Tuple[np.ndarray, np.ndarray]:
+    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs) -> Tuple[bool, float]:
         """ Align front part of signals and labels, in some datasets annotations start after signal recording"""
-        return False, signal, labels
+
+        raise NotImplementedError("Subclass has no front alignment implemented")
+
+    def base_align_front(self, logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels):
+
+        if alignment == Alignment.MATCH_SHORTER or alignment == Alignment.MATCH_ANNOT:
+            logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, signal will be shortened at the front to match")
+            signal = signal[int(delay_sec*fs):]
+        elif alignment == Alignment.MATCH_LONGER or alignment == Alignment.MATCH_SIGNAL:
+            logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, labels will be padded at the front with full epochs of value:{pad_values[1]} to match")
+            n_pad = int(delay_sec / epoch_duration)
+            labels = n_pad*[pad_values[1]] + labels
+            if delay_sec % epoch_duration != 0:
+                logger.info(f"Partial epoch detected at start, signal will be shortened at the front to match")
+                signal = signal[int((delay_sec % epoch_duration)*fs):]
+
+        return signal, labels
+
 
     def align_end(
         self,
         logger,
+        alignment,
+        pad_values,
         psg_fname: str,
         ann_fname: str,
         signals: np.ndarray,

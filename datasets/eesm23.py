@@ -70,15 +70,11 @@ class EESM23(BaseDataset):
 
         return ann_stage_events, float(start_time_label)
     
-    def align_front(self, logger, start_time, psg_fname, ann_fname, signal, labels, fs):
-        if not (start_time*fs).is_integer():
+    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
+        if not (delay_sec*fs).is_integer():
             raise Exception("Annotations start at timestamp outside of sample rate")
 
-        if start_time > 0:
-            logger.info(f"Labeling started {start_time/60:.2f} min after signal start, signal will be shortened at the front to match")
-            signal = signal[int(start_time*fs):]
-
-        return True, signal, labels
+        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels)
     
     def align_end(self, logger, psg_fname, ann_fname, signals, labels):
 

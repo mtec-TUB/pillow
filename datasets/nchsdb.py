@@ -161,16 +161,12 @@ class NCHSDB(BaseDataset):
 
         return ann_stage_events,start_time_label
     
-    def align_front(self, logger, start_seconds, psg_fname, ann_fname: str,signal: np.ndarray, labels, fs
+    def align_front(self, logger, alignment, pad_values, epoch_duration,delay_sec,signal: np.ndarray, labels, fs
                   ) -> Tuple[np.ndarray, np.ndarray]:
 
-        if not (float(start_seconds*Decimal(str(fs)))).is_integer():
+        if not (float(delay_sec*Decimal(str(fs)))).is_integer():
             print(fs)
-            print(start_seconds%(1/Decimal(str(fs))))
+            print(delay_sec%(1/Decimal(str(fs))))
             raise Exception("Annotations start at timestamp outside of sample rate")
 
-        if start_seconds != 0:
-            logger.info(f"Labeling started {start_seconds/60:.2f} min after signal start, signal will be shortened at the front to match")
-            signal = signal[int(start_seconds*Decimal(str(fs))):] 
-
-        return True, signal, labels
+        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels)

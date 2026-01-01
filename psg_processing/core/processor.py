@@ -10,7 +10,7 @@ from pathlib import Path
 from decimal import Decimal
 import numpy as np
 
-from ..utils.logging_manager import LoggingManager
+from ..utils import LoggingManager
 from .dataset_explorer import Dataset_Explorer
 from .signal_processor import SignalProcessor
 
@@ -283,32 +283,32 @@ class DatasetProcessor:
         if signal_data["start_datetime"] is None:
             signal_data["start_datetime"] = ann_Startdatetime
         
-        # Align start of signal and annotation
+        # If annotations holds a start datetime, check if alignment is needed
         if ann_Startdatetime != None:
-            if (
-                isinstance(ann_Startdatetime, datetime)
-                and signal_data["start_datetime"].time() != ann_Startdatetime.time()
-            ) or (
-                isinstance(ann_Startdatetime, (int, float, Decimal)) and ann_Startdatetime != 0
-            ):
+
+            if (isinstance(ann_Startdatetime, datetime) and
+                signal_data["start_datetime"].time() != ann_Startdatetime.time()):
+                start_time = (ann_Startdatetime - psg_start_datetime).total_seconds()
+
+            elif isinstance(ann_Startdatetime, (int, float, Decimal)):  # ann_Startdatetime can be in seconds or samples (depends on dataset)
+                start_time = ann_Startdatetime
+
                 print(
                     f"Start of signal: {signal_data['start_datetime']} \nStart of labels: {ann_Startdatetime}"
                 )
 
+            if start_time != 0:
                 # Shorten signal if annotations start later or align front to first common epoch if annotations start before
-                ret, signal, labels = self.dataset.align_front(
+                signal, labels = self.dataset.align_front(
                     self.logger,
-                    ann_Startdatetime,
-                    signal_data["psg_fname"],
-                    signal_data["ann_fname"],
+                    self.config.alignment,
+                    self.config.pad_values,
+                    self.config.epoch_duration,
+                    start_time,
                     signal_data["signal"],
                     signal_data["ann_stage_events"],
                     signal_data["sampling_rate"],
                 )
-                if not ret:
-                    raise Exception(
-                        "Signals and Labels need to be aligned at the front but there is no function implemented"
-                    )
                 signal_data["signal"] = signal
                 signal_data["ann_stage_events"] = labels
 
@@ -467,6 +467,8 @@ class DatasetProcessor:
         # Align labels (some datasets have different length of signal and annotation data)
         signals, labels = self.dataset.align_end(
             self.logger,
+            self.config.alignment,
+            self.config.pad_values,
             signal_data["psg_fname"],
             signal_data["ann_fname"],
             signals,

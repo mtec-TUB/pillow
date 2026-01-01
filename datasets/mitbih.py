@@ -109,15 +109,11 @@ class MITBIH(BaseDataset):
 
         return ann_stage_events, float(start_time_label)
     
-    def align_front(self, logger, start_time, psg_fname, ann_fname, signal, labels, fs):
+    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_samples, signal, labels, fs):
 
-        start_seconds = start_time/fs
+        delay_sec = delay_samples/fs
 
-        if start_seconds > 0:
-            logger.info(f"Labeling started {start_seconds/60:.2f} min after signal start, signal will be shortened at the front to match")
-            signal = signal[int(start_seconds*fs):]
-
-        return True, signal,labels
+        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels)
 
     def align_end(self, logger, psg_fname: str, ann_fname: str, signals: np.ndarray,
                   labels: np.ndarray,

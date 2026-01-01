@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import pyedflib
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 from datasets.base import BaseDataset
@@ -143,19 +142,10 @@ class CAP(BaseDataset):
         return ann_stage_events, ann_start_datetime
     
         
-    def align_front(self, logger, ann_Startdatetime, psg_fname:str, ann_fname: str, signal: np.ndarray, labels, fs
+    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal: np.ndarray, labels, fs
                   ) -> Tuple[np.ndarray, np.ndarray]:
 
-        psg_f = pyedflib.EdfReader(psg_fname)
-        psg_start_datetime = psg_f.getStartdatetime()
-
-        start_seconds= (ann_Startdatetime - psg_start_datetime).total_seconds()
-
-        if start_seconds > 0:
-            logger.info(f"Labeling started {start_seconds/60:.2f} min after signal start, signal will be shortened at the front to match")
-            signal = signal[int(start_seconds*fs):]
-
-        return True, signal, labels
+        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels)
 
     def align_end(self, logger, psg_fname: str, ann_fname: str, signals: np.ndarray,
                   labels: np.ndarray,

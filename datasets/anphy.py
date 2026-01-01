@@ -6,6 +6,8 @@ from typing import Dict, List, Optional, Tuple
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
+from ..psg_processing.utils import Alignment
+
 @register_dataset("ANPHY")
 class ANPHY(BaseDataset):
     """ANPHY dataset"""
@@ -114,17 +116,12 @@ class ANPHY(BaseDataset):
 
         return ann_stage_events, start_time_label
 
-    
-    def align_front(self, logger, start_time, psg_fname, ann_fname, signal, labels, fs):
+    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs) -> Tuple[bool, float]:
+        """ Align front part of signals and labels, in some datasets annotations start after signal recording"""
 
-        if start_time > 0:
-            logger.info(f"Labeling started {start_time/60:.2f} min after signal start, signal will be shortened at the front to match")
-            signal = signal[int(start_time*fs):]
+        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels)
 
-        return True, signal, labels
-
-    
-    def align_end(self, logger, psg_fname, ann_fname, signals, labels):
+    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
         if len(labels) > len(signals):
             logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
