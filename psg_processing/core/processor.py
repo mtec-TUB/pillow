@@ -197,16 +197,17 @@ class DatasetProcessor:
                     self.config.epoch_duration,
                     start_time,
                     signal_data["signal"],
-                    signal_data["ann_stage_events"],
+                    signal_data["labels"],
                     signal_data["sampling_rate"],
                 )
                 signal_data["signal"] = signal
-                signal_data["ann_stage_events"] = labels
+                signal_data["labels"] = labels
 
         self.logger.info(f"Start datetime: {signal_data['start_datetime']}")
 
-        signal_data["ann_stage_events"] = self.dataset.ann_label(
-            self.logger, signal_data["ann_stage_events"], self.config.epoch_duration
+        
+        signal_data["labels"] = self.dataset.ann_label(
+            self.logger, signal_data["labels"], self.config.epoch_duration
         )
 
         # Process the signal (resample, filter, clean)
@@ -221,7 +222,7 @@ class DatasetProcessor:
         if processed_data is None:
             return True
 
-        # replace x,y and n_epochs after the processing
+        # replace signal, labels and n_epochs after the processing
         for key in processed_data:
             signal_data[key] = processed_data[key]
 
@@ -295,7 +296,7 @@ class DatasetProcessor:
         """Process signal data through the complete pipeline."""
 
         signal = signal_data["signal"]
-        labels = signal_data["ann_stage_events"]
+        labels = signal_data["labels"]
         sampling_rate = signal_data["sampling_rate"]
 
         # Check signal length
@@ -328,7 +329,7 @@ class DatasetProcessor:
         print(
             f"Seconds in unfilled epoch: {len(signal)/sampling_rate - (n_epochs * self.config.epoch_duration):.4f} sec"
         )
-        signals = signal[0 : int(n_epochs * self.config.epoch_duration * sampling_rate)].reshape(
+        signal_epoched = signal[0 : int(n_epochs * self.config.epoch_duration * sampling_rate)].reshape(
             -1, n_epoch_samples
         )
 
@@ -344,61 +345,60 @@ class DatasetProcessor:
         #         ).reshape(1, -1)
         #         signals = np.append(signals, last_epoch, axis=0)
 
-        if len(signals) != len(labels):
+        if len(signal_epoched) != len(labels):
             # Align labels (some datasets have different length of signal and annotation data)
-            signals, labels = self.dataset.align_end(
+            signal_epoched, labels = self.dataset.align_end(
                 self.logger,
                 self.config.alignment,
                 self.config.pad_values,
                 signal_data["psg_fname"],
                 signal_data["ann_fname"],
-                signals,
+                signal_epoched,
                 labels,
             )
             
-        assert len(signals) == len(labels), f"Length mismatch: signal ({os.path.basename(signal_data['psg_fname'])})={len(signals)}, labels({os.path.basename(signal_data['ann_fname'])})={len(labels)} TODO: implement alignment function"
-
+        assert len(signal_epoched) == len(labels), f"Length mismatch: signal ({os.path.basename(signal_data['psg_fname'])})={len(signal_epoched)}, labels({os.path.basename(signal_data['ann_fname'])})={len(labels)} TODO: implement alignment function"
         # Clean signal data
-        signals, labels, select_start = self._clean_signal(signals, labels)
+        signal_epoched, labels, select_start = self._clean_signal(signal_epoched, labels)
 
-        if signals is None:
+        if signal_epoched is None:
             return None, False
 
-        x, y = signals.astype(np.float32), labels.astype(np.int32)
+        signal_epoched, labels = signal_epoched.astype(np.float32), labels.astype(np.int32)
 
         return {
-            "x": x,
-            "y": y,
+            "signal": signal_epoched,
+            "labels": labels,
             "sampling_rate": sampling_rate,
             "n_all_epochs": n_epochs,
             "rm_start_epochs": select_start,
         }, True
 
-    def _clean_signal(self, x, y):
+    def _clean_signal(self, signal_epoched, labels):
         """
         Clean signal by removing movement/unknown epochs and selecting sleep periods.
 
         Args:
-            x: Signal epochs array
-            y: Stage labels array
+            signal_epoched: Signal epochs array
+            labels: Stage labels array
 
         Returns:
-            Tuple of (cleaned_x, cleaned_y) or (None, None) if no sleep detected
+            Tuple of (cleaned_signals, cleaned_labels) or (None, None) if no sleep detected
         """
         self.logger.info(
-            f"Starting signal cleaning - Input shape: x={x.shape}, y={y.shape}"
+            f"Starting signal cleaning - Input shape: signal_epoched={signal_epoched.shape}, labels={labels.shape}"
         )
 
         # Remove movement and unknown epochs if configured
         if self.config.rm_move:
-            move_idx = np.where(y == self.STAGE_DICT["MOVE"])[0]  
+            move_idx = np.where(labels == self.STAGE_DICT["MOVE"])[0]  
         else:
             move_idx = []
         if len(move_idx) > 0:
             self.logger.info(f"  Removing Movement epochs: {len(move_idx)}")
 
         if self.config.rm_unk:
-            unk_idx = np.where(y == STAGE_DICT["UNK"])[0]
+            unk_idx = np.where(labels == STAGE_DICT["UNK"])[0]
         else:
             unk_idx = []
         if len(unk_idx) > 0:
@@ -407,9 +407,9 @@ class DatasetProcessor:
         remove_idx = np.union1d(move_idx, unk_idx)
 
         sleep_idx = np.where(
-            (y != self.STAGE_DICT["W"])
-            & (y != self.STAGE_DICT["MOVE"])
-            & (y != self.STAGE_DICT["UNK"])
+            (labels != self.STAGE_DICT["W"])
+            & (labels != self.STAGE_DICT["MOVE"])
+            & (labels != self.STAGE_DICT["UNK"])
         )[0]
 
         if len(sleep_idx) <= self.config.min_sleep_epochs:
@@ -418,28 +418,28 @@ class DatasetProcessor:
 
         if self.config.n_wake_epochs == "all":
             start_idx = 0
-            end_idx = len(y) - 1
+            end_idx = len(labels) - 1
         else:
             # Remove extensive wake epochs at start and end as given in config
             n_wake_epochs = int(self.config.n_wake_epochs)
             start_idx = max(0, sleep_idx[0] - n_wake_epochs)
-            end_idx = min(len(y) - 1, sleep_idx[-1] + n_wake_epochs)
+            end_idx = min(len(labels) - 1, sleep_idx[-1] + n_wake_epochs)
 
             self.logger.info(
-                f"  Outside {int(self.config.n_wake_epochs)/2}min wake epochs: {start_idx + (len(x)-end_idx)-1}"
+                f"  Outside {int(self.config.n_wake_epochs)/2}min wake epochs: {start_idx + (len(signal_epoched)-end_idx)-1}"
             )
 
         select_idx = np.setdiff1d(np.arange(start_idx, end_idx + 1), remove_idx)
 
-        self.logger.info(f"  Total epochs to remove: {len(x) - len(select_idx)}")
+        self.logger.info(f"  Total epochs to remove: {len(signal_epoched) - len(select_idx)}")
         self.logger.info(f"Removed {select_idx[0]} epochs at beginning of signal")
 
-        x = x[select_idx]
-        y = y[select_idx]
+        signal_epoched = signal_epoched[select_idx]
+        labels = labels[select_idx]
 
-        self.logger.info(f"  Data after cleaning: {x.shape}, {y.shape}")
+        self.logger.info(f"  Data after cleaning: {signal_epoched.shape}, {labels.shape}")
 
-        return x, y, select_idx[0]
+        return signal_epoched, labels, select_idx[0]
 
     def _save_processed_data(
         self, signal_data, file_output_path, channel
@@ -447,24 +447,24 @@ class DatasetProcessor:
         """Save processed data to file."""
 
         save_dict = {
-            "x": signal_data["x"],
+            "x": signal_data["signal"],
             "fs": signal_data["sampling_rate"],
             "ch_label": channel,
             "start_datetime": signal_data["start_datetime"],
             "file_duration": signal_data["file_duration"],
             "epoch_duration": self.config.epoch_duration,
-            "n_all_epochs": signal_data["n_all_epochs"],
-            "n_epochs": len(signal_data["x"]),
+            "n_all_epochs": signal_data["n_all_epochs"], # before cleaning
+            "n_epochs": len(signal_data["signal"]),    # after cleaning
             "rm_start_epochs": signal_data["rm_start_epochs"],
         }
 
         # Handle multiple scorers
-        y = signal_data["y"]
-        if y.ndim == 1:
-            save_dict["y"] = y
-        elif y.ndim == 2:
-            save_dict["y"] = y[:, 0]
-            save_dict["y2"] = y[:, 1]
+        labels = signal_data["labels"]
+        if labels.ndim == 1:
+            save_dict["y"] = labels
+        elif labels.ndim == 2:
+            save_dict["y"] = labels[:, 0]
+            save_dict["y2"] = labels[:, 1]
 
         # Include unit if existing
         if "unit" in signal_data:
