@@ -7,7 +7,7 @@ from .base import FileHandler
 
 
 class EEGLABHandler(FileHandler):
-    """Handler for mat files."""
+    """Handler for eeglab .set files."""
 
     def get_channels(self, logger, filepath):
         """Extract channel names and frequencies from .set files."""
