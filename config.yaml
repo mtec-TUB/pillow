@@ -28,10 +28,10 @@ action: "process"
 # Resample frequency in Hz (null = keep original sampling rate)
 resample: 100
 
-# Apply AASM filtering guidelines after resampling
+# Apply filtering after resampling
 filter: true
 
-# Filter frequency mappings for different signal groups (default: AASM guidelines)
+# Filter frequencies to use when 'filter'=True for different signal groups (default: AASM guidelines)
 filter_freq:
   eeg_eog: [0.3, 35]  # EEG and EOG channels: 0.3-35 Hz
   emg: [10, null]  # EMG channels: 10+ Hz (high-pass)
@@ -61,10 +61,10 @@ n_wake_epochs: "60"
 
 # How to align signal and annotation lengths
 # Most datasets already have aligned signals and annotations, these options are for edge cases
-# If labels do not matter for your application and you want to keep the signals as much as possible, use "match_signal" (they will only be cropped to full epochs)
+# If labels do not matter for your application and you want to keep the signals as original as possible, use "match_signal" (they will only be cropped to full epochs)
 # Options: "match_shorter", "match_longer", "match_signal", "match_annot"
-# - match shorter one (crop the longer one at front and/or end)
-# - match longer one (pad signal with VALUE to match annotations (with 0, None or whatever), and/or pad annotations with VALUE (with Unknown, None or whatever))
+# - match shorter one (crop the longer one at front and/or end), guarantees no padding
+# - match longer one (pad signal with VALUE to match annotations (with 0, None or whatever), and/or pad annotations with VALUE to match signals(with Unknown, None or whatever))
 # - match signal length (crop or pad Annot with VALUE if needed but never change signal)
 # - match annot length (crop or pad signal with VALUE if needed but never change annot)
 alignment: "match_shorter"
