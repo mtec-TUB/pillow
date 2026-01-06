@@ -17,21 +17,21 @@ class ProcessorConfig:
     data_dir: Path
     ann_dir: Path
     output_dir: Path
+    overwrite: bool
     action: str
     resample: int
     filter: bool
     filter_freq: dict
     channels: list[str]
     epoch_duration: int
-    overwrite: bool
-    allow_missing: bool
-    ignore_annot: bool
     rm_move: bool
     rm_unk: bool
     n_wake_epochs: int
     alignment: Alignment
     pad_values: list
     min_sleep_epochs: int
+    use_annot: bool
+    output_format: str
 
 
 def load_config_file(config_file_path: str) -> dict:

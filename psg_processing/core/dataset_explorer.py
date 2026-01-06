@@ -54,7 +54,7 @@ class Dataset_Explorer:
         else:
             self.logger = logger
 
-    def get_files(self, allow_missing=True):
+    def get_files(self):
         """
         Discover and collect PSG signal files and annotation files.
 
@@ -108,11 +108,11 @@ class Dataset_Explorer:
         self.ann_fnames = np.asarray(self.ann_fnames)
 
         # Validate that we have matching numbers of files
-        if self.ann_ext != "" and not allow_missing:
-            assert len(self.ann_fnames) == len(self.psg_fnames), (
-                f"\nAnnotation files: {len(self.ann_fnames)} "
+        if self.ann_ext != "" and len(self.ann_fnames) != len(self.psg_fnames):
+            raise Warning(
+                f"\n Number of PSG files and Annotation files does not match:"
+                f"\n Annot files: {len(self.ann_fnames)} "
                 f"\nPSG files: {len(self.psg_fnames)} "
-                f"\n-> Counts don't match"
             )
 
         return self.psg_fnames, self.ann_fnames
@@ -127,7 +127,7 @@ class Dataset_Explorer:
         """
         self.logger.info("Getting all available channel names ...")
 
-        self.get_files(allow_missing=True)
+        self.get_files()
         self.logger.info(f"Found {len(self.psg_fnames)} files to process")
 
         self.ch_names = set()

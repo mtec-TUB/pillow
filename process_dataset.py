@@ -4,24 +4,21 @@ Main entry point for processing a sleep dataset.
 
 Usage:
   From command line:
-    python process_dataset.py --config custom_config.json
+    python process_dataset.py --config custom_config.yaml
     python process_dataset.py --dataset ABC --data_dir /path/to/ABC/polysomnograpy --output_dir /path/to/output --action process --resample None
 
   From VS Code (interactive):
-    Edit the config.json with your parameters, then run the script.
+    Edit the config.yaml with your parameters, then run the script.
 """
 import os
 import argparse
 import sys
 from pathlib import Path
-from enum import Enum
-
-from typing import Optional
 
 # Add the current directory to the Python path
 sys.path.append(str(Path(__file__).parent))
 
-from psg_processing.utils import Alignment, load_config_file, merge_configs, ProcessorConfig
+from psg_processing.utils import load_config_file, merge_configs, ProcessorConfig
 from datasets.registry import get_dataset, DatasetRegistry
 from psg_processing.core import Dataset_Explorer, DatasetProcessor
 from psg_processing.file_handlers import get_handler
@@ -42,114 +39,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--config",
         type=str,
-        help="Path to JSON configuration file. CLI arguments override config file values.",
+        help="Path to YAML configuration file. CLI arguments override config file values.",
     )
-
-    # Required arguments
-    parser.add_argument(
-        "--dataset",
-        required=False,  # Changed to False since it can come from config file
-        choices=DatasetRegistry.list_datasets(),
-        type=str.upper,
-        help="Dataset to process",
-    )
-
-    parser.add_argument(
-        "--base_data_dir",
-        type=str,
-        help="Base directory where all sleep datasets are stored",
-    )
-
-    parser.add_argument(
-        "--data_dir",
-        type=str,
-        help="Specific data directory (overrides automatic path generation)",
-    )
-
-    parser.add_argument(
-        "--ann_dir",
-        type=str,
-        help="Specific annotation directory (overrides automatic path generation)",
-    )
-
-    parser.add_argument(
-        "--output_dir",
-        type=str,
-        help="Specific output directory (overrides automatic path generation)",
-    )
-
-    parser.add_argument(
-        "--action",
-        type=str,
-        choices=["prepare", "get_channel_names", "get_channel_types"],
-        help="Action to perform",
-    )
-    
-    parser.add_argument(
-        "--resample",
-        type=lambda x: None if x.lower() == "none" else int(x),
-        help="Integer resample frequency (Hz) or None"
-    )
-
-    parser.add_argument(
-        "--filter",
-        type=bool,
-        help="Whether to apply filtering according to AASM guidelines after resampling"
-    )
-
-    parser.add_argument(
-        "--channels", 
-        nargs='+',
-        help="List of desired channel names to process"
-    )
-
-    parser.add_argument(
-        "--epoch_duration",
-        type=int,
-        choices=[1,2,3,5,10,15,30],
-        help="Epoch duration in seconds"
-    )
-
-    parser.add_argument(
-        "--rm_move",
-        type=bool,
-        help="Whether to remove Movement epochs during processing"
-    )
-
-    parser.add_argument(
-        "--rm_unk",
-        type=bool,
-        help="Whether to remove Unknown epochs during processing"
-    )
-
-    parser.add_argument(
-        "--n_wake_epochs",
-        type=str,
-        help="Number of wake epochs at start and end to keep during processing (default 30min), or 'all' to keep all"
-    )
-
-    parser.add_argument(
-        "--alignment",
-        type=str,
-        choices=[a.value for a in Alignment],
-        help="How to align signal and annotation lengths, specify pad_value for padding options"
-    )
-
-    parser.add_argument(
-        "--pad_values",
-        nargs=2,
-        help="Padding value for signal and labels when using alignment option that require padding (default: None for both)"
-    )
-
-    parser.add_argument(
-        "--min_sleep_epochs",
-        type=int,
-        help="Minimum required sleep epochs (N1,N2,N3,REM) after preprocessing (if less, the recording is discarded)",
-    )
-    
-    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing files")
-
-    parser.add_argument("--allow_missing", action="store_true", help="Allow missing psg or annotation files during processing")
 
     return parser
 

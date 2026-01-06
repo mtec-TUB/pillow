@@ -47,17 +47,16 @@ class DatasetProcessor:
                 self.config.ann_dir,
                 **self.dataset.file_extensions,
             )
-            psg_fnames, ann_fnames = explorer.get_files(self.config.allow_missing)
+            psg_fnames, ann_fnames = explorer.get_files()
 
             # Process each file
             ann_idx = 0
             for psg_idx, psg_fname in enumerate(psg_fnames):
                 print(f"\n--- Processing file {psg_idx+1}/{len(psg_fnames)} ---")
-                if ann_fnames is not None:
+                if ann_fnames is not None and self.config.use_annot:
                     ann_fname, ann_idx = self._find_matching_annotation(
-                        psg_fname, ann_fnames, ann_idx, self.config.allow_missing
-                    )
-                    if ann_fname is None and not self.config.ignore_annot:
+                        psg_fname, ann_fnames, ann_idx)
+                    if ann_fname is None:
                         self.logger.warning(
                             f"No matching annotation found for PSG: "
                             f"{Path(psg_fname).relative_to(self.data_dir)}. Skipping file."
@@ -76,13 +75,11 @@ class DatasetProcessor:
             self.logging_manager.cleanup_file_handlers(self.logger)
             self.logger.info("Stopped processing")
 
-    def _find_matching_annotation(self, psg_fname, ann_fnames, start_idx, allow_missing=False):
+    def _find_matching_annotation(self, psg_fname, ann_fnames, start_idx):
         """
         Scan annotation files from start_idx forward and return the first match.
         Return (ann_fname, new_index).
-        If no match is found:
-            - If allow_missing=True -> return (None, start_idx)
-            - else -> raise
+        Only works if annotation files are ordered in the same way as PSG files.
         """
         psg_base = str(Path(psg_fname).relative_to(self.config.data_dir))
 
@@ -93,13 +90,7 @@ class DatasetProcessor:
             if psg_id == ann_id:
                 return ann_fnames[i], i + 1  # move annotation pointer past this match
 
-        # No match found
-        if allow_missing:
-            return None, start_idx
-        else:
-            raise Exception(
-                f"No matching annotation found for PSG: {psg_base}"
-            )
+        return None, start_idx  # no match found
 
     def _process_single_file(
         self,
@@ -108,7 +99,7 @@ class DatasetProcessor:
     ):
         """Process a single PSG file for all specified channels."""
 
-        if not self.config.ignore_annot:
+        if self.config.use_annot:
             # Load annotations before (same for all channels)
             ann_stage_events, ann_Startdatetime = self.dataset.ann_parse(ann_fname)
 
@@ -158,7 +149,7 @@ class DatasetProcessor:
 
         self.logger.info(f"Signal file: {Path(psg_fname).relative_to(self.config.data_dir)}")
 
-        if not self.config.ignore_annot:
+        if self.config.use_annot:
             self.logger.info(f"Annotation file: {Path(ann_fname).relative_to(self.config.ann_dir)}")
 
         # Extract and process signal
@@ -213,7 +204,7 @@ class DatasetProcessor:
 
         self.logger.info(f"Start datetime: {signal_data['start_datetime']}")
 
-        if not self.config.ignore_annot:
+        if self.config.use_annot:
             signal_data["labels"] = self.dataset.ann_label(
                 self.logger, signal_data["labels"], self.config.epoch_duration
             )
@@ -359,7 +350,7 @@ class DatasetProcessor:
         #         ).reshape(1, -1)
         #         signal_epoched = np.append(signal_epoched, last_epoch, axis=0)
 
-        if not self.config.ignore_annot and len(signal_epoched) != len(labels):
+        if self.config.use_annot and len(signal_epoched) != len(labels):
             # Align labels (some datasets have different length of signal and annotation data)
             signal_epoched, labels = self.dataset.align_end(
                 self.logger,
@@ -373,7 +364,7 @@ class DatasetProcessor:
             
             assert len(signal_epoched) == len(labels), f"Length mismatch: signal ({os.path.basename(signal_data['psg_fname'])})={len(signal_epoched)}, labels({os.path.basename(signal_data['ann_fname'])})={len(labels)} TODO: implement alignment function"
         
-        if not self.config.ignore_annot:
+        if self.config.use_annot:
             # Clean signal data based on annotations
             signal_epoched, labels, select_start = self._clean_signal(signal_epoched, labels)
 
@@ -466,12 +457,9 @@ class DatasetProcessor:
             "x": signal_data["signal"],
             "fs": signal_data["sampling_rate"],
             "ch_label": channel,
-            "start_datetime": signal_data["start_datetime"],
-            "file_duration": signal_data["file_duration"],
+            "file_duration": len(signal_data["signal"]) * self.config.epoch_duration,
             "epoch_duration": self.config.epoch_duration,
-            "n_all_epochs": signal_data["n_all_epochs"], # before cleaning
             "n_epochs": len(signal_data["signal"]),    # after cleaning
-            "rm_start_epochs": signal_data["rm_start_epochs"],
         }
 
         # Handle multiple scorers

@@ -21,6 +21,10 @@ ann_dir: null
 # Specific output directory (null = use automatic path under base_data_dir)
 output_dir: null
 
+# Overwrite existing output files
+# if false, files that exist already in the output directory will be skipped
+overwrite: false
+
 # Action to perform
 # Options: "process", "get_channel_names", "get_channel_types"
 action: "process"
@@ -32,6 +36,7 @@ resample: 100
 filter: true
 
 # Filter frequencies to use when 'filter'=True for different signal groups (default: AASM guidelines)
+# Filter format: [low_cutoff, high_cutoff] (null = no cutoff)
 filter_freq:
   eeg_eog: [0.3, 35]  # EEG and EOG channels: 0.3-35 Hz
   emg: [10, null]  # EMG channels: 10+ Hz (high-pass)
@@ -49,10 +54,10 @@ channels: []
 # Options: 1, 2, 3, 5, 10, 15, 30
 epoch_duration: 30
 
-# Remove Movement epochs during processing
+# Remove Movement epochs during processing (only if 'use_annot' is true)
 rm_move: true
 
-# Remove Unknown epochs during processing
+# Remove Unknown epochs during processing (only if 'use_annot' is true)
 rm_unk: true
 
 # Number of wake epochs to keep at start and end
@@ -76,14 +81,23 @@ pad_values: [null, null]
 
 # Minimum required sleep epochs (N1, N2, N3, REM) after preprocessing
 # Recordings with fewer sleep epochs will be discarded
-min_sleep_epochs: 1 # only wake files are discarded
+min_sleep_epochs: 0 # only wake files are discarded
 
-# Overwrite existing output files
-overwrite: false
+# Use annotations
+# false be used if only signals are needed for example for unsupervised tasks or if dataset has no annotations) -> save storage space
+use_annot: true
 
-# Allow missing PSG or annotation files during processing
-# if true, psg files without annotation will be skipped or processed solely depending on 'ignore_annot' setting
-allow_missing: false  # raises an error if there is a psg file without annotation or vice versa
-
-# Ignore annotations (could be used if only signals are needed for example for unsupervised tasks or if dataset has no annotations)
-ignore_annot: false
+# Output file format
+# Options: "npz" (numpy compressed), "edf" (European Data Format), "hdf5" (Hierarchical Data Format)
+# - npz, hdf5: saves dictionary:
+#   - x: Processed signal data array with dim [num_epochs, epoch_dur * fs]
+#   - y: Sleep stage annotations (0: "Wach", 1: "N1", 2: "N2", 3: "N3", 4: "REM")
+#   - fs: Sampling rate
+#   - ch_label: Channel label (like it was originally found in the input file)
+#   - file_duration Total duration of the original signal in seconds
+#   - epoch_duration Duration of each epoch (def: 30 seconds)
+#   - n_epochs: Number of epochs
+# - edf: 
+#   - saves signal and annotation in standard EDF format with annotations in the annotation channel
+#   
+output_format: "npz"  # Options: "npz", "edf", "hdf5"
