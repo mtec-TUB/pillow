@@ -17,6 +17,7 @@ from .dcsm import DCSM
 from .dodh import DODH
 from .dodo import DODO
 from .dreamt import DREAMT
+from .eesm19 import EESM19
 from .eesm23 import EESM23
 from .fdcsr import FDCSR
 from .hmc import HMC
