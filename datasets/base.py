@@ -1,7 +1,7 @@
 import os
 import sys
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 import logging
 import numpy as np
 import xml.etree.ElementTree as ET
@@ -147,12 +147,12 @@ class BaseDataset(ABC):
             if ann_str in self.ann2label:
                 label = self.ann2label[ann_str]
             else:
-                logger.info(f"Something unexpected: label {ann_str} not found")
+                logger.error(f"Something unexpected: label {ann_str} not found")
                 raise Exception(f"Something unexpected: label {ann_str} not found")
 
             # Compute # of epoch for this stage
             if ann_duration % epoch_duration != 0:
-                logger.info(f"Something wrong: {ann_duration} {epoch_duration}")
+                logger.error(f"Something wrong: {ann_duration} {epoch_duration}")
                 raise Exception(f"Something wrong: {ann_duration} {epoch_duration}")
             n_epochs = int(ann_duration / epoch_duration)
 
@@ -175,13 +175,25 @@ class BaseDataset(ABC):
         if delay_sec < 0:
             logger.error(f"Annotations start before signal start, which is not supported in the base align front method")
             raise Exception("Annotations start before signal start, which is not supported in the base align front method")
+        
         if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_ANNOT.value:
             logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, signal will be shortened at the front to match")
             signal = signal[int(delay_sec*fs):]
         elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_SIGNAL.value:
             logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, labels will be padded at the front with full epochs of value:{pad_values[1]} to match")
-            n_pad = int(delay_sec / epoch_duration)
-            labels = n_pad*[pad_values[1]] + labels
+            n_pad = int(delay_sec // epoch_duration)
+            # adapt start times of all existing labels
+            for event in labels:
+                event['Start'] += n_pad * epoch_duration
+            # create epochs to pad at the front
+            new_labels = []
+            for i in range(n_pad):
+                new_labels.append({
+                'Stage': pad_values[1],
+                'Start': i * epoch_duration,
+                'Duration': epoch_duration
+                })
+            labels = new_labels + labels
             if delay_sec % epoch_duration != 0:
                 logger.info(f"Partial epoch detected at start, signal will be shortened at the front to match")
                 signal = signal[int((delay_sec % epoch_duration)*fs):]
