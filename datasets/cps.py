@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 from datasets.base import BaseDataset
+from psg_processing.utils import Alignment
 from datasets.registry import register_dataset
 
 
@@ -98,10 +99,10 @@ class CPS(BaseDataset):
             stage = row['Stage']
             start = datetime.combine(date(1970,1,1),datetime.strptime(row['Timestamp'], '%H:%M:%S,%f').time())
 
-            if ann_startdatetime == None and stage != "A":
+            if ann_startdatetime == None:# and stage != "A":
                 ann_startdatetime = start
-            elif ann_startdatetime == None and stage == "A":
-                continue
+            # elif ann_startdatetime == None and stage == "A":
+            #     continue
 
             ann_stage_events.append({
                 'Stage': stage,
@@ -114,16 +115,19 @@ class CPS(BaseDataset):
     
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_samples, signal, labels, fs):
 
-        if not (delay_samples*fs).is_integer():
-            raise Exception("Annotations start at timestamp outside of sample rate")
-
         if delay_samples < 0:
             if delay_samples < -30:
                 raise Exception("Annotation without corresponding signal data is not supported")    # should not happen in CPS, just as safety check
-            logger.info(f"Signal started {-delay_samples/60:.2f} min after label start, signal and label will be shortened ({30+int(delay_samples)}sec) at the front to match")
-            signal = signal[30*fs+int(delay_samples*fs):]
-            labels = labels[1:]
-            return signal, labels
+            if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_SIGNAL.value:
+                logger.info(f"Signal started {-delay_samples/60:.2f} min after label start, signal and label will be shortened ({30+int(delay_samples)}sec) at the front to match")
+                signal = signal[30*fs+int(delay_samples*fs):]
+                labels = labels[1:]
+                return signal, labels
+            elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_ANNOT.value:
+                logger.info(f"Signal started {-delay_samples/60:.2f} min after label start, signal will be padded with constant value:{pad_values[0]} at the front to match")
+                n_pad_samples = int(-delay_samples*fs)
+                signal = np.hstack((np.full((n_pad_samples,), pad_values[0]), signal))
+                return signal, labels
         elif delay_samples > 0:
             return self.base_align_front(logger, delay_samples, alignment, pad_values, epoch_duration, signal, labels,fs)
 
