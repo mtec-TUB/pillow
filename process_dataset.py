@@ -18,7 +18,7 @@ from pathlib import Path
 # Add the current directory to the Python path
 sys.path.append(str(Path(__file__).parent))
 
-from psg_processing.utils import load_config_file, merge_configs, ProcessorConfig
+from psg_processing.utils import load_config_file, ProcessorConfig
 from datasets.registry import get_dataset, DatasetRegistry
 from psg_processing.core import Dataset_Explorer, DatasetProcessor
 from psg_processing.file_handlers import get_handler
@@ -130,14 +130,14 @@ if __name__ == "__main__":
     # Load defaults from config.yaml (located in same directory as this script)
     script_dir = Path(__file__).parent
     default_config_path = script_dir / "config.yaml"
-    defaults = load_config_file(str(default_config_path))
+    config = load_config_file(str(default_config_path))
     
     # Determine if we're running from CLI or VS Code interactive mode
     is_vscode_mode = len(sys.argv) == 1
     
     if is_vscode_mode:
         # VS Code mode: use defaults from config.yaml
-        args = argparse.Namespace(**defaults)
+        args = argparse.Namespace(**config)
         main(args)
     else:
         # Normal CLI execution
@@ -145,21 +145,9 @@ if __name__ == "__main__":
         cli_args = parser.parse_args(sys.argv[1:])
         
         # Load user's config file if specified
-        file_config = None
         if cli_args.config:
-            file_config = load_config_file(cli_args.config)
-        
-        # Extract only explicitly set CLI args (not None and not 'config' key)
-        cli_args_dict = {k: v for k, v in vars(cli_args).items() 
-                        if v is not None and k != 'config'}
-        
-        # Merge with precedence: CLI > user config file > defaults
-        merged_config = merge_configs(defaults, file_config, cli_args_dict)
-        
-        # Validate that dataset is provided
-        if not merged_config.get('dataset'):
-            parser.error("--dataset is required (via CLI, config file, or config.yaml)")
+            config = load_config_file(cli_args.config)
         
         # Create namespace from merged config
-        args = argparse.Namespace(**merged_config)
+        args = argparse.Namespace(**config)
         main(args)

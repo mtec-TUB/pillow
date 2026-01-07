@@ -59,23 +59,3 @@ def load_config_file(config_file_path: str) -> dict:
         return config
     except yaml.YAMLError as e:
         raise ValueError(f"Invalid YAML in configuration file: {e}")
-
-
-def merge_configs(defaults: dict, file_config: dict, cli_args: dict) -> dict:
-    """
-    Merge configurations with precedence: CLI args > file config > defaults.
-    
-    Args:
-        defaults: Default configuration values
-        file_config: Configuration from file (can be None)
-        cli_args: Configuration from command line (already filtered to exclude None values)
-        
-    Returns:
-        Merged configuration dictionary
-    """
-    merged = defaults.copy()
-    if file_config:
-        merged.update(file_config)
-    merged.update(cli_args)
-    
-    return merged
