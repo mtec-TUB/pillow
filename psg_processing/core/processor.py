@@ -29,7 +29,7 @@ class DatasetProcessor:
 
     def __init__(self, dataset, config):
 
-        self.logging_manager = LoggingManager(level=logging.INFO)
+        self.logging_manager = LoggingManager(level=config.logging_level)
         self.logger = None
         self.dataset = dataset
         self.config = config
@@ -144,7 +144,7 @@ class DatasetProcessor:
             psg_fname,
         )
 
-        # Skip if file already exists
+        # Skip if file already exists and overwrite is False
         if not self.config.overwrite and self._output_file_exists(file_output_path):
             return True
 
@@ -186,12 +186,11 @@ class DatasetProcessor:
 
             elif isinstance(ann_Startdatetime, (int, float, Decimal)):  # ann_Startdatetime can be in seconds or samples (depends on dataset)
                 start_time = ann_Startdatetime
-
+             
+            if start_time != 0:
                 print(
                     f"Start of signal: {signal_data['start_datetime']} \nStart of labels: {ann_Startdatetime}"
                 )
-             
-            if start_time != 0:
                 # Shorten signal if annotations start later or align front to first common epoch if annotations start before
                 signal, ann_stage_events = self.dataset.align_front(
                     self.logger,
@@ -337,7 +336,7 @@ class DatasetProcessor:
             )
 
         # Reshape into epochs
-        print(
+        self.logger.info(
             f"Seconds in unfilled (cropped) epoch: {len(signal)/sampling_rate - (n_epochs * self.config.epoch_duration):.4f} sec"
         )
         signal_epoched = signal[:n_epochs * int(self.config.epoch_duration * sampling_rate)].reshape(n_epochs, -1)
@@ -512,22 +511,23 @@ class DatasetProcessor:
                         duration_in_seconds=duration,
                         description=str(label)
                     )
-        elif self.config.output_format == "hdf5":
-            raise NotImplementedError("HDF5 output not yet implemented")
-            # with h5py.File(file_output_path, 'w') as h5f:
-            #     h5f.create_dataset('x', data=signal_data["signal"], compression="gzip")
-            #     h5f.attrs['sampling_rate'] = signal_data["sampling_rate"]
-            #     h5f.attrs['channel'] = channel
-            #     h5f.attrs['epoch_duration'] = self.config.epoch_duration
-            #     h5f.attrs['n_epochs'] = len(signal_data["signal"])  # after cleaning
 
-            #     # Handle multiple scorers
-            #     labels = signal_data["y"]
-            #     if labels.ndim == 1:
-            #         h5f.create_dataset('y', data=labels, compression="gzip")
-            #     elif labels.ndim == 2:
-            #         h5f.create_dataset('y', data=labels[:, 0], compression="gzip")
-            #         h5f.create_dataset('y2', data=labels[:, 1], compression="gzip")
+        elif self.config.output_format == "hdf5":
+            with h5py.File(file_output_path, 'w') as h5f:
+                h5f.create_dataset('x', data=signal_data["signal"], compression="gzip")
+                h5f.attrs['sampling_rate'] = signal_data["sampling_rate"]
+                h5f.attrs['ch_label'] = channel
+                h5f.attrs['file_duration'] = len(signal_data["signal"]) * self.config.epoch_duration
+                h5f.attrs['epoch_duration'] = self.config.epoch_duration
+                h5f.attrs['n_epochs'] = len(signal_data["signal"])  # after cleaning
+
+                # Handle multiple scorers
+                labels = signal_data["labels"]
+                if labels.ndim == 1:
+                    h5f.create_dataset('y', data=labels, compression="gzip")
+                elif labels.ndim == 2:
+                    h5f.create_dataset('y', data=labels[:, 0], compression="gzip")
+                    h5f.create_dataset('y2', data=labels[:, 1], compression="gzip")
         
         
         self.logger.info(f"Successfully saved: {file_output_path}")

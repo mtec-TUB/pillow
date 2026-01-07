@@ -18,6 +18,7 @@ class ProcessorConfig:
     ann_dir: Path
     output_dir: Path
     overwrite: bool
+    logging_level: str
     action: str
     resample: int
     filter: bool

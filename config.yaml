@@ -3,11 +3,11 @@
 # Edit these values according to your needs.
 
 # Dataset to process (required)
-# Available options: ABC, ANPHY, APOE, APPLES, BESTAIR, CAP, CFS, CPS, DCSM, DODH, DODO, 
-#                    DREAMT, EESM23, FDCSR, HMC, HOMEPAP, ISRUC, MESA, MITBIH, MNC, MROS, 
-#                    MSP, MWT, NCHSDB, PHYSIO2018, SHHS, SLEEPBRL, SLEEPEDF2018, SOF, STAGES, 
-#                    UCDDB, WSC
-dataset: "APPLES"
+# Available options: ABC, ANPHY, APOE, APPLES, BESTAIR, CAP, CFS, CPS, DCSM, DOD-H, DOD-O,
+#                    DREAMT, EESM19, EESM23, FDCSR, HMC, HOMEPAP, ISRUC, MESA, MIT-BIH, 
+#                    MNC, MROS, MSP, MWT, NCHSDB, PHYSIO2018, SHHS, SLEEP-EDF, SLEEPBRL,
+#                    SOF, STAGES, UCDDB, WSC
+dataset: "CPS"
 
 # Base directory where your sleep datasets are stored
 base_data_dir: "/media/linda/Elements/sleep_data"
@@ -21,9 +21,28 @@ ann_dir: null
 # Specific output directory (null = use automatic path under base_data_dir)
 output_dir: null
 
+# Output file format
+# Options: "npz" (numpy compressed), "edf" (European Data Format), "hdf5" (Hierarchical Data Format)
+# - npz, hdf5: saves dictionary:
+#   - x: Processed signal data array with dim [num_epochs, epoch_dur * fs]
+#   - y: Sleep stage annotations (0: "Wach", 1: "N1", 2: "N2", 3: "N3", 4: "REM")
+#   - fs: Sampling rate
+#   - ch_label: Channel label (like it was originally found in the input file)
+#   - file_duration Total duration of the original signal in seconds
+#   - epoch_duration Duration of each epoch (def: 30 seconds)
+#   - n_epochs: Number of epochs
+# - edf: 
+#   - saves signal and annotation in standard EDF format with annotations in the annotation channel
+#   
+output_format: "edf"  # Options: "npz", "edf", "hdf5"
+
 # Overwrite existing output files
 # if false, files that exist already in the output directory will be skipped
 overwrite: false
+
+# Logging level
+# Options: "INFO", "WARNING", "ERROR"
+logging_level: "INFO"
 
 # Action to perform
 # Options: "process", "get_channel_names", "get_channel_types"
@@ -81,23 +100,9 @@ pad_values: [null, null]
 
 # Minimum required sleep epochs (N1, N2, N3, REM) after preprocessing
 # Recordings with fewer sleep epochs will be discarded
-min_sleep_epochs: 0 # only wake files are discarded
+min_sleep_epochs: 0 # all files included
 
 # Use annotations
 # false be used if only signals are needed for example for unsupervised tasks or if dataset has no annotations) -> save storage space
 use_annot: true
 
-# Output file format
-# Options: "npz" (numpy compressed), "edf" (European Data Format), "hdf5" (Hierarchical Data Format)
-# - npz, hdf5: saves dictionary:
-#   - x: Processed signal data array with dim [num_epochs, epoch_dur * fs]
-#   - y: Sleep stage annotations (0: "Wach", 1: "N1", 2: "N2", 3: "N3", 4: "REM")
-#   - fs: Sampling rate
-#   - ch_label: Channel label (like it was originally found in the input file)
-#   - file_duration Total duration of the original signal in seconds
-#   - epoch_duration Duration of each epoch (def: 30 seconds)
-#   - n_epochs: Number of epochs
-# - edf: 
-#   - saves signal and annotation in standard EDF format with annotations in the annotation channel
-#   
-output_format: "npz"  # Options: "npz", "edf", "hdf5"
