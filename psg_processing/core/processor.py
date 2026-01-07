@@ -5,12 +5,15 @@ Main dataset processor for PSG data preparation.
 import logging
 import os
 import re
+from math import ceil, floor
 from datetime import datetime
+from pyedflib import EdfWriter
+import h5py
 from pathlib import Path
 from decimal import Decimal
 import numpy as np
 
-from ..utils import LoggingManager, Alignment
+from ..utils import LoggingManager
 from .dataset_explorer import Dataset_Explorer
 from .signal_processor import SignalProcessor
 
@@ -34,7 +37,7 @@ class DatasetProcessor:
     STAGE_DICT = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "MOVE": 5, "UNK": 6}
 
     def process_files(self):
-
+        
         try:
             # Set up logger and initialize components
             self.logger = self.logging_manager.setup_logger(self.config.output_dir, self.config.overwrite)
@@ -98,7 +101,7 @@ class DatasetProcessor:
         ann_fname
     ):
         """Process a single PSG file for all specified channels."""
-
+        
         if self.config.use_annot:
             # Load annotations before (same for all channels)
             ann_stage_events, ann_Startdatetime = self.dataset.ann_parse(ann_fname)
@@ -133,7 +136,7 @@ class DatasetProcessor:
         ann_Startdatetime,
     ):
         """Process a single channel from a single file."""
-
+        
         # Setup channel processing environment
         file_output_dir, file_output_path = self._setup_channel_output(
             channel,
@@ -163,7 +166,7 @@ class DatasetProcessor:
         )
 
         # Add more information to signal_data annotations
-        signal_data["labels"] = ann_stage_events
+        signal_data["ann_stage_events"] = ann_stage_events
         signal_data["psg_fname"] = psg_fname
         signal_data["ann_fname"] = ann_fname
 
@@ -189,24 +192,24 @@ class DatasetProcessor:
              
             if start_time != 0:
                 # Shorten signal if annotations start later or align front to first common epoch if annotations start before
-                signal, labels = self.dataset.align_front(
+                signal, ann_stage_events = self.dataset.align_front(
                     self.logger,
                     self.config.alignment,
                     self.config.pad_values,
                     self.config.epoch_duration,
                     start_time,
                     signal_data["signal"],
-                    signal_data["labels"],
+                    signal_data["ann_stage_events"],
                     signal_data["sampling_rate"],
                 )
                 signal_data["signal"] = signal
-                signal_data["labels"] = labels
+                signal_data["ann_stage_events"] = ann_stage_events
 
         self.logger.info(f"Start datetime: {signal_data['start_datetime']}")
-
+        
         if self.config.use_annot:
             signal_data["labels"] = self.dataset.ann_label(
-                self.logger, signal_data["labels"], self.config.epoch_duration
+                self.logger, signal_data["ann_stage_events"], self.config.epoch_duration
             )
 
         # Process the signal (resample, filter, clean)
@@ -221,7 +224,7 @@ class DatasetProcessor:
         if processed_data is None:
             return True
 
-        # replace signal, labels and n_epochs after the processing
+        # replace signal, labels and sampling_rate after the processing
         for key in processed_data:
             signal_data[key] = processed_data[key]
 
@@ -245,7 +248,7 @@ class DatasetProcessor:
     def _setup_channel_output(
         self,
         channel,
-        psg_fname,
+        psg_fname
     ):
         """Setup output directory and filename for a channel."""
 
@@ -267,11 +270,11 @@ class DatasetProcessor:
         else:
             relative_path = ""
 
-        file_output_dir = os.path.join(self.config.output_dir, relative_path, "npz", ch_name_path)
+        file_output_dir = os.path.join(self.config.output_dir, relative_path, self.config.output_format, ch_name_path)
         os.makedirs(file_output_dir, exist_ok=True)
 
         # Generate safe file and folder name
-        base_filename = os.path.splitext(os.path.basename(psg_fname))[0] + ".npz"
+        base_filename = os.path.splitext(os.path.basename(psg_fname))[0] + "." + self.config.output_format
         ch_name_safe = re.sub(r"[^a-zA-Z0-9._\-\s]", "_", channel)
         filename = f"{ch_name_safe}_{base_filename}"
 
@@ -293,7 +296,7 @@ class DatasetProcessor:
         ch_type,
     ):
         """Process signal data through the complete pipeline."""
-
+        
         signal = signal_data["signal"]
         labels = signal_data["labels"]
         sampling_rate = signal_data["sampling_rate"]
@@ -315,12 +318,13 @@ class DatasetProcessor:
         signal_processor = SignalProcessor(self.logger, self.config.filter_freq)
         if self.config.resample is not None:
             # Resample signal
-            signal, sampling_rate = signal_processor.resample_signal(
+            signal = signal_processor.resample_signal(
                 signal,
                 ch_type,
                 sampling_rate,
                 self.config.resample,
             )
+            sampling_rate = self.config.resample
         if self.config.filter:
             # Filter signal according to AASM
             signal = signal_processor.filter_signal(
@@ -366,7 +370,7 @@ class DatasetProcessor:
         
         if self.config.use_annot:
             # Clean signal data based on annotations
-            signal_epoched, labels, select_start = self._clean_signal(signal_epoched, labels)
+            signal_epoched, labels = self._clean_signal(signal_epoched, labels)
 
         if signal_epoched is None:
             return None, False
@@ -376,9 +380,7 @@ class DatasetProcessor:
         return {
             "signal": signal_epoched,
             "labels": labels,
-            "sampling_rate": sampling_rate,
-            "n_all_epochs": n_epochs,
-            "rm_start_epochs": select_start,
+            "sampling_rate": sampling_rate
         }, True
 
     def _clean_signal(self, signal_epoched, labels):
@@ -432,47 +434,99 @@ class DatasetProcessor:
             start_idx = max(0, sleep_idx[0] - n_wake_epochs)
             end_idx = min(len(labels) - 1, sleep_idx[-1] + n_wake_epochs)
 
-            self.logger.info(
-                f"  Outside {int(self.config.n_wake_epochs)/2}min wake epochs: {start_idx + (len(signal_epoched)-end_idx)-1}"
-            )
+            if start_idx + (len(signal_epoched)-end_idx)-1 > 0:
+                self.logger.info(
+                    f"  Outside {int(self.config.n_wake_epochs)/2}min wake epochs: {start_idx + (len(signal_epoched)-end_idx)-1}"
+                )
 
         select_idx = np.setdiff1d(np.arange(start_idx, end_idx + 1), remove_idx)
 
         self.logger.info(f"  Total epochs to remove: {len(signal_epoched) - len(select_idx)}")
-        self.logger.info(f"Removed {select_idx[0]} epochs at beginning of signal")
 
         signal_epoched = signal_epoched[select_idx]
         labels = labels[select_idx]
 
         self.logger.info(f"  Data after cleaning: {signal_epoched.shape}, {labels.shape}")
 
-        return signal_epoched, labels, select_idx[0]
+        return signal_epoched, labels
 
     def _save_processed_data(
         self, signal_data, file_output_path, channel
     ):
         """Save processed data to file."""
+        
+        if self.config.output_format == "npz":
+            save_dict = {
+                "x": signal_data["signal"],
+                "fs": signal_data["sampling_rate"],
+                "ch_label": channel,
+                "file_duration": len(signal_data["signal"]) * self.config.epoch_duration,
+                "epoch_duration": self.config.epoch_duration,
+                "n_epochs": len(signal_data["signal"]),    # after cleaning
+            }
 
-        save_dict = {
-            "x": signal_data["signal"],
-            "fs": signal_data["sampling_rate"],
-            "ch_label": channel,
-            "file_duration": len(signal_data["signal"]) * self.config.epoch_duration,
-            "epoch_duration": self.config.epoch_duration,
-            "n_epochs": len(signal_data["signal"]),    # after cleaning
-        }
+            # Handle multiple scorers
+            labels = signal_data["labels"]
+            if labels.ndim == 1:
+                save_dict["y"] = labels
+            elif labels.ndim == 2:
+                save_dict["y"] = labels[:, 0]
+                save_dict["y2"] = labels[:, 1]
 
-        # Handle multiple scorers
-        labels = signal_data["labels"]
-        if labels.ndim == 1:
-            save_dict["y"] = labels
-        elif labels.ndim == 2:
-            save_dict["y"] = labels[:, 0]
-            save_dict["y2"] = labels[:, 1]
+            # Include unit if existing
+            if "unit" in signal_data:
+                save_dict["unit"] = signal_data["unit"]
 
-        # Include unit if existing
-        if "unit" in signal_data:
-            save_dict["unit"] = signal_data["unit"]
+            np.savez(file_output_path, **save_dict)
+            
+        elif self.config.output_format == "edf":
+            signal = signal_data["signal"].flatten()
+            
+            with EdfWriter(file_output_path, n_channels=1) as edf_writer:
+                scale = 10**3   # to get 3 decimals for physical min and max
+                channel_info = {
+                    'label': channel,
+                    'dimension': signal_data["unit"] if "unit" in signal_data else "a.u.",
+                    'sample_frequency': signal_data["sampling_rate"],
+                    'physical_min': floor(np.min(signal) *  scale)/scale,
+                    'physical_max': ceil(np.max(signal) * scale)/scale,
+                    'digital_min': -32768,
+                    'digital_max': 32767,
+                    'transducer': '',
+                    'prefilter': ''
+                }
+                edf_writer.setSignalHeader(0, channel_info)
+                if isinstance(signal_data["start_datetime"], datetime):
+                    edf_writer.setStartdatetime(signal_data["start_datetime"])
+                else:
+                    edf_writer.setStartdatetime(datetime(1985, 1, 1, 0, 0, 0))
+                edf_writer.update_header()
 
-        np.savez(file_output_path, **save_dict)
+                edf_writer.writeSamples(signal.reshape(1,-1))
+
+                duration=self.config.epoch_duration
+                for epoch_idx, label in enumerate(signal_data["labels"]):
+                    edf_writer.writeAnnotation(
+                        onset_in_seconds=epoch_idx * duration,
+                        duration_in_seconds=duration,
+                        description=str(label)
+                    )
+        elif self.config.output_format == "hdf5":
+            raise NotImplementedError("HDF5 output not yet implemented")
+            # with h5py.File(file_output_path, 'w') as h5f:
+            #     h5f.create_dataset('x', data=signal_data["signal"], compression="gzip")
+            #     h5f.attrs['sampling_rate'] = signal_data["sampling_rate"]
+            #     h5f.attrs['channel'] = channel
+            #     h5f.attrs['epoch_duration'] = self.config.epoch_duration
+            #     h5f.attrs['n_epochs'] = len(signal_data["signal"])  # after cleaning
+
+            #     # Handle multiple scorers
+            #     labels = signal_data["y"]
+            #     if labels.ndim == 1:
+            #         h5f.create_dataset('y', data=labels, compression="gzip")
+            #     elif labels.ndim == 2:
+            #         h5f.create_dataset('y', data=labels[:, 0], compression="gzip")
+            #         h5f.create_dataset('y2', data=labels[:, 1], compression="gzip")
+        
+        
         self.logger.info(f"Successfully saved: {file_output_path}")

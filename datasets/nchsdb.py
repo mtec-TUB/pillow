@@ -169,4 +169,4 @@ class NCHSDB(BaseDataset):
             print(delay_sec%(1/Decimal(str(fs))))
             raise Exception("Annotations start at timestamp outside of sample rate")
 
-        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels)
+        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)

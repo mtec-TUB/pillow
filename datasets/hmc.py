@@ -85,6 +85,6 @@ class HMC(BaseDataset):
         return ann_stage_events, ann_Startdatetime
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
+        print("Aligning signals and labels for HMC dataset...")
         if len(signals) == len(labels) + 1:
             return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)

@@ -117,7 +117,7 @@ class ANPHY(BaseDataset):
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs) -> Tuple[bool, float]:
         """ Align front part of signals and labels, in some datasets annotations start after signal recording"""
 
-        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels)
+        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 

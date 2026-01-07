@@ -80,11 +80,9 @@ class SignalProcessor:
             elif ch_type == "analog":
                 signal = self.resample_ana(signal, sampling_rate, resample_freq)
 
+        self.logger.info(f"Sample rate after: {resample_freq}")
 
-        sampling_rate = resample_freq
-        self.logger.info(f"Sample rate after: {sampling_rate}")
-
-        return signal, sampling_rate
+        return signal
 
     def resample_dig(self, signal, input_rate, output_rate):
         """

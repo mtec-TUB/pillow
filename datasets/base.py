@@ -171,19 +171,20 @@ class BaseDataset(ABC):
 
         raise NotImplementedError("Subclass has no front alignment implemented")
 
-    def base_align_front(self, logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels):
+    def base_align_front(self, logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels, fs):
 
-        if alignment == Alignment.MATCH_SHORTER or alignment == Alignment.MATCH_ANNOT:
+        if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_ANNOT.value:
             logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, signal will be shortened at the front to match")
             signal = signal[int(delay_sec*fs):]
-        elif alignment == Alignment.MATCH_LONGER or alignment == Alignment.MATCH_SIGNAL:
+        elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_SIGNAL.value:
             logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, labels will be padded at the front with full epochs of value:{pad_values[1]} to match")
             n_pad = int(delay_sec / epoch_duration)
             labels = n_pad*[pad_values[1]] + labels
             if delay_sec % epoch_duration != 0:
                 logger.info(f"Partial epoch detected at start, signal will be shortened at the front to match")
                 signal = signal[int((delay_sec % epoch_duration)*fs):]
-
+        else:
+            raise ValueError(f"Unknown alignment option: {alignment}")
         return signal, labels
 
 
@@ -200,23 +201,27 @@ class BaseDataset(ABC):
         raise NotImplementedError("Subclass has no end alignment implemented but is required")
     
     def base_align_end_labels_longer(self, logger, alignment, pad_values, signals, labels):
-        if alignment == Alignment.MATCH_SHORTER or alignment == Alignment.MATCH_SIGNAL:
+        if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_SIGNAL.value:
             logger.info(f"Labels (len:{len(labels)}) are shortend to match signal (len:{len(signals)})")
             labels = labels[:len(signals)]
-        elif alignment == Alignment.MATCH_LONGER or alignment == Alignment.MATCH_ANNOT:
+        elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_ANNOT.value:
             n_pad = (len(labels) - len(signals))
             logger.info(f"Signal (len:{len(signals)}) will be padded at the end with {n_pad} epochs of constant value:{pad_values[0]} to match labels length (len:{len(labels)})")
             signals = np.vstack((signals, np.full((n_pad, signals.shape[1]), pad_values[0])))
+        else:
+            raise ValueError(f"Unknown alignment option: {alignment}")
         return signals,labels
 
     def base_align_end_signals_longer(self, logger, alignment, pad_values, signals, labels):
-        if alignment == Alignment.MATCH_SHORTER or alignment == Alignment.MATCH_ANNOT:
+        if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_ANNOT.value:
             logger.info(f"Signal (len:{len(signals)}) is shortend to match label (len:{len(labels)})")
             signals = signals[:len(labels)]
-        elif alignment == Alignment.MATCH_LONGER or alignment == Alignment.MATCH_SIGNAL:
-            n_pad = int((len(signals) - len(labels)) / epoch_duration)
+        elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_SIGNAL.value:
+            n_pad = int((len(signals) - len(labels)))
             logger.info(f"Labels (len:{len(labels)}) will be padded at the end with {n_pad} epochs of value:{pad_values[1]} to match signals (len:{len(signals)}))")
             labels = np.hstack((labels, np.full((n_pad,),pad_values[1])))
+        else:
+            raise ValueError(f"Unknown alignment option: {alignment}")
         return signals, labels
 
 
