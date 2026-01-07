@@ -17,6 +17,7 @@ from ..utils import LoggingManager
 from .dataset_explorer import Dataset_Explorer
 from .signal_processor import SignalProcessor
 
+logging.captureWarnings(True)
 
 class DatasetProcessor:
     """
