@@ -108,48 +108,27 @@ class CPS(BaseDataset):
                 'Start': int((start - ann_startdatetime).seconds),
                 'Duration': epoch_duration
             })
+
         
         return ann_stage_events, ann_startdatetime
     
-    def align_front(self, logger, ann_Startdatetime, psg_fname, ann_fname, signal, labels, fs):
+    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_samples, signal, labels, fs):
 
-        psg_fname, ext = os.path.splitext(psg_fname)
-        record = wfdb.rdheader(psg_fname)
-        psg_start_datetime = datetime.combine(record.base_date,record.base_time)
-
-        print(f"Start time in signal file: {psg_start_datetime}")
-        print(f"Start time in annot file: {ann_Startdatetime}")
-
-        start_seconds= (ann_Startdatetime - psg_start_datetime).total_seconds()
-      
-        if not (start_seconds*fs).is_integer():
+        if not (delay_samples*fs).is_integer():
             raise Exception("Annotations start at timestamp outside of sample rate")
 
-        if start_seconds < 0:
-            if start_seconds < -30:
-                raise Exception
-            logger.info(f"Signal started {-start_seconds/60:.2f} min after label start, signal and label will be shortened ({30+int(start_seconds)}sec) at the front to match")
-            signal = signal[30*fs+int(start_seconds*fs):]
+        if delay_samples < 0:
+            if delay_samples < -30:
+                raise Exception("Annotation without corresponding signal data is not supported")    # should not happen in CPS, just as safety check
+            logger.info(f"Signal started {-delay_samples/60:.2f} min after label start, signal and label will be shortened ({30+int(delay_samples)}sec) at the front to match")
+            signal = signal[30*fs+int(delay_samples*fs):]
             labels = labels[1:]
-        elif start_seconds > 0:
-            logger.info(f"Labeling started {start_seconds/60:.2f} min after signal start, signal will be shortened at the front to match")
-            signal = signal[int(start_seconds*fs):]
+            return signal, labels
+        elif delay_samples > 0:
+            return self.base_align_front(logger, delay_samples, alignment, pad_values, epoch_duration, signal, labels,fs)
 
-        return True, signal,labels
     
-    def align_end(self, logger, psg_fname: str, ann_fname: str, signals: np.ndarray,
-                  labels: np.ndarray,
-                  ) -> Tuple[np.ndarray, np.ndarray]:
+    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
-        # if len(signals) > len(labels):
-        #     logger.info(f"Signal (len: {len(signals)}) is shortend to match label (len: {len(labels)})")
-        #     signals = signals[:len(labels)]
-        
         if len(labels) == len(signals) +1:
-            logger.info(f"Labels (len: {len(labels)}) are shortend to match signal ({len(signals)})")
-            labels = labels[:len(signals)]
-        
-        assert len(signals) == len(labels), f"Length mismatch: signal={len(signals)}, labels={len(labels)} \n TODO: implement alignment function"
-        
-        return signals, labels
-    
+            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)

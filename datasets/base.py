@@ -172,7 +172,9 @@ class BaseDataset(ABC):
         raise NotImplementedError("Subclass has no front alignment implemented")
 
     def base_align_front(self, logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels, fs):
-
+        if delay_sec < 0:
+            logger.error(f"Annotations start before signal start, which is not supported in the base align front method")
+            raise Exception("Annotations start before signal start, which is not supported in the base align front method")
         if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_ANNOT.value:
             logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, signal will be shortened at the front to match")
             signal = signal[int(delay_sec*fs):]
