@@ -6,7 +6,7 @@ import logging
 import os
 import re
 from math import ceil, floor
-from datetime import datetime
+from datetime import datetime, date
 from pyedflib import EdfWriter
 import h5py
 from pathlib import Path
@@ -497,7 +497,10 @@ class DatasetProcessor:
                 }
                 edf_writer.setSignalHeader(0, channel_info)
                 if isinstance(signal_data["start_datetime"], datetime):
-                    edf_writer.setStartdatetime(signal_data["start_datetime"])
+                    if signal_data["start_datetime"].date() > date(1985, 1, 1):
+                        edf_writer.setStartdatetime(signal_data["start_datetime"])
+                    else:
+                        edf_writer.setStartdatetime(datetime.combine(date(1985, 1, 1), signal_data["start_datetime"].time()))
                 else:
                     edf_writer.setStartdatetime(datetime(1985, 1, 1, 0, 0, 0))
                 edf_writer.update_header()
