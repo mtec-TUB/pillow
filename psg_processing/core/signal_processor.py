@@ -150,6 +150,18 @@ class SignalProcessor:
 
         # Filter signal according to AASM Manual
         if not (low is None and high is None) and (ch_type == "analog"):
+
+            if low and low >= fs / 2:
+                self.logger.warning(
+                    f"Low cutoff frequency {low} Hz is >= Nyquist frequency {fs/2} Hz. Skipping lowpass filter."
+                )
+                low = None  # Avoid invalid low cutoff frequency
+
+            if high and high >= fs / 2:
+                self.logger.warning(
+                    f"High cutoff frequency {high} Hz is >= Nyquist frequency {fs/2} Hz. Skipping highpass filter."
+                )
+                high = None  # Avoid invalid high cutoff frequency
                 
             self.logger.info(
                 f"Filter signal with low: {low} Hz and high: {high} Hz bandpass"
@@ -159,7 +171,7 @@ class SignalProcessor:
                 signal,
                 fs,
                 low,
-                high if (high and high < fs/2) else None,
+                high,
                 method="fir",
                 n_jobs='cuda' if cupy.cuda.is_available() else -1,
                 verbose="WARNING",
