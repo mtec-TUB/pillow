@@ -56,21 +56,16 @@ def _resolve_paths(dataset, base_data_dir: str, data_dir: str | None, ann_dir: s
     data_dir_resolved = data_dir if data_dir else os.path.join(base_data_dir, rel_data_dir)
     ann_dir_resolved = ann_dir if ann_dir else os.path.join(base_data_dir, rel_ann_dir)
 
-    # If resample_val is None we want the 'orig' folder, else '<N>Hz_filt'
-    res_label = "orig" if resample_val is None else f"{resample_val}Hz_filt"
-
     if output_dir:
         output_dir_resolved = os.path.join(
             output_dir,
-            f"{dataset.dset_name}_harmonized",
-            res_label,
+            f"{dataset.dset_name}_harmonized"
         )
     else:
         output_dir_resolved = os.path.join(
             base_data_dir,
             dataset.dataset_name,
-            f"{dataset.dset_name}_harmonized",
-            res_label,
+            f"{dataset.dset_name}_harmonized"
         )
 
     return data_dir_resolved, ann_dir_resolved, output_dir_resolved
@@ -85,8 +80,6 @@ def main(config):
     dataset = get_dataset(config.dataset)()
 
     print(f"Processing dataset: {dataset.dset_name}")
-
-    print(type(config.resample))
 
     config.data_dir, config.ann_dir, config.output_dir = _resolve_paths(
         dataset, config.base_data_dir, config.data_dir, config.ann_dir, config.output_dir, config.resample
