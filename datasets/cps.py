@@ -124,9 +124,9 @@ class CPS(BaseDataset):
                 labels = labels[1:]
                 return signal, labels
             elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_ANNOT.value:
-                logger.info(f"Signal started {-delay_samples/60:.2f} min after label start, signal will be padded with constant value:{pad_values[0]} at the front to match")
+                logger.info(f"Signal started {-delay_samples/60:.2f} min after label start, signal will be padded with constant value:{pad_values["signal"]} at the front to match")
                 n_pad_samples = int(-delay_samples*fs)
-                signal = np.hstack((np.full((n_pad_samples,), pad_values[0]), signal))
+                signal = np.hstack((np.full((n_pad_samples,), pad_values["signal"]), signal))
                 return signal, labels
         elif delay_samples > 0:
             return self.base_align_front(logger, delay_samples, alignment, pad_values, epoch_duration, signal, labels,fs)
