@@ -25,7 +25,7 @@ output_dir: null
 # Options: "npz" (numpy compressed), "edf" (European Data Format), "hdf5" (Hierarchical Data Format)
 # - npz, hdf5: saves dictionary:
 #   - x: Processed signal data array with dim [num_epochs, epoch_dur * fs]
-#   - y: Sleep stage annotations (0: "Wach", 1: "N1", 2: "N2", 3: "N3", 4: "REM")
+#   - y: Sleep stage annotations (0:"Wach", 1:"N1", 2:"N2", 3:"N3", 4:"REM", 5:"MOVE", 6:"Unknown")
 #   - fs: Sampling rate
 #   - ch_label: Channel label (like it was originally found in the input file)
 #   - file_duration Total duration of the original signal in seconds
@@ -33,7 +33,7 @@ output_dir: null
 #   - n_epochs: Number of epochs
 # - edf: 
 #   - saves signal and annotation in standard EDF format with annotations in the annotation channel
-#   
+# - for edf and hdf5 all chosen channels will be in one file together, for npz each channel will be saved in a separate file
 output_format: "edf"  # Options: "npz", "edf", "hdf5"
 
 # Overwrite existing output files
@@ -91,15 +91,21 @@ n_wake_epochs: "60"
 # - match longer one (pad signal with VALUE to match annotations (with 0, None or whatever), and/or pad annotations with VALUE to match signals(with Unknown, None or whatever))
 # - match signal length (crop or pad Annot with VALUE if needed but never change signal)
 # - match annot length (crop or pad signal with VALUE if needed but never change annot)
+
+# Only usable if 'use_annot' is true
 alignment: "match_shorter"
 
 # Padding values for signal and labels when using alignment options that require padding
 # Format: [signal_pad_value, label_pad_value]
-# default padding with null will use None for signals and labels
-pad_values: [null, null]
+# default padding will use np.nan for padded signal values and -1 for padded label values
+# pad value for labels can only be an integer (already in use: {0:"Wach", 1:"N1", 2:"N2", 3:"N3", 4:"REM", 5:"MOVE", 6:"Unknown"}), recommended to choose -1 or 6 (Unknown)
+pad_values: 
+  signal: null
+  label: -1
 
 # Minimum required sleep epochs (N1, N2, N3, REM) after preprocessing
 # Recordings with fewer sleep epochs will be discarded
+# Only usable if 'use_annot' is true
 min_sleep_epochs: 0 # all files included
 
 # Use annotations
