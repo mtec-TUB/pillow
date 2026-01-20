@@ -164,9 +164,11 @@ class SignalProcessor:
                 n_jobs='cuda' if cupy.cuda.is_available() else -1,
                 verbose="WARNING",
             )
+            # Final clipping to original signal range if highpass filter was applied
+            if low is not None and low != 0:
+                signal = np.clip(signal, a_min=self.signal_min, a_max=self.signal_max)
+
         elif not (low is None and high is None) and ch_type == "digital":
             raise Exception("Digital channels cannot be filtered.")
 
-        # Final clipping to original signal range
-        signal = np.clip(signal, a_min=self.signal_min, a_max=self.signal_max)
         return signal
