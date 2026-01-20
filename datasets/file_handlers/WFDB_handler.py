@@ -6,10 +6,9 @@ import os
 import numpy as np
 import wfdb
 from datetime import datetime, date
-from .base import FileHandler
 
 
-class WFDBHandler(FileHandler):
+class WFDBHandler():
     """Handler for WFDB files."""
 
     def get_channels(self, logger, filepath):

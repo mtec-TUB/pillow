@@ -1,8 +1,9 @@
 import h5py
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Tuple
 from datetime import datetime
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from datasets.file_handlers import DOD_H5Handler
 
 @register_dataset("DOD-O")
 class DODO(BaseDataset):
@@ -10,6 +11,8 @@ class DODO(BaseDataset):
     
     def __init__(self):
         super().__init__("DOD-O","DOD-O - Dreem Open Dataset - Obstructive")
+
+        self._file_handler = DOD_H5Handler()
 
     def _setup_dataset_config(self):
         self.ann2label =  {

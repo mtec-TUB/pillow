@@ -3,10 +3,9 @@ H5 file handler for PSG data processing.
 """
 
 import h5py
-from .base import FileHandler
 
 
-class H5Handler(FileHandler):
+class DOD_H5Handler():
     """Handler for H5 files."""
 
     def get_channels(self, logger, filepath):

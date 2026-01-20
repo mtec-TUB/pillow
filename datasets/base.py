@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 
 from psg_processing.utils import Alignment
-from datasets.file_handlers import get_handler
+from datasets.file_handlers import EDFHandler
 
 class BaseDataset(ABC):
     """
@@ -34,7 +34,8 @@ class BaseDataset(ABC):
         # Call setup method that subclasses must implement
         self._setup_dataset_config()
 
-        self._file_handler = get_handler(self.dset_name, self.file_extensions['psg_ext'])()
+        # Default way to load psg files is with the EDF-Handler, datasets that do not use EDF files override this
+        self._file_handler = EDFHandler()
 
 
     # Delegate file handler methods to the dataset

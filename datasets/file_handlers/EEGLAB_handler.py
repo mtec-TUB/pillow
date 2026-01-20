@@ -3,10 +3,9 @@ mat file handler for PSG data processing.
 """
 
 from mne.io import read_raw_eeglab
-from .base import FileHandler
 
 
-class EEGLABHandler(FileHandler):
+class EEGLABHandler():
     """Handler for eeglab .set files."""
 
     def get_channels(self, logger, filepath):

@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Tuple, Union
 from datetime import datetime
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from datasets.file_handlers import DOD_H5Handler
 
 @register_dataset("DOD-H")
 class DODH(BaseDataset):
@@ -10,6 +11,8 @@ class DODH(BaseDataset):
     
     def __init__(self):
         super().__init__("DOD-H","DOD-H - Dreem Open Dataset - Healthy")
+
+        self._file_handler = DOD_H5Handler()
 
     def _setup_dataset_config(self):
         self.ann2label = {

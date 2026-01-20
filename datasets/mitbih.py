@@ -6,12 +6,16 @@ from datetime import datetime
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
+from datasets.file_handlers import WFDBHandler
+
 @register_dataset("MIT-BIH")
 class MITBIH(BaseDataset):
     """MIT-BIH - Polysomnographic Database dataset."""
     
     def __init__(self):
         super().__init__("MIT-BIH","MIT-BIH - Polysomnographic Database")
+
+        self._file_handler = WFDBHandler()
   
     def _setup_dataset_config(self):
         self.ann2label = {

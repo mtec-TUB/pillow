@@ -14,6 +14,9 @@ class DREAMT(BaseDataset):
     def __init__(self):
         super().__init__("DREAMT","DREAMT - Dataset for Real-time sleep stage EstimAtion using Multisensor wearable Technology")
 
+        self._file_handler = None # DREAMT uses custom CSV handling directly implemented here
+
+
     def _setup_dataset_config(self):
         self.ann2label = {
             "W": 0,      # Wake
@@ -40,8 +43,6 @@ class DREAMT(BaseDataset):
             'psg_ext': '*.csv',
             'ann_ext': '*.csv',  # Annotations are embedded in data CSV files
         }        
-        
-
     
     def dataset_paths(self) -> Tuple[str, str]:
         """
@@ -50,6 +51,61 @@ class DREAMT(BaseDataset):
         data_dir = "DREAMT - Dataset for Real-time sleep stage EstimAtion using Multisensor wearable Technology/data"
         ann_dir = "DREAMT - Dataset for Real-time sleep stage EstimAtion using Multisensor wearable Technology/data"
         return data_dir, ann_dir
+    
+    def get_channels(self, logger, filepath):
+        """Extract column names from DREAMT CSV files."""
+        try:
+            dataset = pd.read_csv(filepath, sep=",", header=0, nrows=1)
+            # Exclude non-signal columns specific to DREAMT
+            signal_columns = [col for col in dataset.columns 
+                            if col not in ['TIMESTAMP', 'Sleep_Stage']]
+            return signal_columns
+        except Exception as e:
+            logger.error(f"Error reading DREAMT CSV file {filepath}: {e}")
+            return []
+
+    def read_signal(self, logger, filepath, channel):
+        """Read signal from DREAMT CSV file for specific channel."""
+        try:
+            dataset = pd.read_csv(filepath, sep=",", header=0)
+            if channel in dataset.columns:
+                # DREAMT-specific: Remove preparation stage data
+                dataset = dataset[dataset["Sleep_Stage"] != "P"].reset_index()
+                return dataset[channel].to_numpy()
+        except Exception as e:
+            logger.error(f"Error reading DREAMT CSV signal from {filepath}: {e}")
+        return None
+
+    def get_signal_data(self, logger, filepath, channel):
+        """Get complete DREAMT CSV signal information for processing."""
+        try:
+            # DREAMT-specific sampling rate
+            sampling_rate = 64
+            dataset = pd.read_csv(filepath, sep=",", header=0)
+
+            if channel not in dataset.columns:
+                self.logger.info(f"Channel {channel} not found")
+                return None
+
+            # DREAMT-specific preprocessing:
+            # - Remove preparation stage 'P'
+            dataset = dataset[dataset["Sleep_Stage"] != "P"].reset_index()
+            signal = dataset[channel].to_numpy()
+
+            logger.info(f"Channel selected: {channel}")
+            logger.info(f"Select channel samples: {len(signal)}")
+
+            file_duration = len(signal) / sampling_rate
+
+            return {
+                "signal": signal,
+                "sampling_rate": sampling_rate,
+                "start_datetime": None,
+                "file_duration": file_duration,
+            }
+        except Exception as e:
+            logger.error(f"Error processing DREAMT CSV file {filepath}: {e}")
+            raise
     
     def ann_parse(self, ann_fname: str) -> Tuple[np.ndarray, int, List[Dict]]:
         """

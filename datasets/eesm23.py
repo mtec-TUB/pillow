@@ -9,6 +9,8 @@ from psg_processing.core import Dataset_Explorer
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
+from datasets.file_handlers import EEGLABHandler
+
 
 @register_dataset("EESM23")
 class EESM23(BaseDataset):
@@ -16,6 +18,8 @@ class EESM23(BaseDataset):
     
     def __init__(self):
         super().__init__("EESM23","Ear-EEG Sleep Monitoring 2023 (EESM23)", keep_folder_structure=False)
+
+        self._file_handler = EEGLABHandler()
     
     def _setup_dataset_config(self):
         self.ann2label = {

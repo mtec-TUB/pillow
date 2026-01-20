@@ -1,10 +1,11 @@
 import os
-import numpy as np
 import wfdb
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 from datetime import datetime, date
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+
+from datasets.file_handlers import WFDBHandler
 
 @register_dataset("PHYSIO2018")
 class Physio2018(BaseDataset):
@@ -12,6 +13,8 @@ class Physio2018(BaseDataset):
     
     def __init__(self):
         super().__init__("PHYSIO2018","Physio2018 - PysioNet Challenge 2018", keep_folder_structure = False)
+
+        self._file_handler = WFDBHandler()
   
     def _setup_dataset_config(self):
         self.ann2label = {
@@ -68,7 +71,6 @@ class Physio2018(BaseDataset):
         start_time_label = None
 
         for i, (sample, aux_note) in enumerate(zip(annot.sample, annot.aux_note)):
-            print(sample,aux_note)
             if not any(note in aux_note for note in ['resp_hypoventilation','resp_cheynestokesbreath','arousal_bruxism','arousal_noise','arousal_plm','arousal_snore','arousal_rera','arousal_spontaneous','resp_partialobstructive','resp_centralapnea','resp_mixedapnea','resp_obstructiveapnea','resp_hypopnea']):
                 if aux_note not in self.ann2label:
                        print(aux_note)
@@ -90,7 +92,7 @@ class Physio2018(BaseDataset):
     
         start_seconds = delay_samples/fs
 
-        return self.base_align_front(logger, start_seconds, alignment, pad_values, epoch_duration, signal, labels)
+        return self.base_align_front(logger, start_seconds, alignment, pad_values, epoch_duration, signal, labels, fs)
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 

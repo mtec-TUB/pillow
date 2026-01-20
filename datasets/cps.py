@@ -9,6 +9,8 @@ from datasets.base import BaseDataset
 from psg_processing.utils import Alignment
 from datasets.registry import register_dataset
 
+from datasets.file_handlers import WFDBHandler
+
 
 @register_dataset("CPS")
 class CPS(BaseDataset):
@@ -16,6 +18,8 @@ class CPS(BaseDataset):
 
     def __init__(self):
         super().__init__("CPS","CPS - Comprehensive Polysomnography Dataset (A Resource for Sleep-Related Arousal Research)", keep_folder_structure=False)
+
+        self._file_handler = WFDBHandler()
 
     def _setup_dataset_config(self):
         self.ann2label = {

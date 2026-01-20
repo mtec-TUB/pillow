@@ -3,10 +3,9 @@ EDF file handler for PSG data processing.
 """
 
 import pyedflib
-from .base import FileHandler
 
 
-class EDFHandler(FileHandler):
+class EDFHandler():
     """Handler for EDF files."""
 
     def get_channels(self, logger, filepath):
