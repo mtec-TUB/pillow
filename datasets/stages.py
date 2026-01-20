@@ -197,7 +197,7 @@ class STAGES(BaseDataset):
     
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
 
-        return self.base_align_front(logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs)
+        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
