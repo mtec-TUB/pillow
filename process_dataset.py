@@ -22,11 +22,12 @@ from psg_processing.utils import load_config_file, ProcessorConfig
 from datasets.registry import get_dataset, DatasetRegistry
 from psg_processing.core import Dataset_Explorer, DatasetProcessor
 
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-    description="Process sleep datasets for harmonization",
-    formatter_class=argparse.RawDescriptionHelpFormatter,
-    epilog=f"""
+        description="Process sleep datasets for harmonization",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=f"""
                 Available datasets:
                 {', '.join(DatasetRegistry.list_datasets())}
                 
@@ -43,7 +44,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     return parser
 
-def _resolve_paths(dataset, base_data_dir: str, data_dir: str | None, ann_dir: str | None, output_dir: str | None, resample_val):
+
+def _resolve_paths(
+    dataset,
+    base_data_dir: str,
+    data_dir: str | None,
+    ann_dir: str | None,
+    output_dir: str | None,
+    resample_val,
+):
     """Return resolved (data_dir, ann_dir, output_dir).
 
     - If data_dir or ann_dir not provided, use dataset.dataset_paths() and join with base_data_dir.
@@ -52,19 +61,18 @@ def _resolve_paths(dataset, base_data_dir: str, data_dir: str | None, ann_dir: s
     # Start from dataset-provided relative paths
     rel_data_dir, rel_ann_dir = dataset.dataset_paths()
 
-    data_dir_resolved = data_dir if data_dir else os.path.join(base_data_dir, rel_data_dir)
+    data_dir_resolved = (
+        data_dir if data_dir else os.path.join(base_data_dir, rel_data_dir)
+    )
     ann_dir_resolved = ann_dir if ann_dir else os.path.join(base_data_dir, rel_ann_dir)
 
     if output_dir:
         output_dir_resolved = os.path.join(
-            output_dir,
-            f"{dataset.dset_name}_harmonized"
+            output_dir, f"{dataset.dset_name}_harmonized"
         )
     else:
         output_dir_resolved = os.path.join(
-            base_data_dir,
-            dataset.dataset_name,
-            f"{dataset.dset_name}_harmonized"
+            base_data_dir, dataset.dataset_name, f"{dataset.dset_name}_harmonized"
         )
 
     return data_dir_resolved, ann_dir_resolved, output_dir_resolved
@@ -81,7 +89,12 @@ def main(config):
     print(f"Processing dataset: {dataset.dset_name}")
 
     config.data_dir, config.ann_dir, config.output_dir = _resolve_paths(
-        dataset, config.base_data_dir, config.data_dir, config.ann_dir, config.output_dir, config.resample
+        dataset,
+        config.base_data_dir,
+        config.data_dir,
+        config.ann_dir,
+        config.output_dir,
+        config.resample,
     )
 
     print(f"Data directory: {config.data_dir}")
@@ -102,12 +115,16 @@ def main(config):
         processor.process_files()
 
     elif config.action == "get_channel_names":
-        explorer = Dataset_Explorer(None, dataset, config.data_dir, config.ann_dir, **dataset.file_extensions)
+        explorer = Dataset_Explorer(
+            None, dataset, config.data_dir, config.ann_dir, **dataset.file_extensions
+        )
         channels = list(explorer.get_all_channels())
         print(f"Available channels in {dataset.dset_name}: {(channels)}")
 
     elif config.action == "get_channel_types":
-        explorer = Dataset_Explorer(None, dataset, config.data_dir, config.ann_dir, **dataset.file_extensions)
+        explorer = Dataset_Explorer(
+            None, dataset, config.data_dir, config.ann_dir, **dataset.file_extensions
+        )
         explorer.get_all_channels()
         channel_types = explorer.get_channel_type()
         print(f"Channel types in {dataset.dset_name}: {channel_types}")
@@ -121,10 +138,10 @@ if __name__ == "__main__":
     script_dir = Path(__file__).parent
     default_config_path = script_dir / "config.yaml"
     config = load_config_file(str(default_config_path))
-    
+
     # Determine if we're running from CLI or VS Code interactive mode
     is_vscode_mode = len(sys.argv) == 1
-    
+
     if is_vscode_mode:
         # VS Code mode: use defaults from config.yaml
         args = argparse.Namespace(**config)
@@ -133,11 +150,11 @@ if __name__ == "__main__":
         # Normal CLI execution
         parser = build_parser()
         cli_args = parser.parse_args(sys.argv[1:])
-        
+
         # Load user's config file if specified
         if cli_args.config:
             config = load_config_file(cli_args.config)
-        
+
         # Create namespace from merged config
         args = argparse.Namespace(**config)
         main(args)
