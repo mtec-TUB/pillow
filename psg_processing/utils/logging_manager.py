@@ -18,8 +18,6 @@ class LoggingManager:
         self.level = level
         self.format = format or "%(asctime)s - %(levelname)s - %(message)s"
         self.date_format = date_format or "%Y-%m-%d %H:%M:%S"
-        self.log_filename = "processing.log"
-
 
     def cleanup_file_handlers(self,logger):
         """
@@ -31,9 +29,9 @@ class LoggingManager:
                 handler.close()  # Properly close the file handle
                 logger.removeHandler(handler)
 
-    def setup_channel_file_logging(self,logger, output_dir):
+    def setup_file_logging(self,logger, output_dir, log_filename):
         """
-        Set up or update the file handler for channel-specific logging.
+        Set up or update the file handler for logging.
         Keeps the console handler unchanged.
 
         Args:
@@ -43,12 +41,12 @@ class LoggingManager:
         Returns:
             Path to the created log file
         """
-        log_file_path = os.path.join(output_dir, self.log_filename)
+        log_file_path = os.path.join(output_dir, log_filename)
 
         # Remove any existing file handlers but keep console handlers
         self.cleanup_file_handlers(logger)
 
-        # Add new file handler for this channel
+        # Add new file handler
         file_handler = logging.FileHandler(log_file_path)
 
         formatter = logging.Formatter(
@@ -72,7 +70,7 @@ class LoggingManager:
 
         # delete all exisiting log_files in output folder if overwrite True
         if overwrite and dir_name:
-            log_files = glob.glob(os.path.join(dir_name, '**',self.log_filename), recursive=True
+            log_files = glob.glob(os.path.join(dir_name, '**','*.log'), recursive=True
             )
             for f in log_files:
                 os.remove(f)

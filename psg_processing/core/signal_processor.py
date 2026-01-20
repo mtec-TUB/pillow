@@ -118,7 +118,7 @@ class SignalProcessor:
         """
         # Perform high-quality polyphase resampling
         signal_resampled = resample(
-            signal.astype(np.float64),
+            signal,
             up=output_rate,
             down=input_rate,
             method="polyphase",
