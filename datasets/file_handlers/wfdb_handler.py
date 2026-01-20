@@ -56,7 +56,7 @@ class WFDBHandler(FileHandler):
             elif record.base_date and record.base_time:
                 start_datetime = datetime.combine(record.base_date,record.base_time)
             elif record.base_time:
-                start_datetime = datetime.combine(date(1900,1,1),record.base_time)
+                start_datetime = datetime.combine(date(1985,1,1),record.base_time)
             else:
                 start_datetime = None
 
