@@ -21,7 +21,6 @@ sys.path.append(str(Path(__file__).parent))
 from psg_processing.utils import load_config_file, ProcessorConfig
 from datasets.registry import get_dataset, DatasetRegistry
 from psg_processing.core import Dataset_Explorer, DatasetProcessor
-from psg_processing.file_handlers import get_handler
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -89,8 +88,6 @@ def main(config):
     print(f"Annotation directory: {config.ann_dir}")
     print(f"Output directory: {config.output_dir}")
 
-    dataset.psg_file_handler = get_handler(dataset.dset_name, dataset.file_extensions['psg_ext'])()
-
     ret = dataset.preprocess(config.data_dir, config.ann_dir, config.output_dir)
     if ret is False:
         return
@@ -105,12 +102,12 @@ def main(config):
         processor.process_files()
 
     elif config.action == "get_channel_names":
-        explorer = Dataset_Explorer(None, dataset.psg_file_handler, config.data_dir, config.ann_dir, **dataset.file_extensions)
+        explorer = Dataset_Explorer(None, dataset, config.data_dir, config.ann_dir, **dataset.file_extensions)
         channels = list(explorer.get_all_channels())
         print(f"Available channels in {dataset.dset_name}: {(channels)}")
 
     elif config.action == "get_channel_types":
-        explorer = Dataset_Explorer(None, dataset.psg_file_handler, config.data_dir, config.ann_dir, **dataset.file_extensions)
+        explorer = Dataset_Explorer(None, dataset, config.data_dir, config.ann_dir, **dataset.file_extensions)
         explorer.get_all_channels()
         channel_types = explorer.get_channel_type()
         print(f"Channel types in {dataset.dset_name}: {channel_types}")

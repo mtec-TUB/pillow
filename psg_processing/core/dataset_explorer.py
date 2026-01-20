@@ -27,7 +27,7 @@ class Dataset_Explorer:
     def __init__(
         self,
         logger,
-        psg_file_handler: object,
+        dataset: object,
         data_dir: str,
         ann_dir: str,
         psg_ext: str,
@@ -36,7 +36,7 @@ class Dataset_Explorer:
         log_level=logging.INFO,
     ):
         """Initialize the Dataset_Explorer with empty containers and logger."""
-        self.psg_file_handler = psg_file_handler
+        self.dataset = dataset
         self.data_dir = data_dir
         self.ann_dir = ann_dir
         self.psg_ext = psg_ext
@@ -134,7 +134,7 @@ class Dataset_Explorer:
 
         # Use tqdm for clean progress bar
         for psg_fname in tqdm(self.psg_fnames, desc="Processing files", unit="file"):
-            channels = self.psg_file_handler.get_channels(self.logger,psg_fname)
+            channels = self.dataset.get_channels(self.logger,psg_fname)
             # for label, freq in zip(channels, freqs):
             #     self.ch_names.add((label, float(freq)))
             self.ch_names.update(channels)
@@ -195,7 +195,7 @@ class Dataset_Explorer:
                         f"{os.path.basename(psg_fname)[:25]}..."
                     )
 
-                    signal = self.psg_file_handler.read_signal(self.logger,psg_fname, channel)
+                    signal = self.dataset.read_signal(self.logger,psg_fname, channel)
 
                     if signal is None:
                         continue  # Channel not found in this file

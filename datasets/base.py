@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 
 from psg_processing.utils import Alignment
+from datasets.file_handlers import get_handler
 
 class BaseDataset(ABC):
     """
@@ -32,6 +33,23 @@ class BaseDataset(ABC):
 
         # Call setup method that subclasses must implement
         self._setup_dataset_config()
+
+        self._file_handler = get_handler(self.dset_name, self.file_extensions['psg_ext'])()
+
+
+    # Delegate file handler methods to the dataset
+    def get_channels(self, logger, filepath):
+        """Extract channel information from PSG file."""
+        return self._file_handler.get_channels(logger, filepath)
+    
+    def read_signal(self, logger, filepath, channel):
+        """Read signal data for a specific channel."""
+        return self._file_handler.read_signal(logger, filepath, channel)
+    
+    def get_signal_data(self, logger, filepath, channel):
+        """Get complete signal information for processing."""
+        return self._file_handler.get_signal_data(logger, filepath, channel)
+
 
     @abstractmethod
     def _setup_dataset_config(self):

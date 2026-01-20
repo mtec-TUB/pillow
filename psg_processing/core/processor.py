@@ -48,7 +48,7 @@ class DatasetProcessor:
             # Get files using dataset-specific extensions
             explorer = Dataset_Explorer(
                 self.logger,
-                self.dataset.psg_file_handler,
+                self.dataset,
                 self.config.data_dir,
                 self.config.ann_dir,
                 **self.dataset.file_extensions,
@@ -116,7 +116,7 @@ class DatasetProcessor:
             ann_Startdatetime = None
 
         # List channels to process for this file
-        channels = list(set(self.dataset.channel_names) & set(self.dataset.psg_file_handler.get_channels(self.logger,psg_fname)))
+        channels = list(set(self.dataset.channel_names) & set(self.dataset.get_channels(self.logger,psg_fname)))
 
         # Sequential per-channel processing
         all_signal_data = []
@@ -171,7 +171,7 @@ class DatasetProcessor:
             self.logger.info(f"Annotation file: {Path(ann_fname).relative_to(self.config.ann_dir)}")
 
         # Extract and process signal
-        signal_data = self.dataset.psg_file_handler.get_signal_data(self.logger,psg_fname, channel)
+        signal_data = self.dataset.get_signal_data(self.logger,psg_fname, channel)
 
         if signal_data is None:
             return True, None, None
@@ -288,7 +288,7 @@ class DatasetProcessor:
 
             # replace slash in folder names to avoid nester output structure and colon because it is often not accepted in folder names
             ch_name_path = re.sub(r"[:/]", "_", ch_name_path)
-            
+
             file_output_dir = os.path.join(self.config.output_dir, relative_path, self.config.output_format, ch_name_path)
             
             # Generate safe file and folder name
