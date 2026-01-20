@@ -5,7 +5,7 @@ EDF file handler for PSG data processing.
 import pyedflib
 
 
-class EDFHandler():
+class EDFHandler:
     """Handler for EDF files."""
 
     def get_channels(self, logger, filepath):
@@ -14,11 +14,13 @@ class EDFHandler():
             with pyedflib.EdfReader(filepath) as psg_f:
                 labels = psg_f.getSignalLabels()
                 # freqs = psg_f.getSampleFrequencies()
-                # return labels, freqs 
+                # return labels, freqs
                 return labels
         except Exception as e:
             logger.error(f"Error processing EDF file: {e}")
-            logger.error("Maybe the repair_edfs.py script or EDF Browser header repairer can help.")
+            logger.error(
+                "Maybe the repair_edfs.py script or EDF Browser header repairer can help."
+            )
             raise
 
     def read_signal(self, logger, filepath, channel):
@@ -57,7 +59,7 @@ class EDFHandler():
 
             sampling_rate = ch_freq[select_ch_idx]
             signal = psg_f.readSignal(select_ch_idx)
-            
+
             unit = psg_f.getPhysicalDimension(select_ch_idx)
 
             psg_f.close()
@@ -71,5 +73,7 @@ class EDFHandler():
             }
         except Exception as e:
             logger.error(f"Error processing EDF file: {e}")
-            logger.error("Maybe the repair_edfs.py script or EDF Browser header repairer can help.")
+            logger.error(
+                "Maybe the repair_edfs.py script or EDF Browser header repairer can help."
+            )
             raise

@@ -8,7 +8,7 @@ import wfdb
 from datetime import datetime, date
 
 
-class WFDBHandler():
+class WFDBHandler:
     """Handler for WFDB files."""
 
     def get_channels(self, logger, filepath):
@@ -20,7 +20,7 @@ class WFDBHandler():
             # for ch_name in record.sig_name:
             #     _, fields = wfdb.rdsamp(psg_fname_no_ext, channel_names=[ch_name])
             #     freqs.append(fields["fs"])
-            return record.sig_name #, freqs
+            return record.sig_name  # , freqs
         except Exception as e:
             logger.error(f"Error reading WFDB file {filepath}: {e}")
             return []
@@ -49,13 +49,13 @@ class WFDBHandler():
             if channel not in signal_labels:
                 logger.info(f"Channel {channel} not found")
                 return None
-            
+
             if record.base_datetime:
                 start_datetime = record.base_datetime
             elif record.base_date and record.base_time:
-                start_datetime = datetime.combine(record.base_date,record.base_time)
+                start_datetime = datetime.combine(record.base_date, record.base_time)
             elif record.base_time:
-                start_datetime = datetime.combine(date(1985,1,1),record.base_time)
+                start_datetime = datetime.combine(date(1985, 1, 1), record.base_time)
             else:
                 start_datetime = None
 

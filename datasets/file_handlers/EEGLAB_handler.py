@@ -5,7 +5,7 @@ mat file handler for PSG data processing.
 from mne.io import read_raw_eeglab
 
 
-class EEGLABHandler():
+class EEGLABHandler:
     """Handler for eeglab .set files."""
 
     def get_channels(self, logger, filepath):
@@ -43,11 +43,11 @@ class EEGLABHandler():
             assert samples == len(signal)
             logger.info(f"Select channel samples: {samples}")
 
-            sampling_rate = raw_data.info['sfreq']
+            sampling_rate = raw_data.info["sfreq"]
             file_duration = samples / sampling_rate
             assert file_duration == raw_data.duration
 
-            start_datetime = raw_data.info['meas_date']
+            start_datetime = raw_data.info["meas_date"]
             return {
                 "signal": signal,
                 "sampling_rate": sampling_rate,
