@@ -29,7 +29,7 @@ class SignalProcessor:
         self.logger = logger
         self.signal_min = None
         self.signal_max = None
-        self.filter_freq = filter_freq   
+        self.filter_freq = filter_freq
 
     def get_filt_freq(
         self, ch_name: str, channel_groups: Dict[str, List[str]]
@@ -51,9 +51,7 @@ class SignalProcessor:
         # If channel not found in any group, return default (no filtering)
         return self.filter_freq["default"]
 
-    def resample_signal(
-        self, signal, ch_type, sampling_rate, resample_freq
-    ):
+    def resample_signal(self, signal, ch_type, sampling_rate, resample_freq):
         """
         Resample signal based on channel type and parameters.
 
@@ -67,9 +65,10 @@ class SignalProcessor:
             tuple: (processed_signal, final_sampling_rate)
         """
         self.logger.info(f"Sample rate before: {sampling_rate}")
-        
+
         # Store clipping threshold
-        self.signal_min, self.signal_max = np.min(signal)-np.mean(signal), np.max(signal)-np.mean(signal)
+        self.signal_min = np.min(signal) - np.mean(signal)
+        self.signal_max =np.max(signal) - np.mean(signal)
 
         # if fs not already desired resample fs -> resample
         if resample_freq != sampling_rate:
@@ -126,7 +125,7 @@ class SignalProcessor:
         )
 
         return signal_resampled
-    
+
     def filter_signal(self, signal, fs, select_ch, channel_groups, ch_type):
         """
         Filter signal based on channel type and parameters.
@@ -144,7 +143,8 @@ class SignalProcessor:
 
         # Store clipping threshold if no resampling has been done yet
         if self.signal_max is None or self.signal_min is None:
-            self.signal_min, self.signal_max = np.min(signal)-np.mean(signal), np.max(signal)-np.mean(signal)
+            self.signal_min = np.min(signal) - np.mean(signal)
+            self.signal_max = np.max(signal) - np.mean(signal)
 
         [low, high] = self.get_filt_freq(select_ch, channel_groups)
 
@@ -162,18 +162,18 @@ class SignalProcessor:
                     f"High cutoff frequency {high} Hz is >= Nyquist frequency {fs/2} Hz. Skipping highpass filter."
                 )
                 high = None  # Avoid invalid high cutoff frequency
-                
+
             self.logger.info(
                 f"Filter signal with low: {low} Hz and high: {high} Hz bandpass"
             )
-            
+
             signal = filter_data(
                 signal,
                 fs,
                 low,
                 high,
                 method="fir",
-                n_jobs='cuda' if cupy.cuda.is_available() else -1,
+                n_jobs="cuda" if cupy.cuda.is_available() else -1,
                 verbose="WARNING",
             )
             # Final clipping to original signal range if highpass filter was applied

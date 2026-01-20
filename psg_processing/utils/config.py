@@ -12,6 +12,7 @@ from .alignment import Alignment
 @dataclass
 class ProcessorConfig:
     """Configuration dataclass for dataset processing."""
+
     dataset: str
     base_data_dir: str
     data_dir: Path
@@ -38,23 +39,23 @@ class ProcessorConfig:
 def load_config_file(config_file_path: str) -> dict:
     """
     Load configuration from a YAML file.
-    
+
     Args:
         config_file_path: Path to the YAML configuration file
-        
+
     Returns:
         Dictionary containing configuration parameters
-        
+
     Raises:
         ValueError: If file doesn't exist or contains invalid YAML
     """
     file_path = Path(config_file_path)
-    
+
     if not file_path.exists():
         raise ValueError(f"Configuration file not found: {config_file_path}")
-    
+
     try:
-        with open(config_file_path, 'r') as f:
+        with open(config_file_path, "r") as f:
             config = yaml.safe_load(f)
         print(f"Loaded configuration from: {config_file_path}")
         return config

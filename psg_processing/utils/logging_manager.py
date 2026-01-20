@@ -6,6 +6,7 @@ import os
 import logging
 import glob
 
+
 class LoggingManager:
     """
     A class to manage all logging operations for PSG dataset processing.
@@ -19,7 +20,7 @@ class LoggingManager:
         self.format = format or "%(asctime)s - %(levelname)s - %(message)s"
         self.date_format = date_format or "%Y-%m-%d %H:%M:%S"
 
-    def cleanup_file_handlers(self,logger):
+    def cleanup_file_handlers(self, logger):
         """
         Remove all file handlers from logger while keeping console handlers.
         This prevents file handle leaks while preserving console output.
@@ -29,7 +30,7 @@ class LoggingManager:
                 handler.close()  # Properly close the file handle
                 logger.removeHandler(handler)
 
-    def setup_file_logging(self,logger, output_dir, log_filename):
+    def setup_file_logging(self, logger, output_dir, log_filename):
         """
         Set up or update the file handler for logging.
         Keeps the console handler unchanged.
@@ -49,9 +50,7 @@ class LoggingManager:
         # Add new file handler
         file_handler = logging.FileHandler(log_file_path)
 
-        formatter = logging.Formatter(
-            self.format, datefmt=self.date_format
-        )
+        formatter = logging.Formatter(self.format, datefmt=self.date_format)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
@@ -70,11 +69,10 @@ class LoggingManager:
 
         # delete all exisiting log_files in output folder if overwrite True
         if overwrite and dir_name:
-            log_files = glob.glob(os.path.join(dir_name, '**','*.log'), recursive=True
-            )
+            log_files = glob.glob(os.path.join(dir_name, "**", "*.log"), recursive=True)
             for f in log_files:
                 os.remove(f)
-            
+
         logger = logging.getLogger()
 
         # Avoid adding handlers multiple times
@@ -84,9 +82,7 @@ class LoggingManager:
         logger.setLevel(self.level)
 
         # Create detailed formatter
-        formatter = logging.Formatter(
-            fmt=self.format, datefmt=self.date_format
-        )
+        formatter = logging.Formatter(fmt=self.format, datefmt=self.date_format)
 
         # Console handler
         console_handler = logging.StreamHandler()

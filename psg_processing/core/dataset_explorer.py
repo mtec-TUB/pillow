@@ -79,7 +79,9 @@ class Dataset_Explorer:
         # Discover annotation files
         if not os.path.exists(self.ann_dir):
             self.logger.error(f"Annotation directory does not exist: {self.ann_dir}")
-            raise FileNotFoundError(f"Annotation directory does not exist {self.ann_dir}")
+            raise FileNotFoundError(
+                f"Annotation directory does not exist {self.ann_dir}"
+            )
 
         self.logger.info(
             f"Searching for annotation files: {os.path.join(self.ann_dir, self.ann_ext)}"
@@ -134,7 +136,7 @@ class Dataset_Explorer:
 
         # Use tqdm for clean progress bar
         for psg_fname in tqdm(self.psg_fnames, desc="Processing files", unit="file"):
-            channels = self.dataset.get_channels(self.logger,psg_fname)
+            channels = self.dataset.get_channels(self.logger, psg_fname)
             # for label, freq in zip(channels, freqs):
             #     self.ch_names.add((label, float(freq)))
             self.ch_names.update(channels)
@@ -156,18 +158,20 @@ class Dataset_Explorer:
         self.logger.info(
             f"Found {len(self.ch_names)} channels to analyze across {len(self.psg_fnames)} files"
         )
-        self.logger.info("TIP: Press Ctrl+C during any channel analysis to skip remaining files \
-                         and classify that channel as DIGITAL immediately.\n")
+        self.logger.info(
+            "TIP: Press Ctrl+C during any channel analysis to skip remaining files \
+                         and classify that channel as DIGITAL immediately.\n"
+        )
 
         channel_types = {"analog": [], "digital": []}
 
         # Main progress bar for channels
         channel_progress = tqdm(
-            self.ch_names, 
-            desc="Analyzing channels", 
+            self.ch_names,
+            desc="Analyzing channels",
             unit="channel",
             leave=True,
-            ncols=None
+            ncols=None,
         )
 
         for channel_idx, channel in enumerate(channel_progress):
@@ -195,7 +199,7 @@ class Dataset_Explorer:
                         f"{os.path.basename(psg_fname)[:25]}..."
                     )
 
-                    signal = self.dataset.read_signal(self.logger,psg_fname, channel)
+                    signal = self.dataset.read_signal(self.logger, psg_fname, channel)
 
                     if signal is None:
                         continue  # Channel not found in this file
@@ -206,7 +210,9 @@ class Dataset_Explorer:
                         # If any file shows analog signal, classify as analog
                         file_progress.close()
                         channel_types["analog"].append(channel)
-                        channel_progress.set_postfix_str(f"ANALOG ({files_checked} files)")
+                        channel_progress.set_postfix_str(
+                            f"ANALOG ({files_checked} files)"
+                        )
                         is_analog_found = True
                         break
 
@@ -240,15 +246,15 @@ class Dataset_Explorer:
                             "Analysis stopped by user. Returning partial results..."
                         )
                         break
-                    
+
                     # Restart the progress bar
-                    remaining_channels = list(self.ch_names)[channel_idx+1:]
+                    remaining_channels = list(self.ch_names)[channel_idx + 1 :]
                     channel_progress = tqdm(
                         remaining_channels,
                         desc="Analyzing channels",
-                        unit="channel", 
+                        unit="channel",
                         leave=True,
-                        ncols=None
+                        ncols=None,
                     )
                     self.logger.info("Continuing with analysis...\n")
                 except KeyboardInterrupt:
@@ -256,7 +262,7 @@ class Dataset_Explorer:
                     break
 
         # Close the main progress bar
-        if 'channel_progress' in locals():
+        if "channel_progress" in locals():
             channel_progress.close()
 
         # Print final summary
