@@ -270,18 +270,6 @@ class DatasetProcessor:
     ):
         """Setup output directory and filename for a channel."""
 
-        # Handle channel name aliasing
-        ch_name_path = channel
-        if self.dataset.alias_mapping:
-            alias_checking = [
-                key for key, aliases in self.dataset.alias_mapping.items() if channel in aliases
-            ]
-            if alias_checking:
-                ch_name_path = alias_checking[0]
-
-        # replace slash in folder names to avoid nester output structure and colon because it is often not accepted in folder names
-        ch_name_path = re.sub(r"[:/]", "_", ch_name_path)
-
         # Create output directory
         if self.dataset.keep_folder_structure:
             relative_path = os.path.split(Path(psg_fname).relative_to(self.config.data_dir))[0]
@@ -289,6 +277,18 @@ class DatasetProcessor:
             relative_path = ""
 
         if self.config.output_format == "npz":
+            # Handle channel name aliasing
+            ch_name_path = channel
+            if self.dataset.alias_mapping:
+                alias_checking = [
+                    key for key, aliases in self.dataset.alias_mapping.items() if channel in aliases
+                ]
+                if alias_checking:
+                    ch_name_path = alias_checking[0]
+
+            # replace slash in folder names to avoid nester output structure and colon because it is often not accepted in folder names
+            ch_name_path = re.sub(r"[:/]", "_", ch_name_path)
+            
             file_output_dir = os.path.join(self.config.output_dir, relative_path, self.config.output_format, ch_name_path)
             
             # Generate safe file and folder name
@@ -559,7 +559,12 @@ class DatasetProcessor:
                 for signal_data in all_signal_data:
                     signal = signal_data["signal"].flatten()
 
-                    ch_grp = grp_signals.create_group(signal_data["ch_name"])
+                    # if channel_name came from h5 originally, keep only the last part after slash
+                    if "/" in signal_data["ch_name"]:
+                        group_name = signal_data["ch_name"].split("/")[-1]
+                    else:
+                        group_name = signal_data["ch_name"]
+                    ch_grp = grp_signals.create_group(group_name)
 
                     ch_grp.create_dataset(
                         "data",
