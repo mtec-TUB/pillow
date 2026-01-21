@@ -6,9 +6,10 @@ import logging
 import numpy as np
 import xml.etree.ElementTree as ET
 from datetime import datetime
+from enum import Enum, auto
 
 from psg_processing.utils import Alignment
-from datasets.file_handlers import EDFHandler
+from .file_handlers import EDFHandler
 
 class BaseDataset(ABC):
     """
@@ -25,10 +26,11 @@ class BaseDataset(ABC):
 
         # Dataset-specific configurations - to be set by subclasses
         self.ann2label = {}
-        self.alias_mapping = {}
+        self.intra_dataset_mapping = {}
         self.channel_names = []
         self.channel_types = {}
         self.channel_groups = {}
+        self.inter_dataset_mapping = {}
         self.file_extensions = {}
 
         # Call setup method that subclasses must implement
@@ -60,9 +62,10 @@ class BaseDataset(ABC):
         - self.ann2label: Dict[str, int]
         - self.channel_names: List[str]
         - self.channel_types: Dict[str, List[str]]
+        - self.inter_dataset_mapping: Dict[str, Mapping]
         - self.file_extensions: Dict[str, str]
         - self.channel_groups: Dict[str, List[str]]
-        - self.alias_mapping: Dict[str, List[str]] (optional)
+        - self.intra_dataset_mapping: Dict[str, List[str]] (optional)
         """
         pass
 
@@ -78,6 +81,151 @@ class BaseDataset(ABC):
         data_dir = os.path.join(self.dataset_name, "polysomnography", "edfs")
         ann_dir = os.path.join(self.dataset_name, "polysomnography", "annotations-events-nsrr")
         return data_dir, ann_dir
+    
+    def map_channel(self, channel):
+        """
+        Harmonize channel name using intra- and inter-dataset mappings.
+        Intra-dataset mapping maps channel names within the same dataset to a common name (e.g., 'ECG R' and 'ECGR' both map to 'ECGR').
+        Inter-dataset mapping maps common names to a harmonized naming convention across datasets.
+        """
+
+        harm_channel = channel
+
+        # Intra-dataset channel name harmonization
+        if self.intra_dataset_mapping:
+            for key, aliases in self.intra_dataset_mapping.items():
+                if channel in aliases:
+                    harm_channel = key
+                    break
+
+        # Inter-dataset channel name harmonization
+        mapping = self.inter_dataset_mapping
+        if harm_channel in mapping:
+            chnl = mapping[harm_channel] # change name to harmonized one
+            harm_channel = chnl.get_mapping()      
+        
+        return harm_channel
+    
+    class Mapping:
+        def __init__(self, ref1, ref2):
+            self.ref1 = ref1
+            self.ref2 = ref2
+        
+        def __eq__(self, other):
+            return (self.ref1, self.ref2) == (other.ref1, other.ref2)
+        
+        def get_mapping(self):
+            return f"{self.ref1}-{self.ref2}" if self.ref2 is not None else f"{self.ref1}"
+        
+    class TTRef(Enum):        
+        # 10-10 EEG system for scalp PSG
+
+        """
+        "MCN system renames four electrodes of the 10–20 system:
+        T3 is now T7
+        T4 is now T8
+        T5 is now P7
+        T6 is now P8"
+        
+        Source: https://en.wikipedia.org/wiki/10%E2%80%9320_system_(EEG)
+        """
+        
+        Nz = auto()
+        Fpz = auto()
+        Fp1 = auto()
+        Fp2 = auto()
+        AF7 = auto()
+        AF3 = auto()
+        AFz = auto()
+        AF4 = auto()
+        AF8 = auto()
+        F9 = auto()
+        F7 = auto()
+        F5 = auto()
+        F3 = auto()
+        F1 = auto()
+        Fz = auto()
+        F2 = auto()
+        F4 = auto()
+        F6 = auto()
+        F8 = auto()
+        F10 = auto()
+        FT9 = auto()
+        FT7 = auto()
+        FC5 = auto()
+        FC3 = auto()
+        FC1 = auto()
+        FCz = auto()
+        FC2 = auto()
+        FC4 = auto()
+        FC6 = auto()
+        FT8 = auto()
+        FT10 = auto()
+        T7 = auto() # Same as T3 in 10-20 system
+        C5 = auto()
+        C3 = auto()
+        C1 = auto()
+        Cz = auto()
+        C2 = auto()
+        C4 = auto()
+        C6 = auto()
+        T8 = auto() # Same as T4 in 10-20 system
+        TP9 = auto()
+        TP7 = auto()
+        CP5 = auto()
+        CP3 = auto()
+        CP1 = auto()
+        CPz = auto()
+        CP2 = auto()
+        CP4 = auto()
+        CP6 = auto()
+        TP8 = auto()
+        TP10 = auto()
+        P9 = auto()
+        P7 = auto() # Same as T5 in 10-20 system
+        P5 = auto()
+        P3 = auto()
+        P1 = auto()
+        Pz = auto()
+        P2 = auto()
+        P4 = auto()
+        P6 = auto()
+        P8 = auto() # Same as T6 in 10-20 system
+        P10 = auto()
+        PO7 = auto()
+        PO3 = auto()
+        POz = auto()
+        PO4 = auto()
+        PO8 = auto()
+        O1 = auto()
+        Oz = auto()
+        O2 = auto()
+        Iz = auto()
+        LPA = auto() # Same as A1 in 10-20 system
+        RPA = auto() # Same as A2 in 10-20 system
+        
+        EL = auto()
+        ER = auto()
+        
+        # Computed linked Ear and Linked Ear Reference. May be rare, and so far is only in MASS. Can only find this article describing it: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5479869/
+        CLE = auto()
+        LER = auto()
+
+        # Other PSG Channels
+        ECG = auto()
+        EMG_CHIN = auto()
+        EMG_LLEG = auto()
+        EMG_RLEG = auto()
+        AIRFLOW = auto()
+        THORACIC = auto()
+        ABDOMINAL = auto()
+        SPO2 = auto()
+        CPAP = auto()
+        SNORE = auto()
+        POSITION = auto()
+        
+        def __str__(self):
+            return self.name
 
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
