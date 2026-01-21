@@ -46,10 +46,6 @@ class WFDBHandler:
             record = wfdb.rdheader(psg_fname)
             signal_labels = record.sig_name
 
-            if channel not in signal_labels:
-                logger.info(f"Channel {channel} not found")
-                return None
-
             if record.base_datetime:
                 start_datetime = record.base_datetime
             elif record.base_date and record.base_time:
@@ -58,8 +54,6 @@ class WFDBHandler:
                 start_datetime = datetime.combine(date(1985, 1, 1), record.base_time)
             else:
                 start_datetime = None
-
-            logger.info(f"Channel selected: {channel}")
 
             records, fields = wfdb.rdsamp(psg_fname, channel_names=[channel])
             select_ch_idx = fields["sig_name"].index(channel)

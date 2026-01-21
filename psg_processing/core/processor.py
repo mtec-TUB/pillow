@@ -155,6 +155,8 @@ class DatasetProcessor:
     ):
         """Process a single channel from a single file."""
 
+        self.logger.info(f"Channel selected: {channel}")
+
         # Setup channel processing environment
         file_output_dir, file_output_path = self._setup_output(
             channel,
@@ -167,7 +169,8 @@ class DatasetProcessor:
 
         # Setup logging
         if self.config.output_format == "npz":
-            log_filename = channel + ".log"
+            ch_name_path = re.sub(r"[:/]", "_", channel)
+            log_filename = ch_name_path + ".log"
         elif self.config.output_format in ["edf", "hdf5"]:
             log_filename = os.path.splitext(os.path.basename(psg_fname))[0] + ".log"
         self.logging_manager.setup_file_logging(
@@ -185,9 +188,6 @@ class DatasetProcessor:
 
         # Extract and process signal
         signal_data = self.dataset.get_signal_data(self.logger, psg_fname, channel)
-
-        if signal_data is None:
-            return True, None, None
 
         self.logger.info(
             f"File duration: {signal_data['file_duration']} sec, {signal_data['file_duration']/3600:.2f} h"

@@ -32,12 +32,6 @@ class EEGLABHandler:
         try:
             raw_data = read_raw_eeglab(filepath, verbose=False, preload=True)
 
-            if channel not in raw_data.ch_names:
-                self.logger.info(f"Channel {channel} not found")
-                return None
-
-            logger.info(f"Channel selected: {channel}")
-
             signal = raw_data.get_data(picks=channel)[0]
             samples = raw_data.n_times
             assert samples == len(signal)

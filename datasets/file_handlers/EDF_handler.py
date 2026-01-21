@@ -42,13 +42,8 @@ class EDFHandler:
             psg_f = pyedflib.EdfReader(filepath)
 
             ch_names = psg_f.getSignalLabels()
-            if channel not in ch_names:
-                self.logger.info(f"Channel {channel} not found")
-                psg_f.close()
-                return None
 
             select_ch_idx = ch_names.index(channel)
-            logger.info(f"Channel selected: {channel}")
 
             start_datetime = psg_f.getStartdatetime()
             file_duration = psg_f.getFileDuration()

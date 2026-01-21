@@ -18,7 +18,7 @@ class DOD_H5Handler:
                     if isinstance(obj, h5py.Dataset):
                         channel_names.append(name)
 
-                f.visititems(visitor)
+                f["signals"].visititems(visitor)    # only get channels in signals subfolder
             return channel_names
         except Exception as e:
             logger.error(f"Error reading H5 file {filepath}: {e}")
@@ -28,10 +28,10 @@ class DOD_H5Handler:
         """Read signal from H5 file for specific channel."""
         try:
             with h5py.File(filepath, "r") as f:
-                if channel not in f:
+                if channel not in f["signals"]:
                     return None
 
-                signal = f[channel][:]
+                signal = f["signals"][channel][:]
                 return signal
         except Exception as e:
             logger.error(f"Error reading H5 signal from {filepath}: {e}")
@@ -40,7 +40,7 @@ class DOD_H5Handler:
         """Get complete H5 signal information for processing."""
         try:
             with h5py.File(filepath, "r") as f:
-                dataset = f[channel]
+                dataset = f["signals"][channel]
                 signal = dataset[:]
                 logger.info(f"Channel selected: {channel}")
                 logger.info(f"Select channel samples: {len(signal)}")
