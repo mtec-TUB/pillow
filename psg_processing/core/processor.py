@@ -134,11 +134,11 @@ class DatasetProcessor:
                 ann_stage_events,
                 ann_Startdatetime,
             )
-            if (
-                not ret
-            ):  # marks that other channels of this file don't have to be processed
+            if not ret:  
+                # marks that other channels of this file don't have to be processed
                 break
             if signal_data is not None:
+                # edf or h5 output
                 all_signal_data.append(signal_data)
 
         # Save multi-channel data if edf or hdf5 output specified (npz already saved per channel)
@@ -371,9 +371,9 @@ class DatasetProcessor:
         n_epochs = int(len(signal) // n_epoch_samples)
         if n_epochs < 1:
             self.logger.info(
-                f"File does not hold at least one epoch, only {len(signal)} samples"
+                f"Channel does not hold at least one epoch, only {len(signal)} samples"
             )
-            return None, True
+            return None, True   # mark that other channels can still be processed
 
         signal_processor = SignalProcessor(self.logger, self.config.filter_freq)
 
@@ -428,7 +428,7 @@ class DatasetProcessor:
             # Clean signal data based on annotations
             signal_epoched, labels = self._clean_signal(signal_epoched, labels)
 
-        if signal_epoched is None:
+        if signal_epoched is None:  # Marker that not enough sleep epochs detected -> all other channels in this file can be skipped aswell
             return None, False
 
         signal_epoched, labels = signal_epoched.astype(np.float64), labels.astype(
@@ -483,7 +483,7 @@ class DatasetProcessor:
             self.logger.warning(
                 "File contains less sleep epochs than required. Skipping"
             )
-            return None, None, None
+            return None, None
 
         if self.config.n_wake_epochs == "all":
             start_idx = 0
