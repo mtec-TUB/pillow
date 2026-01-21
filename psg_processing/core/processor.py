@@ -74,6 +74,8 @@ class DatasetProcessor:
                             f"{Path(psg_fname).relative_to(self.data_dir)}. Skipping file."
                         )
                         continue
+                else:
+                    ann_fnames = None
                 self._process_single_file(
                     psg_fname, ann_fname if ann_fnames is not None else None
                 )
@@ -98,7 +100,7 @@ class DatasetProcessor:
             ann_base = str(Path(ann_fnames[i]).relative_to(self.config.ann_dir))
             psg_id, ann_id = self.dataset.get_file_identifier(
                 psg_base, ann_base
-            )  # adapt as needed
+            )
 
             if psg_id == ann_id:
                 return ann_fnames[i], i + 1  # move annotation pointer past this match
@@ -123,6 +125,8 @@ class DatasetProcessor:
             set(self.dataset.channel_names)
             & set(self.dataset.get_channels(self.logger, psg_fname))
         )
+        if len(channels)==0:
+            self.logger.info("No selected channels found in this file. Skipping.")
 
         # Sequential per-channel processing
         all_signal_data = []
@@ -158,21 +162,26 @@ class DatasetProcessor:
         self.logger.info(f"Channel selected: {channel}")
 
         # Setup channel processing environment
-        file_output_dir, file_output_path = self._setup_output(
+        file_output_dir, file_output_path, uni_channel = self._setup_output(
             channel,
             psg_fname,
         )
 
         # Skip if file already exists and overwrite is False
         if not self.config.overwrite and self._output_file_exists(file_output_path):
+            print(f"Same file id exists already.")
+            raise Exception
             return True, None, None
 
         # Setup logging
         if self.config.output_format == "npz":
-            ch_name_path = re.sub(r"[:/]", "_", channel)
+            # use channel name as logfilename because output is sorted into channel folders
+            ch_name_path = re.sub(r"[:/]", "_", uni_channel)
             log_filename = ch_name_path + ".log"
         elif self.config.output_format in ["edf", "hdf5"]:
+            # use psg filename as logfilename because output is per psg file
             log_filename = os.path.splitext(os.path.basename(psg_fname))[0] + ".log"
+
         self.logging_manager.setup_file_logging(
             self.logger, file_output_dir, log_filename
         )
@@ -186,20 +195,20 @@ class DatasetProcessor:
                 f"Annotation file: {Path(ann_fname).relative_to(self.config.ann_dir)}"
             )
 
-        # Extract and process signal
+        # Extract signal from psg file
         signal_data = self.dataset.get_signal_data(self.logger, psg_fname, channel)
 
         self.logger.info(
             f"File duration: {signal_data['file_duration']} sec, {signal_data['file_duration']/3600:.2f} h"
         )
 
-        # Add more information to signal_data annotations
+        # Add more information to signal_data (previously loaded annotations, filenames, channel name)
         signal_data["ann_stage_events"] = ann_stage_events
         signal_data["psg_fname"] = psg_fname
         signal_data["ann_fname"] = ann_fname
-        signal_data["ch_name"] = channel
+        signal_data["ch_name"] = uni_channel
 
-        # Handle start datetime (take time from annotation file)
+        # Take start datetime from annotation file if psg file has none
         if signal_data["start_datetime"] is None:
             signal_data["start_datetime"] = ann_Startdatetime
 
@@ -223,7 +232,7 @@ class DatasetProcessor:
                 print(
                     f"Start of signal: {signal_data['start_datetime']} \nStart of labels: {ann_Startdatetime}"
                 )
-                # Shorten signal if annotations start later or align front to first common epoch if annotations start before
+                # Align the start of signals and labels based on configuration
                 signal, ann_stage_events = self.dataset.align_front(
                     self.logger,
                     self.config.alignment,
@@ -243,10 +252,11 @@ class DatasetProcessor:
             signal_data["labels"] = self.dataset.ann_label(
                 self.logger, signal_data["ann_stage_events"], self.config.epoch_duration
             )
+        else:
+            signal_data["labels"] = None
 
         # Process the signal (resample, filter, clean)
         ch_type = self._get_channel_type(channel)
-
         processed_data, continue_processing = self._process_signal_data(
             signal_data, ch_type
         )
@@ -256,7 +266,7 @@ class DatasetProcessor:
         if processed_data is None:
             return True, None, None
 
-        # replace signal, labels and sampling_rate after the processing
+        # update signal, labels and sampling_rate after the processing
         for key in processed_data:
             signal_data[key] = processed_data[key]
 
@@ -270,14 +280,6 @@ class DatasetProcessor:
         elif self.config.output_format in ["edf", "hdf5"]:
             return True, signal_data, file_output_path
 
-    def _get_channel_type(self, channel):
-        """Get the type (analog/digital) for a specific channel."""
-        for ch_type, channels in self.dataset.channel_types.items():
-            if channel in channels:
-                return ch_type
-
-        raise Exception(f"channel {channel} not listed in channel_types")
-
     def _setup_output(self, channel, psg_fname):
         """Setup output directory and filename for a channel."""
 
@@ -289,20 +291,22 @@ class DatasetProcessor:
         else:
             relative_path = ""
 
+        # Channel name harmonization
+        if self.config.map_channel_names:       
+            ch_name = self.dataset.map_channel(channel)
+            self.logger.info(f"Mapped channel name {channel} to {ch_name}")
+
+        # Generate safe file and folder name
+        base_filename = (
+            os.path.splitext(os.path.basename(psg_fname))[0]
+            + "."
+            + self.config.output_format
+        )
+
         if self.config.output_format == "npz":
-            # Handle channel name aliasing
-            ch_name_path = channel
-            if self.dataset.alias_mapping:
-                alias_checking = [
-                    key
-                    for key, aliases in self.dataset.alias_mapping.items()
-                    if channel in aliases
-                ]
-                if alias_checking:
-                    ch_name_path = alias_checking[0]
 
             # replace slash in folder names to avoid nester output structure and colon because it is often not accepted in folder names
-            ch_name_path = re.sub(r"[:/]", "_", ch_name_path)
+            ch_name_path = re.sub(r"[:/]", "_", ch_name)
 
             file_output_dir = os.path.join(
                 self.config.output_dir,
@@ -311,34 +315,23 @@ class DatasetProcessor:
                 ch_name_path,
             )
 
-            # Generate safe file and folder name
-            base_filename = (
-                os.path.splitext(os.path.basename(psg_fname))[0]
-                + "."
-                + self.config.output_format
-            )
             ch_name_safe = re.sub(r"[^a-zA-Z0-9._\-\s]", "_", channel)
-            filename = f"{ch_name_safe}_{base_filename}"
+            # filename = f"{ch_name_safe}_{base_filename}"
 
-            file_output_path = os.path.join(file_output_dir, filename)
+            file_output_path = os.path.join(file_output_dir, base_filename)
 
         elif self.config.output_format in ["edf", "hdf5"]:
             file_output_dir = os.path.join(
                 self.config.output_dir, relative_path, self.config.output_format
             )
-            # Generate safe file and folder name
-            filename = (
-                os.path.splitext(os.path.basename(psg_fname))[0]
-                + "."
-                + self.config.output_format
-            )
-            file_output_path = os.path.join(file_output_dir, filename)
+
+            file_output_path = os.path.join(file_output_dir, base_filename)
 
             file_output_dir = os.path.join(file_output_dir, "log_files")
 
         os.makedirs(file_output_dir, exist_ok=True)
 
-        return file_output_dir, file_output_path
+        return file_output_dir, file_output_path, ch_name
 
     def _output_file_exists(self, file_output_path):
         """Check if output file already exists."""
@@ -346,6 +339,14 @@ class DatasetProcessor:
             print(f"File already exists: {file_output_path}")
             return True
         return False
+    
+    def _get_channel_type(self, channel):
+        """Get the type (analog/digital) for a specific channel."""
+        for ch_type, channels in self.dataset.channel_types.items():
+            if channel in channels:
+                return ch_type
+
+        raise Exception(f"channel {channel} not listed in channel_types")
 
     def _process_signal_data(
         self,
@@ -431,9 +432,8 @@ class DatasetProcessor:
         if signal_epoched is None:  # Marker that not enough sleep epochs detected -> all other channels in this file can be skipped aswell
             return None, False
 
-        signal_epoched, labels = signal_epoched.astype(np.float64), labels.astype(
-            np.int32
-        )
+        signal_epoched = signal_epoched.astype(np.float64)
+        labels = labels.astype(np.int32) if labels is not None else None
 
         return {
             "signal": signal_epoched,
@@ -526,17 +526,18 @@ class DatasetProcessor:
                 "n_epochs": len(signal_data["signal"]),  # after cleaning
             }
 
-            # Handle multiple scorers
-            labels = signal_data["labels"]
-            if labels.ndim == 1:
-                save_dict["y"] = labels
-            elif labels.ndim == 2:
-                save_dict["y"] = labels[:, 0]
-                save_dict["y2"] = labels[:, 1]
+            # Write Annotations
+            if self.config.use_annot:
+                # Handle multiple scorers
+                labels = signal_data["labels"]
+                if labels.ndim == 1:
+                    save_dict["y"] = labels
+                elif labels.ndim == 2:
+                    save_dict["y"] = labels[:, 0]
+                    save_dict["y2"] = labels[:, 1]
 
-            # Include unit if existing
-            if "unit" in signal_data:
-                save_dict["unit"] = signal_data["unit"]
+            # Write unit
+            save_dict["unit"] = signal_data["unit"] if "unit" in signal_data else "a.u."
 
             np.savez(file_output_path, **save_dict)
 
@@ -586,18 +587,19 @@ class DatasetProcessor:
                 edf_writer.writeSamples(all_signals)
 
                 # Write annotations
-                all_labels = np.array(
-                    [signal_data["labels"] for signal_data in all_signal_data]
-                )  # to check if they all have the same dimension
-                duration = self.config.epoch_duration
-                for epoch_idx, label in enumerate(
-                    all_labels[0]
-                ):  # annotations are the same for all channels, take first one
-                    edf_writer.writeAnnotation(
-                        onset_in_seconds=epoch_idx * duration,
-                        duration_in_seconds=duration,
-                        description=str(label),
-                    )
+                if self.config.use_annot:
+                    all_labels = np.array(
+                        [signal_data["labels"] for signal_data in all_signal_data]
+                    )  # to check if they all have the same dimension
+                    duration = self.config.epoch_duration
+                    for epoch_idx, label in enumerate(
+                        all_labels[0]
+                    ):  # annotations are the same for all channels, take first one
+                        edf_writer.writeAnnotation(
+                            onset_in_seconds=epoch_idx * duration,
+                            duration_in_seconds=duration,
+                            description=str(label),
+                        )
 
         elif self.config.output_format == "hdf5":
             all_signal_data = signal_data
@@ -632,13 +634,14 @@ class DatasetProcessor:
                     ch_grp.attrs["sampling_rate"] = signal_data["sampling_rate"]
 
                 # Annotations
-                labels = np.asarray(
-                    all_signal_data[0]["labels"]
-                )  # annotations are the same for all channels, take first one
-                if labels.ndim == 1:
-                    h5f.create_dataset("y", data=labels, compression="gzip")
-                elif labels.ndim == 2:
-                    h5f.create_dataset("y", data=labels[:, 0], compression="gzip")
-                    h5f.create_dataset("y2", data=labels[:, 1], compression="gzip")
+                if self.config.use_annot:
+                    labels = np.asarray(
+                        all_signal_data[0]["labels"]
+                    )  # annotations are the same for all channels, take first one
+                    if labels.ndim == 1:
+                        h5f.create_dataset("y", data=labels, compression="gzip")
+                    elif labels.ndim == 2:
+                        h5f.create_dataset("y", data=labels[:, 0], compression="gzip")
+                        h5f.create_dataset("y2", data=labels[:, 1], compression="gzip")
 
         self.logger.info(f"Successfully saved: {file_output_path}")
