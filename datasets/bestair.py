@@ -21,7 +21,7 @@ class BESTAIR(BaseDataset):
         }
         
         
-        self.alias_mapping = {
+        self.intra_dataset_mapping = {
             'abdomen': ['abdomen', 'Abdomen', 'ABDOMEN', 'Effort Abd', 'X21'],
             'activity': ['Activity'],
             'battery': ['Battery'],
@@ -29,18 +29,18 @@ class BESTAIR(BaseDataset):
             'C4_M1': ['C4-M1', 'EEG C4-M1', 'M1-C4'],
             'cchin': ['EMG Chin 1', 'X6'],
             'cchin_l': ['X6-X5'],
-            'chin': ['CHIN', 'EMG Chin', 'Chin'],
-            'lchin': ['CHIN2', 'CHIN 2', 'X5'],
+            'chin': ['CHIN', 'EMG Chin'],
+            'lchin': ['CHIN2', 'CHIN 2'],
             'rchin': ['EMG Chin 2', 'X7'],
             'rchin_c': ['X7-X6'],
             'dif_pres': ['Differential Pre'],
-            'E1': ['E1-M2', 'EOG Left', 'LOC', 'M1-X1', 'M1-PG2', 'X1'],
-            'E2': ['E2-M2', 'EOG Right', 'M2-X2', 'ROC', 'M2-PG1', 'X2'],
+            'E1': ['E1-M2', 'EOG Left', 'LOC', 'M1-X1', 'M1-PG2'],
+            'E2': ['E2-M2', 'EOG Right', 'M2-X2', 'ROC', 'M2-PG1'],
             'ECG': ['EKG', 'X15'],
             'elevation': ['Elevation'],
             'ex_pres': ['xPAP EPAP'],
-            'F3_M2': ['EEG F3-M2', 'F3-M2', 'M2-F3', 'M2-X3', 'X3'],
-            'F4_M1': ['EEG F4-M1', 'F4-M1', 'M1-F4', 'M1-X4', 'X4'],
+            'F3_M2': ['EEG F3-M2', 'F3-M2', 'M2-F3', 'M2-X3'],
+            'F4_M1': ['EEG F4-M1', 'F4-M1', 'M1-F4', 'M1-X4'],
             'flow': ['FLOW', 'Flow', 'Flow Patient2'],
             'gravx': ['Gravity X'],
             'gravy': ['Gravity Y'],

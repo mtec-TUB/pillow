@@ -40,7 +40,22 @@ class Physio2018(BaseDataset):
             'ecg': ['ECG'],
             'thoraco_abdo_resp': ['ABD', 'AIRFLOW', 'CHEST']
         }
-        
+
+        self.inter_dataset_mapping = {
+            "F3-M2": self.Mapping(self.TTRef.F3, self.TTRef.RPA), 
+            "F4-M1": self.Mapping(self.TTRef.F4, self.TTRef.LPA),
+            "C3-M2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            "C4-M1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            "O1-M2": self.Mapping(self.TTRef.O1, self.TTRef.RPA),
+            "O2-M1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
+            "E1-M2": self.Mapping(self.TTRef.EL, self.TTRef.RPA),
+            "ABD": self.Mapping(self.TTRef.ABDOMINAL, None),
+            "ECG": self.Mapping(self.TTRef.ECG, None),
+            "Chin1-Chin2": self.Mapping(self.TTRef.EMG_CHIN, None),
+            "CHEST": self.Mapping(self.TTRef.THORACIC, None),
+            "AIRFLOW": self.Mapping(self.TTRef.AIRFLOW, None),
+            "SaO2": self.Mapping(self.TTRef.SPO2, None),
+        }
         
         self.file_extensions = {
             'psg_ext': '**/*.hea',

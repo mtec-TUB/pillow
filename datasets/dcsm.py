@@ -35,8 +35,6 @@ class DCSM(BaseDataset):
             ],
             'digital': ['SPO2']
         }
-    
-        
         
         self.channel_groups = {
             'eeg_eog': ['E1-M2', 'E2-M2', 'F3-M2', 'F4-M1', 'C3-M2', 'C4-M1', 'O1-M2', 'O2-M1'],
@@ -46,7 +44,26 @@ class DCSM(BaseDataset):
             'nasal_pressure': ['NASAL'],
             'snoring': ['SNORE']
         }
-        
+
+        self.inter_dataset_mapping = {
+            "E1-M2": self.Mapping(self.TTRef.EL, self.TTRef.RPA),
+            "E2-M2": self.Mapping(self.TTRef.ER, self.TTRef.RPA),
+            "C3-M2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            "C4-M1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            "F3-M2": self.Mapping(self.TTRef.F3, self.TTRef.RPA),
+            "F4-M1": self.Mapping(self.TTRef.F4, self.TTRef.LPA),
+            "O1-M2": self.Mapping(self.TTRef.O1, self.TTRef.RPA),
+            "O2-M1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
+            "CHIN": self.Mapping(self.TTRef.EMG_CHIN, None),
+            "THORAX": self.Mapping(self.TTRef.THORACIC, None),
+            "ABDOMEN": self.Mapping(self.TTRef.ABDOMINAL, None),
+            "SNORE": self.Mapping(self.TTRef.SNORE, None),
+            "ECG-II": self.Mapping(self.TTRef.ECG, None),
+            "LAT": self.Mapping(self.TTRef.EMG_LLEG, None),
+            "RAT": self.Mapping(self.TTRef.EMG_RLEG, None),
+            "SPO2": self.Mapping(self.TTRef.SPO2, None),
+        }     
+
         self.file_extensions = {
             'psg_ext': '*_psg.edf',
             'ann_ext': '*_hypnogram.ids'

@@ -27,12 +27,12 @@ class APOE(BaseDataset):
                         }
         
         
-        self.alias_mapping = {'flow': ['Flow II', 'FLOW'],
-                            'thorax': ['CHEST #1', 'Chest', 'THOR'],
+        self.intra_dataset_mapping = {'flow': ['Flow II', 'FLOW'],
+                            'thorax': ['Chest', 'THOR'],
                             'LOC': ['LOC_A2', 'LOC/A2', 'L-EOG'],
                             'abdomen': ['ABDOM', 'Abdmn', 'Abdominal', 'Abdomen'],
                             'arm': ['arm', 'Arm', 'ARM', 'Arms'],
-                            'snore': ['Snore2', 'MIC', 'MIC1', 'MIC2', 'Snore'],
+                            'snore': ['Snore2', 'Snore'],
                             'chin': ['Chin-Ctr', 'Chin EMG'],
                             'lchin': ['Chin-L'],
                             'rchin': ['Chin-R'],

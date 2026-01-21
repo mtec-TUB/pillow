@@ -27,7 +27,7 @@ class MITBIH(BaseDataset):
                 "R": 4,
                 }
         
-        self.alias_mapping = {
+        self.intra_dataset_mapping = {
             "Resp (abdomen)": ["Resp (abdomen)","Resp (abdominal)"]
             }
         

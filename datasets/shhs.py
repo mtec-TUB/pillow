@@ -26,10 +26,9 @@ class SHHS(BaseDataset):
         }
         
         
-        self.alias_mapping = {'NewAirflow':['new air','NEW AIR','New AIR','New Air','NEWAIR','New A/F'],
+        self.intra_dataset_mapping = {'NewAirflow':['new air','NEW AIR','New AIR','New Air','NEWAIR','New A/F'],
                             'OxStatus': ['OX STAT','OX stat',],
-                            'EEG_sec': ['EEG(sec)', 'EEG(SEC)', 'EEG sec', ],
-                            'EEG2': ['EEG2','EEG 2',]
+                            'EEG_sec': ['EEG(sec)', 'EEG(SEC)', 'EEG sec', 'EEG2','EEG 2']
                             }
         
         
@@ -45,9 +44,26 @@ class SHHS(BaseDataset):
             'eeg_eog': ['EEG','EEG2', 'EEG 2','EOG(L)','EOG(R)', 'EEG(SEC)', 'EEG sec'],
             'emg': ['EMG'],
             'ecg': ['ECG'],
-            'thoraco_abdo_resp': ['ABDO RES', 'THOR RES','AIRFLOW','new air','NEW AIR','New AIR','New Air','NEWAIR','New A/F'],
-            'nasal_pressure': [],
+            'thoraco_abdo_resp': ['ABDO RES', 'THOR RES'],
             'snoring': ['SOUND']
+        }
+
+        self.inter_dataset_mapping = {
+            "EEG_sec": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            "EEG 2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            "EEG2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            "EEG": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            "EOG(L)": self.Mapping(self.TTRef.EL, self.TTRef.Nz),
+            "EOG(R)": self.Mapping(self.TTRef.ER, self.TTRef.Nz),
+            "ECG": self.Mapping(self.TTRef.ECG, None),
+            "EMG": self.Mapping(self.TTRef.EMG_CHIN, None),
+            "Position": self.Mapping(self.TTRef.POSITION, None),
+            "SaO2": self.Mapping(self.TTRef.SPO2, None),
+            "SOUND": self.Mapping(self.TTRef.SNORE, None),
+            "CPAP": self.Mapping(self.TTRef.CPAP, None),
+            "ABDO RES": self.Mapping(self.TTRef.ABDOMINAL, None),
+            "AIRFLOW": self.Mapping(self.TTRef.AIRFLOW, None),
+            "THOR RES": self.Mapping(self.TTRef.THORACIC, None),
         }
         
         

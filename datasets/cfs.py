@@ -21,6 +21,10 @@ class CFS(BaseDataset):
             "REM sleep": 4,
             "Unscored": 6
         }
+
+        self.intra_dataset_mapping = {
+            "SpO2": ["SpO2", "SaO2"],
+        }
         
         
         self.channel_names = ['L Leg', 'PAP FLOW', 'SNORE', 'PlethWV', 'POSITION', 'Masimo', 'NASAL PRES', 'SUM', 'ABDO EFFORT', 'PULSE',
@@ -42,6 +46,24 @@ class CFS(BaseDataset):
             'thoraco_abdo_resp': ['ABDO EFFORT', 'THOR EFFORT', 'AIRFLOW'],
             'nasal_pressure': ['NASAL PRES'],
             'snoring': ['SNORE']
+        }
+
+        self.inter_dataset_mapping = {
+            "C3": self.Mapping(self.TTRef.C3, self.TTRef.Fpz),
+            "C4": self.Mapping(self.TTRef.C4, self.TTRef.Fpz),
+            "M1": self.Mapping(self.TTRef.LPA, self.TTRef.Fpz),
+            "M2": self.Mapping(self.TTRef.RPA, self.TTRef.Fpz),
+            "LOC": self.Mapping(self.TTRef.EL, self.TTRef.Fpz),
+            "ROC": self.Mapping(self.TTRef.ER, self.TTRef.Fpz),
+            "AIRFLOW": self.Mapping(self.TTRef.AIRFLOW, None),
+            "ABDO EFFORT": self.Mapping(self.TTRef.ABDOMINAL, None),
+            "SpO2": self.Mapping(self.TTRef.SPO2, None),
+            "POSITION": self.Mapping(self.TTRef.POSITION, None),
+            "ECG1": self.Mapping(self.TTRef.ECG, self.TTRef.Fpz),
+            "L Leg": self.Mapping(self.TTRef.EMG_LLEG, self.TTRef.Fpz),
+            "R Leg": self.Mapping(self.TTRef.EMG_RLEG, self.TTRef.Fpz),
+            "EMG1": self.Mapping(self.TTRef.EMG_CHIN, self.TTRef.Fpz),
+            "SNORE": self.Mapping(self.TTRef.SNORE, None),
         }
                 
         

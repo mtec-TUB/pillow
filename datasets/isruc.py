@@ -28,25 +28,26 @@ class ISRUC(BaseDataset):
         }
         
         
-        self.alias_mapping = {
+        self.intra_dataset_mapping = {
             'ECG': ['25', 'X2'],
             'Chin': ['24', 'X1'],
             'LLeg': ['26', 'X3'],
             'RLeg': ['27', 'X4'],
             'Snore': ['28', 'X5'],
-            'Flow': ['29', 'X6', 'DC3'],
+            'Flow-1': ['X6'],
+            'Flow-2': ['DC3'],
             'Abdominal_X7': ['X7',  '30'],
             'Abdominal_X8': ['X8', '31'],
             'Body': ['DC8'],
-            'O2_M1': ['O2-M1', 'O2-A1'],
-            'C4_M1': ['C4-M1', 'C4-A1'],
-            'C3_M2': ['C3-M2', 'C3-A2'],
-            'O1_M2': ['O1-M2', 'O1-A2'],
-            'F3_M2': ['F3-M2', 'F3-A2'],
-            'F4_M1': ['F4-M1', 'F4-A1'],
+            'O2_A1': ['O2-M1', 'O2-A1'],
+            'C4_A1': ['C4-M1', 'C4-A1'],
+            'C3_A2': ['C3-M2', 'C3-A2'],
+            'O1_A2': ['O1-M2', 'O1-A2'],
+            'F3_A2': ['F3-M2', 'F3-A2'],
+            'F4_A1': ['F4-M1', 'F4-A1'],
             'SpO2': ['SpO2', 'SaO2'],
-            'LOC-M2': ['LOC-A2', 'E1-M2'],
-            'ROC-M1': ['ROC-A1', 'E2-M1'],
+            'LOC_A2': ['LOC-A2', 'E1-M2'],
+            'ROC_A1': ['ROC-A1', 'E2-M1'],
         }
         
         
@@ -76,6 +77,24 @@ class ISRUC(BaseDataset):
             'snoring': ['28', 'X5']
         }
         
+        self.inter_dataset_mapping = {
+            "F3_A2": self.Mapping(self.TTRef.F3, self.TTRef.RPA),
+            "C3_A2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            "F4_A1": self.Mapping(self.TTRef.F4, self.TTRef.LPA),
+            "C4_A1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            "O1_A2": self.Mapping(self.TTRef.O1, self.TTRef.RPA),
+            "O2_A1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
+            "ROC_A1": self.Mapping(self.TTRef.ER, self.TTRef.LPA),
+            "LOC_A2": self.Mapping(self.TTRef.EL, self.TTRef.RPA),
+            "SpO2": self.Mapping(self.TTRef.SPO2, None),
+            "ECG": self.Mapping(self.TTRef.ECG, None),
+            "Chin": self.Mapping(self.TTRef.EMG_CHIN, None),
+            "LLeg": self.Mapping(self.TTRef.EMG_LLEG, None),
+            "RLeg": self.Mapping(self.TTRef.EMG_RLEG, None),
+            "Body": self.Mapping(self.TTRef.POSITION, None),
+            "Abdominal_X7": self.Mapping(self.TTRef.ABDOMINAL, None),
+            "Snore": self.Mapping(self.TTRef.SNORE, None),
+        }
         
         self.file_extensions = {
             'psg_ext': '*/*.rec',

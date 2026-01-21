@@ -39,6 +39,20 @@ class MESA(BaseDataset):
             'thoraco_abdo_resp': ['Thor', 'Abdo'],
             'snoring': ['Snore']
         }
+
+        self.inter_dataset_mapping = {
+            "EOG-L": self.Mapping(self.TTRef.EL, self.TTRef.Fpz),
+            "EOG-R": self.Mapping(self.TTRef.ER, self.TTRef.Fpz),
+            "EEG1": self.Mapping(self.TTRef.Fz, self.TTRef.Cz),
+            "EEG2": self.Mapping(self.TTRef.Cz, self.TTRef.Oz),
+            "EEG3": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            "EKG": self.Mapping(self.TTRef.ECG, None),
+            "SpO2": self.Mapping(self.TTRef.SPO2, None),
+            "Leg": self.Mapping(self.TTRef.EMG_LLEG, self.TTRef.EMG_RLEG),
+            "Abdo": self.Mapping(self.TTRef.ABDOMINAL, None),
+            "Thor": self.Mapping(self.TTRef.THORACIC, None),
+            "EMG": self.Mapping(self.TTRef.EMG_CHIN, None),
+        }
         
         
         self.file_extensions = {

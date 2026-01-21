@@ -30,7 +30,7 @@ class FDCSR(BaseDataset):
         }
         
         
-        self.alias_mapping = {
+        self.intra_dataset_mapping = {
             'Cz_Mx': ['Cz Mx', 'Cz Ax'],
             'Pz_Mx': ['Pz Mx', 'Pz Ax'],
             'Oz_Mx': ['Oz Mx', 'Oz Ax'],

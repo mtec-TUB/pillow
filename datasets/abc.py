@@ -38,6 +38,30 @@ class ABC(BaseDataset):
                                 'nasal_pressure': ['Nasal Pressure'],
                                 'snoring': ['Snore']
                                 }
+        
+        self.inter_dataset_mapping = {
+            "F3": self.Mapping(self.TTRef.F3, self.TTRef.Fz),
+            "F4": self.Mapping(self.TTRef.F4, self.TTRef.Fz),
+            "C3": self.Mapping(self.TTRef.C3, self.TTRef.Fz),
+            "C4": self.Mapping(self.TTRef.C4, self.TTRef.Fz),
+            "O1": self.Mapping(self.TTRef.O1, self.TTRef.Fz),
+            "O2": self.Mapping(self.TTRef.O2, self.TTRef.Fz),
+            "M1": self.Mapping(self.TTRef.LPA, self.TTRef.Fz),
+            "M2": self.Mapping(self.TTRef.RPA, self.TTRef.Fz),
+            "E1": self.Mapping(self.TTRef.EL, self.TTRef.Fz),
+            "E2": self.Mapping(self.TTRef.ER, self.TTRef.Fz),
+            "Airflow": self.Mapping(self.TTRef.AIRFLOW, None),
+            "Abdo": self.Mapping(self.TTRef.ABDOMINAL, None),
+            "Thor": self.Mapping(self.TTRef.THORACIC, None),
+            "SpO2": self.Mapping(self.TTRef.SPO2, None),
+            "ECG1": self.Mapping(self.TTRef.ECG, None),
+            "LLeg1": self.Mapping(self.TTRef.EMG_LLEG, None),
+            "RLeg1": self.Mapping(self.TTRef.EMG_RLEG, None),
+            "Chin1": self.Mapping(self.TTRef.EMG_CHIN, None),
+            "Snore": self.Mapping(self.TTRef.SNORE, None),
+            "PosSensor": self.Mapping(self.TTRef.POSITION, None),
+            "CPAP Flow": self.Mapping(self.TTRef.CPAP, None),
+        }
                 
         
         self.file_extensions = {'psg_ext': '**/*.edf',

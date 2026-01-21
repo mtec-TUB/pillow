@@ -24,7 +24,7 @@ class CAP(BaseDataset):
                             "MT": 5
                             }
         
-        self.alias_mapping = {
+        self.intra_dataset_mapping = {
             "Abdomen": ['ADDDOME', 'ADDOME', 'Abdo','abdomen',],
             "Cannula": [ 'Canula', 'cannula',],
             "C3-A2": ['C3-A2','C3A2',],

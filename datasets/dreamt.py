@@ -83,10 +83,6 @@ class DREAMT(BaseDataset):
             sampling_rate = 64
             dataset = pd.read_csv(filepath, sep=",", header=0)
 
-            if channel not in dataset.columns:
-                self.logger.info(f"Channel {channel} not found")
-                return None
-
             # DREAMT-specific preprocessing:
             # - Remove preparation stage 'P'
             dataset = dataset[dataset["Sleep_Stage"] != "P"].reset_index()

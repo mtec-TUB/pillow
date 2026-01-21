@@ -22,8 +22,10 @@ class SOF(BaseDataset):
         }
         
         
-        self.alias_mapping = {
-            'nasal_pressure': ['nasal_pressure', 'NASAL_PRESSURE']
+        self.intra_dataset_mapping = {
+            'nasal_pressure': ['nasal_pressure', 'NASAL_PRESSURE'],
+            'lchin': ['L Chin','EMG/L'],
+            'rchin': ['R Chin','EMG/R'],
         }
         
         
@@ -46,6 +48,26 @@ class SOF(BaseDataset):
             'ecg': ['ECG1', 'ECG2'],
             'thoraco_abdo_resp': ['Thoracic', 'Abdominal', 'Airflow'],
             'nasal_pressure': ['NASAL PRESSURE', 'Nasal Pressure']
+        }
+
+        self.inter_dataset_mapping = {
+            "C3": self.Mapping(self.TTRef.C3, self.TTRef.Fpz),
+            "C4": self.Mapping(self.TTRef.C4, self.TTRef.Fpz),
+            "A1": self.Mapping(self.TTRef.LPA, self.TTRef.Fpz),
+            "A2": self.Mapping(self.TTRef.RPA, self.TTRef.Fpz),
+            "O1": self.Mapping(self.TTRef.O1, self.TTRef.Fpz),
+            "O2": self.Mapping(self.TTRef.O2, self.TTRef.Fpz),
+            "ROC": self.Mapping(self.TTRef.ER, self.TTRef.Fpz),
+            "LOC": self.Mapping(self.TTRef.EL, self.TTRef.Fpz),
+            "SAO2": self.Mapping(self.TTRef.SPO2, None),
+            "lchin": self.Mapping(self.TTRef.EMG_CHIN, self.TTRef.Fpz),
+            "ECG1": self.Mapping(self.TTRef.ECG, self.TTRef.Fpz),
+            "Position": self.Mapping(self.TTRef.POSITION, None),
+            "Abdominal": self.Mapping(self.TTRef.ABDOMINAL, None),
+            "Thoracic": self.Mapping(self.TTRef.THORACIC, None),
+            "Airflow": self.Mapping(self.TTRef.AIRFLOW, None),
+            "Leg/L": self.Mapping(self.TTRef.EMG_LLEG, None),
+            "Leg/R": self.Mapping(self.TTRef.EMG_RLEG, None),
         }
         
         

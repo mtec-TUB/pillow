@@ -68,12 +68,6 @@ class MWT(BaseDataset):
         try:
             psg_f = loadmat(filepath)['Data']
 
-            if channel not in psg_f.dtype.names:
-                self.logger.info(f"Channel {channel} not found")
-                return None
-
-            logger.info(f"Channel selected: {channel}")
-
             signal = psg_f[0,0][channel][:, 0]
             samples = psg_f[0,0]['num_Labels'][0,0]
             assert len(signal) == samples

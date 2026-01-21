@@ -23,7 +23,7 @@ class MROS(BaseDataset):
         }
         
         
-        self.alias_mapping = {
+        self.intra_dataset_mapping = {
                 'ECGR': ['ECG R','ECGR'],
                 'ECGL': ['ECGL','ECG L'],
                 'RChin': ['R Chin','RChin'],
@@ -56,6 +56,15 @@ class MROS(BaseDataset):
             'ecg': ['ECG R', 'ECGR', 'ECGL', 'ECG L'],
             'thoraco_abdo_resp': ['Abdominal', 'ABD', 'Chest', 'Thoracic'],
             'nasal_pressure': ['Cannula Flow', 'CannulaFlow', 'CH37']
+        }
+
+        self.inter_dataset_mapping = {
+            "C3": self.Mapping(self.TTRef.C3, self.TTRef.Fpz),
+            "C4": self.Mapping(self.TTRef.C4, self.TTRef.Fpz),
+            "A1": self.Mapping(self.TTRef.LPA, self.TTRef.Fpz),
+            "A2": self.Mapping(self.TTRef.RPA, self.TTRef.Fpz),
+            "ROC": self.Mapping(self.TTRef.ER, self.TTRef.Fpz),
+            "LOC": self.Mapping(self.TTRef.EL, self.TTRef.Fpz)
         }
         
         

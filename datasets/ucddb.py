@@ -27,7 +27,7 @@ class UCDDB(BaseDataset):
         }
         
         
-        self.alias_mapping = {
+        self.intra_dataset_mapping = {
             'Sound': ['Sound', 'Soud'],
         }
         

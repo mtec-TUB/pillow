@@ -29,7 +29,7 @@ class NCHSDB(BaseDataset):
                 'Sleep stage 3' : 3,
         }
 
-        self.alias_mapping = {'Abdomen': ['Abdominal','EEG Abd'],
+        self.intra_dataset_mapping = {'Abdomen': ['Abdominal','EEG Abd'],
                               'Resp Abdomen': ['Resp Abdominal', 'Resp Abdomen'],
                               'C-flow': ['C-flow','C-Flow'],
                               'Cz-O1': ['EEG Cz-O1','EEG CZ-O1'],

@@ -25,47 +25,62 @@ class DODO(BaseDataset):
         }
         
         
-        self.alias_mapping = {
-            "O1_M1": ["signals/eeg/O1_M1"],
-            "C4_M1": ["signals/eeg/C4_M1"],
-            "F3_O1": ["signals/eeg/F3_O1"],
-            "O1_M2": ["signals/eeg/O1_M2"],
-            "F4_O2": ["signals/eeg/F4_O2"],
-            "F3_F4": ["signals/eeg/F3_F4"],
-            "C3_M2": ["signals/eeg/C3_M2"],
-            "F3_M2": ["signals/eeg/F3_M2"],
-            "O2_M1": ["signals/eeg/O2_M1"],
-            "EOG1": ["signals/eog/EOG1"],
-            "EOG2": ["signals/eog/EOG2"],
-            "EMG": ["signals/emg/EMG"],
-            "ECG": ["signals/emg/ECG"]
+        self.intra_dataset_mapping = {
+            "O1_M1": ["eeg/O1_M1"],
+            "C4_M1": ["eeg/C4_M1"],
+            "F3_O1": ["eeg/F3_O1"],
+            "O1_M2": ["eeg/O1_M2"],
+            "F4_O2": ["eeg/F4_O2"],
+            "F3_F4": ["eeg/F3_F4"],
+            "C3_M2": ["eeg/C3_M2"],
+            "F3_M2": ["eeg/F3_M2"],
+            "O2_M1": ["eeg/O2_M1"],
+            "EOG1": ["eog/EOG1"],
+            "EOG2": ["eog/EOG2"],
+            "EMG": ["emg/EMG"],
+            "ECG": ["emg/ECG"]
         }
         
         
         self.channel_names = [
-            'signals/eeg/O1_M1', 'signals/eeg/C4_M1', 'signals/eeg/F3_O1', 'signals/eeg/O1_M2',
-            'signals/eeg/F4_O2', 'signals/eeg/F3_F4', 'signals/eeg/C3_M2', 'signals/eeg/F3_M2',
-            'signals/eeg/O2_M1',
-            'signals/eog/EOG1', 'signals/eog/EOG2',
-            'signals/emg/EMG',
-            'signals/emg/ECG'
+            'eeg/O1_M1', 'eeg/C4_M1', 'eeg/F3_O1', 'eeg/O1_M2',
+            'eeg/F4_O2', 'eeg/F3_F4', 'eeg/C3_M2', 'eeg/F3_M2',
+            'eeg/O2_M1',
+            'eog/EOG1', 'eog/EOG2',
+            'emg/EMG',
+            'emg/ECG'
         ]
         
         
         self.channel_types = {
             'analog': [
-                'signals/eeg/O2_M1', 'signals/emg/ECG', 'signals/emg/EMG', 'signals/eeg/C4_M1', 
-                'signals/eeg/F3_O1', 'signals/eeg/O1_M2', 'signals/eog/EOG1', 'signals/eeg/F4_O2', 
-                'signals/eeg/F3_F4', 'signals/eog/EOG2', 'signals/eeg/C3_M2', 'signals/eeg/F3_M2'
+                'eeg/O2_M1', 'emg/ECG', 'emg/EMG', 'eeg/C4_M1', 
+                'eeg/F3_O1', 'eeg/O1_M2', 'eog/EOG1', 'eeg/F4_O2', 
+                'eeg/F3_F4', 'eog/EOG2', 'eeg/C3_M2', 'eeg/F3_M2'
             ],
             'digital': []
         }
     
         
         self.channel_groups = {
-            'eeg_eog': ['signals/eeg/O1_M1', 'signals/eeg/C4_M1', 'signals/eeg/F3_O1', 'signals/eeg/O1_M2', 'signals/eog/EOG1', 'signals/eeg/F4_O2', 'signals/eeg/F3_F4', 'signals/eog/EOG2', 'signals/eeg/C3_M2', 'signals/eeg/F3_M2', 'signals/eeg/O2_M1'],
-            'emg': ['signals/emg/EMG'],
-            'ecg': ['signals/emg/ECG']
+            'eeg_eog': ['eeg/O1_M1', 'eeg/C4_M1', 'eeg/F3_O1', 'eeg/O1_M2', 'eog/EOG1', 'eeg/F4_O2', 'eeg/F3_F4', 'eog/EOG2', 'eeg/C3_M2', 'eeg/F3_M2', 'eeg/O2_M1'],
+            'emg': ['emg/EMG'],
+            'ecg': ['emg/ECG']
+        }
+
+        self.inter_dataset_mapping= {
+            "C3_M2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            "C4_M1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            "F4_F4": self.Mapping(self.TTRef.F3, self.TTRef.F4),
+            "F3_M2": self.Mapping(self.TTRef.F3, self.TTRef.RPA),
+            "F3_O1": self.Mapping(self.TTRef.F3, self.TTRef.O1),
+            "F4_O2": self.Mapping(self.TTRef.F4, self.TTRef.O2),
+            "O1_M2": self.Mapping(self.TTRef.O1, self.TTRef.RPA),
+            "O2_M1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
+            "EOG1": self.Mapping(self.TTRef.EL, self.TTRef.RPA), # TODO: Find out refs
+            "EOG2": self.Mapping(self.TTRef.ER, self.TTRef.RPA), # TODO: Find out refs
+            "ECG": self.Mapping(self.TTRef.ECG, None),
+            "EMG": self.Mapping(self.TTRef.EMG_CHIN, None)
         }
                 
         self.file_extensions = {
@@ -83,18 +98,6 @@ class DODO(BaseDataset):
         ann_dir = "DOD-O - Dreem Open Dataset - Obstructive"
         return data_dir, ann_dir
     
-    def collect_h5_dataset(self, name, obj, dataset):
-        """
-        Helper function to collect H5 datasets during file iteration.
-
-        Args:
-            name: Dataset name
-            obj: H5 object
-            dataset: List to append dataset information to
-        """
-        if isinstance(obj, h5py.Dataset):
-            dataset.append((name, obj[:]))
-    
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         DOD-O doesn't use separate annotation files.
@@ -102,15 +105,9 @@ class DODO(BaseDataset):
         """
         ann_stage_events = []
         epoch_duration = 30  # DOD-O uses 30-second epochs
-
         with h5py.File(ann_fname, "r") as f:
-            dataset = []
-            f.visititems(lambda name, obj: self.collect_h5_dataset(name, obj, dataset))
-
-            ch_names = [data[0] for data in dataset]
             
-            hypnogram_idx = ch_names.index("hypnogram")
-            stages = dataset[hypnogram_idx][1]
+            stages = f["hypnogram"][:]
             for i, stage in enumerate(stages):
                 onset = i * epoch_duration
                 duration = epoch_duration

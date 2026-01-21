@@ -44,6 +44,13 @@ class SleepEDF2018(BaseDataset):
             'emg': ['EMG submental'],
             'thoraco_abdo_resp': ['Resp oro-nasal']
         }
+
+        self.inter_dataset_mapping = {
+            "EOG horizontal": self.Mapping(self.TTRef.EL, self.TTRef.ER), 
+            "EEG Fpz-Cz": self.Mapping(self.TTRef.Fpz, self.TTRef.Cz),
+            "EEG Pz-Oz": self.Mapping(self.TTRef.Pz, self.TTRef.Oz),
+            'EMG submental': self.Mapping(self.TTRef.EMG_CHIN, None),
+        }
         
         
         self.file_extensions = {
