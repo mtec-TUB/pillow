@@ -25,6 +25,7 @@ class ProcessorConfig:
     filter: bool
     filter_freq: dict
     channels: list[str]
+    map_channel_names: bool
     epoch_duration: int
     rm_move: bool
     rm_unk: bool
