@@ -111,10 +111,8 @@ class Dataset_Explorer:
 
         # Validate that we have matching numbers of files
         if self.ann_ext != "" and len(self.ann_fnames) != len(self.psg_fnames):
-            raise Warning(
-                f"\n Number of PSG files and Annotation files does not match:"
-                f"\n Annot files: {len(self.ann_fnames)} "
-                f"\nPSG files: {len(self.psg_fnames)} "
+            self.logger.warning(
+                f"\n Number of PSG files and Annotation files do not match: ({len(self.psg_fnames)}/{len(self.ann_fnames)})"
             )
 
         return self.psg_fnames, self.ann_fnames
