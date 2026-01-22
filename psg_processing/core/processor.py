@@ -159,8 +159,6 @@ class DatasetProcessor:
     ):
         """Process a single channel from a single file."""
 
-        self.logger.info(f"Channel selected: {channel}")
-
         # Setup channel processing environment
         file_output_dir, file_output_path, uni_channel = self._setup_output(
             channel,
@@ -169,8 +167,6 @@ class DatasetProcessor:
 
         # Skip if file already exists and overwrite is False
         if not self.config.overwrite and self._output_file_exists(file_output_path):
-            print(f"Same file id exists already.")
-            raise Exception
             return True, None, None
 
         # Setup logging
@@ -185,6 +181,10 @@ class DatasetProcessor:
         self.logging_manager.setup_file_logging(
             self.logger, file_output_dir, log_filename
         )
+
+        self.logger.info(f"Channel selected: {channel}")
+
+        self.logger.info(f"Mapped channel name {channel} to {uni_channel}")
 
         self.logger.info(
             f"Signal file: {Path(psg_fname).relative_to(self.config.data_dir)}"
@@ -294,7 +294,6 @@ class DatasetProcessor:
         # Channel name harmonization
         if self.config.map_channel_names:       
             ch_name = self.dataset.map_channel(channel)
-            self.logger.info(f"Mapped channel name {channel} to {ch_name}")
 
         # Generate safe file and folder name
         base_filename = (
