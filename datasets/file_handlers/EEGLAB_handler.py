@@ -2,7 +2,7 @@
 mat file handler for PSG data processing.
 """
 
-from mne.io import read_raw_eeglab
+import mne
 
 
 class EEGLABHandler:
@@ -11,16 +11,16 @@ class EEGLABHandler:
     def get_channels(self, logger, filepath):
         """Extract channel names and frequencies from .set files."""
         try:
-            raw_data = read_raw_eeglab(filepath, verbose=False, preload=True)
+            raw_data = mne.io.read_raw_eeglab(filepath, verbose=False, preload=True)
             return raw_data.ch_names
         except Exception as e:
             logger.error(f"Error reading .set file {filepath}: {e}")
-            return []
+            raise
 
     def read_signal(self, logger, filepath, channel):
         """Read signal from .set file for specific channel."""
         try:
-            raw_data = read_raw_eeglab(filepath, verbose=False, preload=True)
+            raw_data = mne.io.read_raw_eeglab(filepath, verbose='WARNING', preload=True)
             if channel in raw_data.ch_names:
                 return raw_data.get_data(picks=channel)[0]
         except Exception as e:
@@ -30,7 +30,7 @@ class EEGLABHandler:
     def get_signal_data(self, logger, filepath, channel):
         """Get complete EDF signal information for processing."""
         try:
-            raw_data = read_raw_eeglab(filepath, verbose=False, preload=True)
+            raw_data = mne.io.read_raw_eeglab(filepath, verbose='WARNING', preload=True)
 
             signal = raw_data.get_data(picks=channel)[0]
             samples = raw_data.n_times
@@ -42,6 +42,9 @@ class EEGLABHandler:
             assert file_duration == raw_data.duration
 
             start_datetime = raw_data.info["meas_date"]
+
+            unit = raw_data.info['chs'][0]['unit']
+            unit = mne._fiff.meas_info._unit2human[unit]
             return {
                 "signal": signal,
                 "sampling_rate": sampling_rate,
