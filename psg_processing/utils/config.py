@@ -53,11 +53,11 @@ def load_config_file(config_file_path: str) -> dict:
     file_path = Path(config_file_path)
 
     if not file_path.exists():
-        raise ValueError(f"Configuration file not found: {config_file_path}")
+        raise FileNotFoundError(f"Configuration file not found: {config_file_path}")
 
     try:
         with open(config_file_path, "r") as f:
-            config = yaml.safe_load(f)
+            config = ProcessorConfig(**yaml.safe_load(f))
         print(f"Loaded configuration from: {config_file_path}")
         return config
     except yaml.YAMLError as e:

@@ -113,8 +113,7 @@ class EESM23(BaseDataset):
             logger=None,
             psg_file_handler=None,
             data_dir=data_dir,
-            ann_dir=ann_dir,
-            **self.file_extensions,
+            ann_dir=ann_dir
         )
         psg_fnames, _ = explorer.get_files()
 

@@ -56,7 +56,7 @@ class DatasetProcessor:
                 self.dataset,
                 self.config.data_dir,
                 self.config.ann_dir,
-                **self.dataset.file_extensions,
+                log_level=self.config.logging_level,
             )
             psg_fnames, ann_fnames = explorer.get_files()
 

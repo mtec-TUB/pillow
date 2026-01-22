@@ -18,7 +18,7 @@ from pathlib import Path
 # Add the current directory to the Python path
 sys.path.append(str(Path(__file__).parent))
 
-from psg_processing.utils import load_config_file, ProcessorConfig
+from psg_processing.utils import load_config_file
 from datasets.registry import get_dataset, DatasetRegistry
 from psg_processing.core import Dataset_Explorer, DatasetProcessor
 
@@ -51,7 +51,6 @@ def _resolve_paths(
     data_dir: str | None,
     ann_dir: str | None,
     output_dir: str | None,
-    resample_val,
 ):
     """Return resolved (data_dir, ann_dir, output_dir).
 
@@ -82,7 +81,6 @@ def main(config):
     """
     Process a dataset.
     """
-    config = ProcessorConfig(**vars(config))
     # Get the dataset
     dataset = get_dataset(config.dataset)()
 
@@ -94,36 +92,36 @@ def main(config):
         config.data_dir,
         config.ann_dir,
         config.output_dir,
-        config.resample,
     )
 
     print(f"Data directory: {config.data_dir}")
     print(f"Annotation directory: {config.ann_dir}")
     print(f"Output directory: {config.output_dir}")
 
+    # Preprocess file structure if needed (Reordering etc.)
     ret = dataset.preprocess(config.data_dir, config.ann_dir, config.output_dir)
     if ret is False:
         return
 
     if config.action == "process":
-        # all channels will be processed if empty list
+        # If channels are specified in config, set them in dataset, else use all available
         if config.channels != []:
             dataset.channel_names = config.channels
 
-        # Initialize a new DatasetProcessor
+        # Initialize DatasetProcessor
         processor = DatasetProcessor(dataset, config)
         processor.process_files()
 
     elif config.action == "get_channel_names":
         explorer = Dataset_Explorer(
-            None, dataset, config.data_dir, config.ann_dir, **dataset.file_extensions
+            None, dataset, config.data_dir, config.ann_dir, log_level=config.logging_level
         )
         channels = list(explorer.get_all_channels())
         print(f"Available channels in {dataset.dset_name}: {(channels)}")
 
     elif config.action == "get_channel_types":
         explorer = Dataset_Explorer(
-            None, dataset, config.data_dir, config.ann_dir, **dataset.file_extensions
+            None, dataset, config.data_dir, config.ann_dir,log_level=config.logging_level
         )
         explorer.get_all_channels()
         channel_types = explorer.get_channel_type()
@@ -134,27 +132,16 @@ def main(config):
 
 
 if __name__ == "__main__":
-    # Load defaults from config.yaml (located in same directory as this script)
-    script_dir = Path(__file__).parent
-    default_config_path = script_dir / "config.yaml"
-    config = load_config_file(str(default_config_path))
 
-    # Determine if we're running from CLI or VS Code interactive mode
-    is_vscode_mode = len(sys.argv) == 1
+    parser = build_parser()
+    cli_args = parser.parse_args(sys.argv[1:])
 
-    if is_vscode_mode:
-        # VS Code mode: use defaults from config.yaml
-        args = argparse.Namespace(**config)
-        main(args)
+    # Load user's config file if specified
+    if cli_args.config:
+        config = load_config_file(cli_args.config)
     else:
-        # Normal CLI execution
-        parser = build_parser()
-        cli_args = parser.parse_args(sys.argv[1:])
+        # Load defaults from config.yaml
+        config = load_config_file("config.yaml")
 
-        # Load user's config file if specified
-        if cli_args.config:
-            config = load_config_file(cli_args.config)
+    main(config)
 
-        # Create namespace from merged config
-        args = argparse.Namespace(**config)
-        main(args)

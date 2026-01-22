@@ -30,18 +30,12 @@ class Dataset_Explorer:
         dataset: object,
         data_dir: str,
         ann_dir: str,
-        psg_ext: str,
-        ann_ext: str,
-        ann_ext2: str = None,
         log_level=logging.INFO,
     ):
         """Initialize the Dataset_Explorer with empty containers and logger."""
         self.dataset = dataset
         self.data_dir = data_dir
         self.ann_dir = ann_dir
-        self.psg_ext = psg_ext
-        self.ann_ext = ann_ext
-        self.ann_ext2 = ann_ext2
         self.psg_fnames = []
         self.ann_fnames = []
         self.ch_names = []
@@ -65,13 +59,15 @@ class Dataset_Explorer:
         if not os.path.exists(self.data_dir):
             self.logger.error(f"Data directory does not exist: {self.data_dir}")
             raise FileNotFoundError(f"Data directory does not exist: {self.data_dir}")
+        
+        psg_ext = self.dataset.file_extensions['psg_ext']
 
         self.logger.info(
-            f"Searching for signal files: {os.path.join(self.data_dir, self.psg_ext)}"
+            f"Searching for signal files: {os.path.join(self.data_dir, psg_ext)}"
         )
 
         self.psg_fnames = glob.glob(
-            os.path.join(self.data_dir, self.psg_ext), recursive=True
+            os.path.join(self.data_dir, psg_ext), recursive=True
         )
         self.psg_fnames = natsorted(self.psg_fnames)
         self.logger.info(f"Found {len(self.psg_fnames)} signal files")
@@ -83,21 +79,23 @@ class Dataset_Explorer:
                 f"Annotation directory does not exist {self.ann_dir}"
             )
 
+        ann_ext = self.dataset.file_extensions['ann_ext']
         self.logger.info(
-            f"Searching for annotation files: {os.path.join(self.ann_dir, self.ann_ext)}"
+            f"Searching for annotation files: {os.path.join(self.ann_dir, ann_ext)}"
         )
 
         self.ann_fnames = glob.glob(
-            os.path.join(self.ann_dir, self.ann_ext), recursive=True
+            os.path.join(self.ann_dir, ann_ext), recursive=True
         )
 
         # Add second annotation extension if provided
-        if self.ann_ext2:
+        if 'ann_ext2' in self.dataset.file_extensions:
+            ann_ext2 = self.dataset.file_extensions['ann_ext2']
             self.logger.info(
-                f"Searching for additional annotation files: {os.path.join(self.ann_dir, self.ann_ext2)}"
+                f"Searching for additional annotation files: {os.path.join(self.ann_dir, ann_ext2)}"
             )
             ann_fnames2 = glob.glob(
-                os.path.join(self.ann_dir, self.ann_ext2), recursive=True
+                os.path.join(self.ann_dir, ann_ext2), recursive=True
             )
             self.ann_fnames.extend(ann_fnames2)
             self.logger.info(f"Found {len(ann_fnames2)} additional annotation files")
@@ -110,7 +108,7 @@ class Dataset_Explorer:
         self.ann_fnames = np.asarray(self.ann_fnames)
 
         # Validate that we have matching numbers of files
-        if self.ann_ext != "" and len(self.ann_fnames) != len(self.psg_fnames):
+        if ann_ext != "" and len(self.ann_fnames) != len(self.psg_fnames):
             self.logger.warning(
                 f"\n Number of PSG files and Annotation files do not match: ({len(self.psg_fnames)}/{len(self.ann_fnames)})"
             )
