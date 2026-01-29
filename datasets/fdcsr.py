@@ -45,19 +45,20 @@ class FDCSR(BaseDataset):
             'ROC': ['ROC Ax', 'E2 Mx'],
         }
 
+        # doi: 10.1038/npp.2010.63 
         self.inter_dataset_mapping = {
-            "Cz": self.Mapping(self.TTRef.Cz, None),
-            "Pz": self.Mapping(self.TTRef.Pz, None),
+            "Cz": self.Mapping(self.TTRef.Cz, self.TTRef.LRPA),
+            "Pz": self.Mapping(self.TTRef.Pz, self.TTRef.LRPA),
             "P3 M2": self.Mapping(self.TTRef.P3, self.TTRef.RPA),
             "P4 M1": self.Mapping(self.TTRef.P4, self.TTRef.LPA),
-            "Oz": self.Mapping(self.TTRef.Oz, None),
+            "Oz": self.Mapping(self.TTRef.Oz, self.TTRef.LRPA),
             "C4": self.Mapping(self.TTRef.C4, None),
             "C3": self.Mapping(self.TTRef.C3, None),
-            "E2 M1": self.Mapping(self.TTRef.E2, self.TTRef.LPA),
-            "E1 M2": self.Mapping(self.TTRef.E1, self.TTRef.RPA),
+            "E2 M1": self.Mapping(self.TTRef.ER, self.TTRef.LPA),
+            "E1 M2": self.Mapping(self.TTRef.EL, self.TTRef.RPA),
             "O1_A2": self.Mapping(self.TTRef.O1, self.TTRef.RPA),
             "O2_A1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
-            "Fz_Ax": self.Mapping(self.TTRef.Fz, None),
+            "Fz_Ax": self.Mapping(self.TTRef.Fz, self.TTRef.LRPA),
             "F4 M1": self.Mapping(self.TTRef.F4, self.TTRef.LPA),
             "F3 M2": self.Mapping(self.TTRef.F3, self.TTRef.RPA),
             "LOC": self.Mapping(self.TTRef.EL, None),
@@ -67,7 +68,7 @@ class FDCSR(BaseDataset):
             "C4_A1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
             "C3_A2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
             "ECG": self.Mapping(self.TTRef.ECG, None),
-            "EMG sm": self.Mapping(self.TTRef.EMG, None),
+            "EMG sm": self.Mapping(self.TTRef.EMG_CHIN, None),
         }
         
         
