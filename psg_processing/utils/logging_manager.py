@@ -58,7 +58,7 @@ class LoggingManager:
 
     def setup_logger(self, dir_name=None, overwrite=False):
         """
-        Create a logger with both console and optional file output.
+        Create a logger with console output and remove all log files if overwriting is desired.
 
         Args:
             dir: Optional path to folder to delete old logging files
