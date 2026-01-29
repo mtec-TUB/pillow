@@ -329,7 +329,7 @@ class BaseDataset(ABC):
 
             total_duration += ann_duration
 
-            # logger.info("Include onset:{}, duration:{}, label:{} ({})".format(onset_sec, duration_sec, label, ann_str))
+            logger.debug("Include onset:{}, duration:{}, label:{} ({})".format(onset_sec, ann_duration, label, ann_str))
 
         return np.concatenate(labels)
 
@@ -340,32 +340,34 @@ class BaseDataset(ABC):
 
     def base_align_front(self, logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels, fs):
         if delay_sec < 0:
-            logger.error(f"Annotations start before signal start, which is not supported in the base align front method")
-            raise Exception("Annotations start before signal start, which is not supported in the base align front method")
-        
-        if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_ANNOT.value:
-            logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, signal will be shortened at the front to match")
-            signal = signal[int(delay_sec*fs):]
-        elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_SIGNAL.value:
-            logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, labels will be padded at the front with full epochs of value:{pad_values["label"]} to match")
-            n_pad = int(delay_sec // epoch_duration)
-            # adapt start times of all existing labels
-            for event in labels:
-                event['Start'] += n_pad * epoch_duration
-            # create epochs to pad at the front
-            new_labels = []
-            for i in range(n_pad):
-                new_labels.append({
-                'Stage': pad_values["label"],
-                'Start': i * epoch_duration,
-                'Duration': epoch_duration
-                })
-            labels = new_labels + labels
-            if delay_sec % epoch_duration != 0:
-                logger.info(f"Partial epoch detected at start, signal will be shortened at the front to match")
-                signal = signal[int((delay_sec % epoch_duration)*fs):]
+            advance_sec = -delay_sec
+            if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_SIGNAL.value:
+                logger.info(f"Signal started {advance_sec:.2f} sec after label start, labels will be shortened at the front to match")
+                n_crop = int(advance_sec//epoch_duration)
+                labels = labels[n_crop:]
+                if advance_sec % epoch_duration != 0:
+                    logger.info(f"Partial epoch detected at start, signal ({epoch_duration-advance_sec} sec) and labels (one epoch) will be shortened at the front to match")
+                    labels = labels[1:]
+                    signal = signal[int((epoch_duration-advance_sec)*fs):]
+            elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_ANNOT.value:
+                logger.info(f"Signal started {advance_sec:.2f} sec after label start, signal will be padded with constant value:{np.float64(pad_values["signal"])} at the front to match")
+                n_pad_samples = int(advance_sec*fs)
+                signal = np.hstack((np.full((n_pad_samples,), np.float64(pad_values["signal"])), signal))
+            else:
+                raise ValueError(f"Unknown alignment option: {alignment}")
         else:
-            raise ValueError(f"Unknown alignment option: {alignment}")
+            if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_ANNOT.value:
+                logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, signal will be shortened at the front to match")
+                signal = signal[int(delay_sec*fs):]
+            elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_SIGNAL.value:
+                logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, labels will be padded at the front with full epochs of value:{pad_values["label"]} to match")
+                n_pad = int(delay_sec // epoch_duration)
+                labels = np.hstack((np.full((n_pad,), pad_values["label"]), labels))
+                if delay_sec % epoch_duration != 0:
+                    logger.info(f"Partial epoch detected at start, signal will be shortened at the front to match")
+                    signal = signal[int((delay_sec % epoch_duration)*fs):]
+            else:
+                raise ValueError(f"Unknown alignment option: {alignment}")
         return signal, labels
 
 
@@ -387,8 +389,8 @@ class BaseDataset(ABC):
             labels = labels[:len(signals)]
         elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_ANNOT.value:
             n_pad = (len(labels) - len(signals))
-            logger.info(f"Signal (len:{len(signals)}) will be padded at the end with {n_pad} epochs of constant value:{pad_values["signal"]} to match labels length (len:{len(labels)})")
-            signals = np.vstack((signals, np.full((n_pad, signals.shape[1]), pad_values["signal"])))
+            logger.info(f"Signal (len:{len(signals)}) will be padded at the end with {n_pad} epochs of constant value:{np.float64(pad_values["signal"])} to match labels length (len:{len(labels)})")
+            signals = np.vstack((signals, np.full((n_pad, signals.shape[1]), np.float64(pad_values["signal"]))))
         else:
             raise ValueError(f"Unknown alignment option: {alignment}")
         return signals,labels
