@@ -19,7 +19,7 @@ class SignalProcessor:
     during processing.
     """
 
-    def __init__(self, logger, filter_freq):
+    def __init__(self, logger, ch_name, filter_freq, ch_types):
         """
         Initialize the SignalProcessor.
 
@@ -30,6 +30,7 @@ class SignalProcessor:
         self.signal_min = None
         self.signal_max = None
         self.filter_freq = filter_freq
+        self.ch_type = self._get_channel_type(ch_name, ch_types)
 
     def get_filt_freq(
         self, ch_name: str, channel_groups: Dict[str, List[str]]
@@ -50,8 +51,16 @@ class SignalProcessor:
 
         # If channel not found in any group, return default (no filtering)
         return self.filter_freq["default"]
+    
+    def _get_channel_type(self, channel, channel_types):
+        """Get the type (analog/digital) for a specific channel."""
+        for ch_type, channels in channel_types.items():
+            if channel in channels:
+                return ch_type
 
-    def resample_signal(self, signal, ch_type, sampling_rate, resample_freq):
+        raise Exception(f"channel {channel} not listed in channel_types")
+
+    def resample_signal(self, signal, sampling_rate, resample_freq):
         """
         Resample signal based on channel type and parameters.
 
@@ -73,10 +82,10 @@ class SignalProcessor:
         # if fs not already desired resample fs -> resample
         if resample_freq != sampling_rate:
 
-            if ch_type == "digital":
+            if self.ch_type == "digital":
                 signal = self.resample_dig(signal, sampling_rate, resample_freq)
 
-            elif ch_type == "analog":
+            elif self.ch_type == "analog":
                 signal = self.resample_ana(signal, sampling_rate, resample_freq)
 
         self.logger.info(f"Sample rate after: {resample_freq}")
@@ -126,7 +135,7 @@ class SignalProcessor:
 
         return signal_resampled
 
-    def filter_signal(self, signal, fs, select_ch, channel_groups, ch_type):
+    def filter_signal(self, signal, fs, select_ch, channel_groups):
         """
         Filter signal based on channel type and parameters.
 
@@ -149,7 +158,7 @@ class SignalProcessor:
         [low, high] = self.get_filt_freq(select_ch, channel_groups)
 
         # Filter signal according to AASM Manual
-        if not (low is None and high is None) and (ch_type == "analog"):
+        if not (low is None and high is None) and (self.ch_type == "analog"):
 
             if low and low >= fs / 2:
                 self.logger.warning(
@@ -180,7 +189,8 @@ class SignalProcessor:
             if low is not None and low != 0:
                 signal = np.clip(signal, a_min=self.signal_min, a_max=self.signal_max)
 
-        elif not (low is None and high is None) and ch_type == "digital":
+        elif not (low is None and high is None) and self.ch_type == "digital":
+            self.logger.error("Digital channels cannot be filtered.")
             raise Exception("Digital channels cannot be filtered.")
 
         return signal
