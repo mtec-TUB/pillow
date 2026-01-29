@@ -117,23 +117,9 @@ class CPS(BaseDataset):
         
         return ann_stage_events, ann_startdatetime
     
-    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_samples, signal, labels, fs):
+    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
 
-        if delay_samples < 0:
-            if delay_samples < -30:
-                raise Exception("Annotation without corresponding signal data is not supported")    # should not happen in CPS, just as safety check
-            if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_SIGNAL.value:
-                logger.info(f"Signal started {-delay_samples/60:.2f} min after label start, signal and label will be shortened ({30+int(delay_samples)}sec) at the front to match")
-                signal = signal[30*fs+int(delay_samples*fs):]
-                labels = labels[1:]
-                return signal, labels
-            elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_ANNOT.value:
-                logger.info(f"Signal started {-delay_samples/60:.2f} min after label start, signal will be padded with constant value:{pad_values["signal"]} at the front to match")
-                n_pad_samples = int(-delay_samples*fs)
-                signal = np.hstack((np.full((n_pad_samples,), pad_values["signal"]), signal))
-                return signal, labels
-        elif delay_samples > 0:
-            return self.base_align_front(logger, delay_samples, alignment, pad_values, epoch_duration, signal, labels,fs)
+        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)
 
     
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
