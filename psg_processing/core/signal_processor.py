@@ -67,8 +67,8 @@ class SignalProcessor:
         self.logger.info(f"Sample rate before: {sampling_rate}")
 
         # Store clipping threshold
-        self.signal_min = np.min(signal) - np.mean(signal)
-        self.signal_max =np.max(signal) - np.mean(signal)
+        self.signal_min = np.nanmin(signal) - np.nanmean(signal)
+        self.signal_max = np.nanmax(signal) - np.nanmean(signal)
 
         # if fs not already desired resample fs -> resample
         if resample_freq != sampling_rate:
@@ -143,8 +143,8 @@ class SignalProcessor:
 
         # Store clipping threshold if no resampling has been done yet
         if self.signal_max is None or self.signal_min is None:
-            self.signal_min = np.min(signal) - np.mean(signal)
-            self.signal_max = np.max(signal) - np.mean(signal)
+            self.signal_min = np.nanmin(signal) - np.nanmean(signal)
+            self.signal_max = np.nanmax(signal) - np.nanmean(signal)
 
         [low, high] = self.get_filt_freq(select_ch, channel_groups)
 
