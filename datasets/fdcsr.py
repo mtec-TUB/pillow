@@ -13,7 +13,7 @@ class FDCSR(BaseDataset):
     """FDCSR (Forced Desynchrony with and without Chronic Sleep Restriction) dataset."""
     
     def __init__(self):
-        super().__init__("FDCSR","FDCSR - Forced Desynchrony with and without Chronic Sleep Restriction ", keep_folder_structure = False)
+        super().__init__("FDCSR","FDCSR - Forced Desynchrony with and without Chronic Sleep Restriction", keep_folder_structure = False)
 
     def _setup_dataset_config(self):
         self.ann2label =  {
@@ -31,26 +31,52 @@ class FDCSR(BaseDataset):
         
         
         self.intra_dataset_mapping = {
-            'Cz_Mx': ['Cz Mx', 'Cz Ax'],
-            'Pz_Mx': ['Pz Mx', 'Pz Ax'],
-            'Oz_Mx': ['Oz Mx', 'Oz Ax'],
-            'C4_Mx': ['C4 Mx', 'C4 Ax', 'C4 A1'],
-            'C3_Mx': ['C3 Mx', 'C3 Ax', 'C3 A2'],
-            'O1_M2': ['O1-M2', 'O1-A2'],
-            'Fz_Mx': ['Fz Mx', 'Fz Ax'],
-            'LOC': ['LOC A2', 'LOC Ax', 'E1 Mx'],
-            'ROC': ['ROC A1', 'ROC Ax', 'E2 Mx'],
+            'Cz': ['Cz Mx', 'Cz Ax'],
+            'Pz': ['Pz Mx', 'Pz Ax'],
+            'Oz': ['Oz Mx', 'Oz Ax'],
+            'C4': ['C4 Mx', 'C4 Ax'],
+            'C3': ['C3 Mx', 'C3 Ax'],
+            'C3_A2': ['C3 A2', 'C3 M2'],
+            'C4_A1': ['C4 A1', 'C4 M1'],
+            'O1_A2': ['O1 M2', 'O1 A2'],
+            'O2_A1': ['O2 A1', 'O2 M1'],
+            'Fz_Ax': ['Fz Mx', 'Fz Ax'],
+            'LOC': ['LOC Ax', 'E1 Mx'],
+            'ROC': ['ROC Ax', 'E2 Mx'],
+        }
+
+        self.inter_dataset_mapping = {
+            "Cz": self.Mapping(self.TTRef.Cz, None),
+            "Pz": self.Mapping(self.TTRef.Pz, None),
+            "P3 M2": self.Mapping(self.TTRef.P3, self.TTRef.RPA),
+            "P4 M1": self.Mapping(self.TTRef.P4, self.TTRef.LPA),
+            "Oz": self.Mapping(self.TTRef.Oz, None),
+            "C4": self.Mapping(self.TTRef.C4, None),
+            "C3": self.Mapping(self.TTRef.C3, None),
+            "E2 M1": self.Mapping(self.TTRef.E2, self.TTRef.LPA),
+            "E1 M2": self.Mapping(self.TTRef.E1, self.TTRef.RPA),
+            "O1_A2": self.Mapping(self.TTRef.O1, self.TTRef.RPA),
+            "O2_A1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
+            "Fz_Ax": self.Mapping(self.TTRef.Fz, None),
+            "F4 M1": self.Mapping(self.TTRef.F4, self.TTRef.LPA),
+            "F3 M2": self.Mapping(self.TTRef.F3, self.TTRef.RPA),
+            "LOC": self.Mapping(self.TTRef.EL, None),
+            "LOC A2": self.Mapping(self.TTRef.EL, self.TTRef.RPA),
+            "ROC": self.Mapping(self.TTRef.ER, None),
+            "ROC A1": self.Mapping(self.TTRef.ER, self.TTRef.LPA),
+            "C4_A1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            "C3_A2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            "ECG": self.Mapping(self.TTRef.ECG, None),
+            "EMG sm": self.Mapping(self.TTRef.EMG, None),
         }
         
         
         self.channel_names = [
-            # EEG channels
             'ROC Ax', 'Cz Mx', 'E1 Mx', 'ROC A1', 'Oz Ax', 'Fz Ax', 'E2 Mx', 'Cz Ax',
             'C3 A2', 'O2 A1', 'O1 A2', 'C4 A1', 'C3 Mx', 'C4 Mx', 'Oz Mx', 'C4 Ax',
-            'C3 Ax', 'LOC Ax', 'Fz Mx', 'LOC A2', 'Pz Ax', 'Pz Mx',
-            'EMG sm',
-            'ECG',
-            'Marker'
+            'C3 Ax', 'LOC Ax', 'Fz Mx', 'LOC A2', 'Pz Ax', 'Pz Mx','F4 M1', 'F3 M2',
+            'O1 M2', 'C3 M2', 'P3 M2',  'P4 M1','O2 M1',  'E2 M1', 'E1 M2', 'LOC A2', 'C4 M1',
+            'EMG sm', 'ECG', 'Marker', 'Ubatt'
         ]
         
         
@@ -58,13 +84,19 @@ class FDCSR(BaseDataset):
             'analog': [
                 'ROC Ax', 'Cz Mx', 'E1 Mx', 'ROC A1', 'Oz Ax', 'Fz Ax', 'E2 Mx', 'Cz Ax',
                 'C3 A2', 'O2 A1', 'O1 A2', 'C4 A1', 'C3 Mx', 'C4 Mx', 'Oz Mx', 'C4 Ax',
-                'C3 Ax', 'LOC Ax', 'Fz Mx', 'LOC A2', 'Pz Ax', 'Pz Mx', 'EMG sm', 'ECG'
+                'C3 Ax', 'LOC Ax', 'Fz Mx', 'LOC A2', 'Pz Ax', 'Pz Mx','F4 M1', 'F3 M2',
+                'O1 M2', 'C3 M2', 'P3 M2',  'P4 M1','O2 M1',  'E2 M1', 'E1 M2', 'LOC A2',
+                'C4 M1', 'EMG sm', 'ECG'
             ],
-            'digital': ['Marker']
+            'digital': ['Marker','Ubatt']
         }
                 
         self.channel_groups = {
-            'eeg_eog': ['ROC Ax', 'Cz Mx', 'E1 Mx', 'ROC A1', 'Oz Ax', 'Fz Ax', 'E2 Mx', 'Cz Ax', 'C3 A2', 'O2 A1', 'O1 A2', 'C4 A1', 'C3 Mx', 'C4 Mx', 'Oz Mx', 'C4 Ax', 'C3 Ax', 'LOC Ax', 'Fz Mx', 'LOC A2', 'Pz Ax', 'Pz Mx'],
+            'eeg_eog': ['ROC Ax', 'Cz Mx', 'E1 Mx', 'ROC A1', 'Oz Ax', 'Fz Ax', 'E2 Mx', 'Cz Ax',
+                'C3 A2', 'O2 A1', 'O1 A2', 'C4 A1', 'C3 Mx', 'C4 Mx', 'Oz Mx', 'C4 Ax',
+                'C3 Ax', 'LOC Ax', 'Fz Mx', 'LOC A2', 'Pz Ax', 'Pz Mx','F4 M1', 'F3 M2',
+                'O1 M2', 'C3 M2', 'P3 M2',  'P4 M1','O2 M1',  'E2 M1', 'E1 M2', 'LOC A2',
+                'C4 M1'],
             'emg': ['EMG sm'],
             'ecg': ['ECG']
         }
@@ -75,14 +107,12 @@ class FDCSR(BaseDataset):
             'ann_ext': '*/*_score.csv'
         }
         
-
-    
     def dataset_paths(self) -> Tuple[str, str]:
         """
         FDCSR dataset paths.
         """
-        data_dir = "FDCSR - Forced Desynchrony with and without Chronic Sleep Restriction /subjects"
-        ann_dir = "FDCSR - Forced Desynchrony with and without Chronic Sleep Restriction /subjects"
+        data_dir = "FDCSR - Forced Desynchrony with and without Chronic Sleep Restriction/subjects"
+        ann_dir = "FDCSR - Forced Desynchrony with and without Chronic Sleep Restriction/subjects"
         return data_dir, ann_dir
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
