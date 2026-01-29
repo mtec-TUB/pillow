@@ -51,6 +51,7 @@ def _resolve_paths(
     data_dir: str | None,
     ann_dir: str | None,
     output_dir: str | None,
+    output_format: str,
 ):
     """Return resolved (data_dir, ann_dir, output_dir).
 
@@ -67,11 +68,11 @@ def _resolve_paths(
 
     if output_dir:
         output_dir_resolved = os.path.join(
-            output_dir, f"{dataset.dset_name}_harmonized"
+            output_dir, f"{dataset.dset_name}_harmonized", output_format
         )
     else:
         output_dir_resolved = os.path.join(
-            base_data_dir, dataset.dataset_name, f"{dataset.dset_name}_harmonized"
+            base_data_dir, dataset.dataset_name, f"{dataset.dset_name}_harmonized", output_format
         )
 
     return data_dir_resolved, ann_dir_resolved, output_dir_resolved
@@ -92,6 +93,7 @@ def main(config):
         config.data_dir,
         config.ann_dir,
         config.output_dir,
+        config.output_format
     )
 
     print(f"Data directory: {config.data_dir}")
@@ -105,8 +107,8 @@ def main(config):
 
     if config.action == "process":
         # If channels are specified in config, set them in dataset, else use all available
-        if config.channels != []:
-            dataset.channel_names = config.channels
+        if config.channels == []:
+            config.channels = dataset.channel_names
 
         # Initialize DatasetProcessor
         processor = DatasetProcessor(dataset, config)
