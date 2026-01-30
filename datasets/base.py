@@ -203,9 +203,10 @@ class BaseDataset(ABC):
         Iz = auto()
         LPA = auto() # Same as A1 in 10-20 system
         RPA = auto() # Same as A2 in 10-20 system
+        LRPA = auto() # Linked mastoids
         
-        EL = auto()
-        ER = auto()
+        EL = auto() # LOC, E1
+        ER = auto() # ROC, E2
         
         # Computed linked Ear and Linked Ear Reference. May be rare, and so far is only in MASS. Can only find this article describing it: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5479869/
         CLE = auto()
@@ -268,11 +269,14 @@ class BaseDataset(ABC):
             # Process sleep stage events
             event_type = event.find("EventType").text
             if event_type == "Stages|Stages":
+                stage = event_concept.split("|")[0]
+                if stage == "Beginning of analysis period" or stage == "End of analysis period":
+                    continue
                 start = float(event.find("Start").text)
                 duration = float(event.find("Duration").text)
                 ann_stage_events.append(
                     {
-                        "Stage": event_concept.split("|")[0],
+                        "Stage": stage,
                         "Start": start,
                         "Duration": duration,
                     }
