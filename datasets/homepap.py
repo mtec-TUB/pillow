@@ -43,8 +43,7 @@ class HOMEPAP(BaseDataset):
                 'airflow': ['AIRFLOW','Airflow','AirFlow','AIR-flow','Flow'],
                 'heartrate': ['HeartRate','Heart Rate','HRate'],
                 'leak': ['Leak', 'LEAK1','MaskLeak', 'LEAK'],
-                'lleg': ['L-Legs', 'Lleg', 'LLeg', 'LLEG','L Leg', ],     
-                'lleg1': ['Lleg1','LLeg1','L-LEG1','LLEG1',],    
+                'lleg': ['L-Legs', 'Lleg', 'LLeg', 'LLEG','L Leg','Lleg1','LLeg1','L-LEG1','LLEG1'],     
                 'lleg2': ['L-LEG2','LLEG2','LLeg2','Lleg2'],
                 'pap_flow': ['CFLOW', 'CPAPFLOW', 'PAP Flow'],
                 'pap_mask': [ 'CPAPMask','Mask'],
@@ -57,8 +56,7 @@ class HOMEPAP(BaseDataset):
                 'pressure': ['Pressure', 'pressure','PRESSURE1'],
                 'pulse': [ 'PULSE', 'Pulse'],
                 'r_r': ['R-R', 'Resp Rate', 'RespRate', 'Resp','RR'],
-                'rleg': [ 'RLEG', 'RLeg', 'R Leg', 'R-Legs','Rleg'],
-                'rleg1': ['RLEG1','RLeg1','Rleg1','R-LEG1'],
+                'rleg': [ 'RLEG', 'RLeg', 'R Leg', 'R-Legs','Rleg','RLEG1','RLeg1','Rleg1','R-LEG1'],
                 'rleg2': ['RLeg2','Rleg2', 'RLEG2','R-LEG2' ],                
                 'snore': ['Snore'],
                 'snore2': ['SNORE'],
@@ -94,9 +92,7 @@ class HOMEPAP(BaseDataset):
             "O2-M1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
             "ECG": self.Mapping(self.TTRef.ECG, self.TTRef.Fpz),
             "lleg": self.Mapping(self.TTRef.EMG_LLEG, self.TTRef.Fpz),
-            "lleg1": self.Mapping(self.TTRef.EMG_LLEG, self.TTRef.Fpz),
             "rleg": self.Mapping(self.TTRef.EMG_RLEG, self.TTRef.Fpz),
-            "rleg1": self.Mapping(self.TTRef.EMG_RLEG, self.TTRef.Fpz),
             "chin": self.Mapping(self.TTRef.EMG_CHIN, self.TTRef.Fpz),
             "position": self.Mapping(self.TTRef.POSITION, None),
             "spo2": self.Mapping(self.TTRef.SPO2, None),
@@ -133,8 +129,7 @@ class HOMEPAP(BaseDataset):
                                 'XFlow', 'XSum', 'ecg3', 'ecg3-ECG2', 'pressure', 'xPAP', 'xPAP CPAP',
                                 # home
                                 'Battery', 'XFlow_PDS', 'Elevation', 'Activity', 'Flattening', 'RD-Pleth', 'RR', 'RD-Quality', 'Tidal Volume',
-                                'Gravity X', 'SpO2-Quality', 'SpO2-BB', 'Thorax', 'Gravity Y', 'Flow']#,'RR-0','RR-1']
-
+                                'Gravity X', 'SpO2-Quality', 'SpO2-BB', 'Thorax', 'Gravity Y', 'Flow']
         
         
         self.channel_types = {'analog': ['RLeg', 'Cannulaflow', 'AIR-flow', 'NP', 'C4', 'C3-M2', 'RLeg2', 'O2', 'ECG1-ECG2', 'PULSE', 'RCHIN', 
