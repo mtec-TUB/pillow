@@ -54,12 +54,10 @@ class UCDDB(BaseDataset):
         }
     
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        ISRUC dataset paths.
-        """
-        data_dir = "UCDDB - St. Vincent's University Hospital, University College Dublin Sleep Apnea Database"
-        ann_dir = "UCDDB - St. Vincent's University Hospital, University College Dublin Sleep Apnea Database"
-        return data_dir, ann_dir
+        return [
+            self.dataset_name,
+            self.dataset_name
+        ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """Parse ISRUC annotation files (multiple scorers in separate files)"""

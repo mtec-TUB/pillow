@@ -2,6 +2,7 @@
 MNC - Mignot Nature Communications
 """
 
+import os
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 import xml.etree.ElementTree as ET
@@ -66,12 +67,10 @@ class MNC(BaseDataset):
     
 
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        MNC dataset paths.
-        """
-        data_dir = "MNC - Mignot Nature Communications/sleep_data"
-        ann_dir = "MNC - Mignot Nature Communications/sleep_data"
-        return data_dir, ann_dir
+        return [
+            os.path.join(self.dataset_name,'sleep_data'),
+            os.path.join(self.dataset_name,'sleep_data')
+        ]
 
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """

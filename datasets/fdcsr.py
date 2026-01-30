@@ -109,12 +109,10 @@ class FDCSR(BaseDataset):
         }
         
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        FDCSR dataset paths.
-        """
-        data_dir = "FDCSR - Forced Desynchrony with and without Chronic Sleep Restriction/subjects"
-        ann_dir = "FDCSR - Forced Desynchrony with and without Chronic Sleep Restriction/subjects"
-        return data_dir, ann_dir
+        return [
+            os.path.join(self.dataset_name, "subjects"),
+            os.path.join(self.dataset_name, "subjects")
+        ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """

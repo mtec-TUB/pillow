@@ -164,12 +164,10 @@ class ANPHY(BaseDataset):
         
     
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        HMC dataset paths.
-        """
-        data_dir = "ANPHY/osfstorage-archive"
-        ann_dir = "ANPHY/osfstorage-archive"
-        return data_dir, ann_dir
+        return [
+            os.path.join(self.dataset_name, "osfstorage-archive"),
+            os.path.join(self.dataset_name, "osfstorage-archive")
+        ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """

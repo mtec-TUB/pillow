@@ -40,8 +40,8 @@ class MWT(BaseDataset):
 
     def dataset_paths(self):
         return [
-            "MWT - Maintenance of Wakefulness Test",
-            "MWT - Maintenance of Wakefulness Test"
+            self.dataset_name,
+            self.dataset_name
         ]
     
     def get_channels(self, logger, filepath):

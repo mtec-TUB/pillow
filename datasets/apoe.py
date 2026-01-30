@@ -94,10 +94,10 @@ class APOE(BaseDataset):
 
     def dataset_paths(self) -> Tuple[str, str, str]:
         """Dataset paths for APOE dataset"""
-        return (
-            "APOE - Sleep Disordered Breathing, ApoE and Lipid Metabolism/original/PSG",
-            "APOE - Sleep Disordered Breathing, ApoE and Lipid Metabolism/original/PSG"
-        )
+        return [
+            os.path.join(self.dataset_name, "original/PSG"),
+            os.path.join(self.dataset_name, "original/PSG")
+        ]
 
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """

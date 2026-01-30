@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pyedflib
 from typing import Dict, List, Optional, Tuple
@@ -66,12 +67,10 @@ class SleepEDF2018(BaseDataset):
         return psg_id, ann_id
     
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        Sleep-EDF-2018 dataset paths.
-        """
-        data_dir = "Sleep-EDFX - Sleep-EDF Expanded/1.0.0"
-        ann_dir = "Sleep-EDFX - Sleep-EDF Expanded/1.0.0"
-        return data_dir, ann_dir
+        return [
+            os.path.join(self.dataset_name,'1.0.0'),
+            os.path.join(self.dataset_name,'1.0.0')
+        ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """

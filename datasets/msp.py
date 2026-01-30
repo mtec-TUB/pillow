@@ -1,6 +1,7 @@
 """
 MSP - Maternal Sleep in Pregnancy and the Fetus
 """
+import os
 import pandas as pd
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
@@ -53,12 +54,10 @@ class MSP(BaseDataset):
         
 
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        MSP dataset paths.
-        """
-        data_dir = "MSP - Maternal Sleep in Pregnancy and the Fetus/polysomnography"
-        ann_dir = "MSP - Maternal Sleep in Pregnancy and the Fetus/polysomnography"
-        return data_dir, ann_dir
+        return [
+            os.path.join(self.dataset_name,'polysomnography'),
+            os.path.join(self.dataset_name,'polysomnography')
+        ]
         
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """

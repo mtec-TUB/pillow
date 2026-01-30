@@ -102,12 +102,10 @@ class ISRUC(BaseDataset):
         }
     
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        ISRUC dataset paths.
-        """
-        data_dir = "ISRUC/Data"
-        ann_dir = "ISRUC/Data"
-        return data_dir, ann_dir
+        return [
+            os.path.join(self.dataset_name,'Data'),
+            os.path.join(self.dataset_name,'Data')
+        ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[List[Dict]], datetime]:
         """Parse ISRUC annotation files (multiple scorers in separate files)"""

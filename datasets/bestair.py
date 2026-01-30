@@ -34,8 +34,10 @@ class BESTAIR(BaseDataset):
             'rchin': ['EMG Chin 2', 'X7'],
             'rchin_c': ['X7-X6'],
             'dif_pres': ['Differential Pre'],
-            'E1': ['E1-M2', 'EOG Left', 'LOC', 'M1-X1', 'M1-PG2'],
-            'E2': ['E2-M2', 'EOG Right', 'M2-X2', 'ROC', 'M2-PG1'],
+            'E1': ['EOG Left', 'LOC', 'M1-X1'],
+            'E1_M2': ['E1-M2', 'M1-PG2'],
+            'E2': ['EOG Right', 'M2-X2', 'ROC'],
+            'E2_M2': ['E2-M2','M2-PG1'],
             'ECG': ['EKG', 'X15'],
             'elevation': ['Elevation'],
             'ex_pres': ['xPAP EPAP'],
@@ -87,6 +89,32 @@ class BESTAIR(BaseDataset):
                 'CHIN 2', 'RD-Quality', 'CFlow', 'Flow Patient 3', 'RR', 'xPAP EPAP', 'EMG Chin 2', 'R-LEG', 'R-Leg',
                 'Nasal', 'Flow Patient 1', 'DC01', 'Flow', 'Abdomen', 'SaO2', 'ECG', 'EMG Chin 1', 'Differential Pre', 'X6-X5',
                 'X15', 'X18', 'X16', 'X3', 'X7', 'X5', 'X19', 'X4', 'X21', 'X17', 'X6', 'X7-X6', 'X20']
+        
+        ### NOT DONE!!
+        self.inter_dataset_mapping = {
+            'E1': self.Mapping(self.TTRef.EL, None),
+            'E1_M2': self.Mapping(self.TTRef.EL, self.TTRef.RPA),
+            'E2': self.Mapping(self.TTRef.ER, None),
+            'E2_M2': self.Mapping(self.TTRef.ER,  self.TTRef.RPA),
+            'ECG': self.Mapping(self.TTRef.ECG, None),
+            'C3_M2': self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            'C4_M1': self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            'F3_M2': self.Mapping(self.TTRef.F3, self.TTRef.RPA),
+            'F4_M1': self.Mapping(self.TTRef.F4, self.TTRef.LPA),
+            'O1_M2': self.Mapping(self.TTRef.O1, self.TTRef.RPA),
+            'O2_M1': self.Mapping(self.TTRef.O2, self.TTRef.LPA),
+            'M1_M2': self.Mapping(self.TTRef.LRPA, None),
+            'snore': self.Mapping(self.TTRef.SNORE, None),
+            'spo2': self.Mapping(self.TTRef.SPO2, None),
+            'lleg': self.Mapping(self.TTRef.EMG_LLEG, None),
+            'rleg': self.Mapping(self.TTRef.EMG_RLEG, None),
+            'abdomen': self.Mapping(self.TTRef.ABDOMINAL, None),
+            'thorax': self.Mapping(self.TTRef.THORACIC, None),
+            'position': self.Mapping(self.TTRef.POSITION, None),
+            'chin': self.Mapping(self.TTRef.EMG_CHIN, None),
+            'papflow': self.Mapping(self.TTRef.CPAP , None),
+
+        }
         
         
         self.channel_types = {

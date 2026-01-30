@@ -145,12 +145,10 @@ class STAGES(BaseDataset):
         
 
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        STAGES dataset paths.
-        """
-        data_dir = "/media/linda/Elements/sleep_data/STAGES - Stanford Technology Analytics and Genomics in Sleep/original/STAGES PSGs"
-        ann_dir = "/media/linda/Elements/sleep_data/STAGES - Stanford Technology Analytics and Genomics in Sleep/original/STAGES PSGs"
-        return data_dir, ann_dir
+        return [
+            os.path.join(self.dataset_name, "original", "STAGES PSGs"),
+            os.path.join(self.dataset_name, "original", "STAGES PSGs")
+        ]
         
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """

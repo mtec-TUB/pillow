@@ -1,6 +1,7 @@
 """
 NCHSDB - NCH Sleep DataBank
 """
+import os
 import pandas as pd
 from decimal import Decimal
 import numpy as np
@@ -118,12 +119,10 @@ class NCHSDB(BaseDataset):
         
 
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        NCHSDB dataset paths.
-        """
-        data_dir = "NCHSDB - NCH Sleep DataBank/sleep_data"
-        ann_dir = "NCHSDB - NCH Sleep DataBank/sleep_data"
-        return data_dir, ann_dir
+        return [
+            os.path.join(self.dataset_name,'sleep_data'),
+            os.path.join(self.dataset_name,'sleep_data')
+        ]
         
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """

@@ -1,3 +1,4 @@
+import os
 import h5py
 from typing import Dict, List, Tuple
 from datetime import datetime
@@ -90,13 +91,10 @@ class DODO(BaseDataset):
         
     
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        DOD-O dataset paths.
-        Data and annotations are in the same H5 files.
-        """
-        data_dir = "DOD-O - Dreem Open Dataset - Obstructive"
-        ann_dir = "DOD-O - Dreem Open Dataset - Obstructive"
-        return data_dir, ann_dir
+        return [
+            self.dataset_name,
+            self.dataset_name
+        ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """

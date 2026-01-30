@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Tuple
@@ -87,19 +88,16 @@ class CAP(BaseDataset):
         }
     
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        MIT-BIH dataset paths.
-        """
-        data_dir = "CAPSLPDB - CAP Sleep Database/1.0.0"
-        ann_dir = "CAPSLPDB - CAP Sleep Database/1.0.0"
-        return data_dir, ann_dir
+        return [
+            os.path.join(self.dataset_name, "1.0.0"),
+            os.path.join(self.dataset_name, "1.0.0")
+        ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
-        Parse MIT-BIH .st annotation files.
+        Parse CAP txt annotation files.
         """
         ann_stage_events = []
-        print(ann_fname)
         
         with open(ann_fname) as file:
             for i, line in enumerate(file):

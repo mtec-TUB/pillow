@@ -46,12 +46,10 @@ class EESM23(BaseDataset):
         self.file_extensions = {'psg_ext': '**/*_task-sleep_acq-PSG_eeg.set',
                                 'ann_ext': '**/*_task-sleep_acq-scoring_events.tsv'}
     def dataset_paths(self) -> tuple[str, str]:
-        """
-        EESM23 dataset paths.
-        """
-        data_dir = "Ear-EEG Sleep Monitoring 2023 (EESM23)"
-        ann_dir = "Ear-EEG Sleep Monitoring 2023 (EESM23)"
-        return data_dir, ann_dir
+        return [
+            self.dataset_name,
+            self.dataset_name
+        ]
     
     def ann_parse(self, ann_fname):
         annot = pd.read_csv(ann_fname,sep='\t', header=0)

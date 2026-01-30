@@ -45,13 +45,11 @@ class SLEEPBRL(BaseDataset):
 
     
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        SLEEPBRL dataset paths.
-        """
-        data_dir = "SLEEPBRL - Sleep Bioradiolocation Database"
-        ann_dir = "SLEEPBRL - Sleep Bioradiolocation Database"
-        return data_dir, ann_dir
-    
+        return [
+            self.dataset_name,
+            self.dataset_name
+        ]
+
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Parse SLEEPBRL .atr annotation files.

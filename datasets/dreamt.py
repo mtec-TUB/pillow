@@ -1,6 +1,7 @@
 """
 DREAMT (Dataset for Real-time sleep stage EstimAtion using Multisensor wearable Technology)
 """
+import os
 import numpy as np
 import pandas as pd
 from typing import Dict, List, Optional, Tuple
@@ -45,12 +46,10 @@ class DREAMT(BaseDataset):
         }        
     
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        DREAMT dataset paths.
-        """
-        data_dir = "DREAMT - Dataset for Real-time sleep stage EstimAtion using Multisensor wearable Technology/data"
-        ann_dir = "DREAMT - Dataset for Real-time sleep stage EstimAtion using Multisensor wearable Technology/data"
-        return data_dir, ann_dir
+        return [
+            os.path.join(self.dataset_name, "data"),
+            os.path.join(self.dataset_name, "data")
+        ]
     
     def get_channels(self, logger, filepath):
         """Extract column names from DREAMT CSV files."""

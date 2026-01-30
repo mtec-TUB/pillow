@@ -23,6 +23,22 @@ class APPLES(BaseDataset):
                         '?': 6,
                         'L': 6,
                     }
+        
+        self.inter_dataset_mapping = {
+            'EMG': self.Mapping(self.TTRef.EMG_CHIN, None),
+            'ECG': self.Mapping(self.TTRef.ECG, None),
+            'snore': self.Mapping(self.TTRef.SNORE, None),
+            'SpO2': self.Mapping(self.TTRef.SPO2, None),
+            'abdomen': self.Mapping(self.TTRef.ABDOMINAL, None),
+            'thorax': self.Mapping(self.TTRef.THORACIC, None),
+            'LEG': self.Mapping(self.TTRef.EMG_LLEG, None),
+            'O1_M2': self.Mapping(self.TTRef.O1, self.TTRef.RPA),
+            'C3_M2': self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            'C4_M1': self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            'O2_M1': self.Mapping(self.TTRef.O2, self.TTRef.LPA),
+            'LOC': self.Mapping(self.TTRef.EL, None),
+            'ROC': self.Mapping(self.TTRef.ER, None),
+        }
     
     
         self.channel_names = ['EMG', 'ECG', 'pulse', 'snore', 'SpO2', 'thermistor', 'nasal_pres', 
@@ -49,8 +65,8 @@ class APPLES(BaseDataset):
 
     def dataset_paths(self):
         return [
-            "APPLES - Apnea Positive Pressure Long-term Efficacy Study/polysomnography",
-            "APPLES - Apnea Positive Pressure Long-term Efficacy Study/polysomnography"
+            os.path.join(self.dataset_name, "polysomnography"),
+            os.path.join(self.dataset_name, "polysomnography")
         ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:

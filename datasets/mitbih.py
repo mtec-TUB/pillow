@@ -59,12 +59,10 @@ class MITBIH(BaseDataset):
         }
     
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        MIT-BIH dataset paths.
-        """
-        data_dir = "MIT-BIH - Polysomnographic Database"
-        ann_dir = "MIT-BIH - Polysomnographic Database"
-        return data_dir, ann_dir
+        return [
+            self.dataset_name,
+            self.dataset_name
+        ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """

@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
@@ -50,12 +51,10 @@ class HMC(BaseDataset):
         }
     
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        HMC dataset paths.
-        """
-        data_dir = "HMC - Haaglanden Medisch Centrum sleep staging database/1.1/recordings"
-        ann_dir = "HMC - Haaglanden Medisch Centrum sleep staging database/1.1/recordings"
-        return data_dir, ann_dir
+        return [
+            os.path.join(self.dataset_name, '1.1', 'recordings'),
+            os.path.join(self.dataset_name, '1.1', 'recordings')
+        ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """

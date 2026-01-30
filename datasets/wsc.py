@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -82,12 +83,10 @@ class WSC(BaseDataset):
             return psg_fname.split(psg_ext)[0], ann_fname.split(ann_ext2)[0]
     
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        WSC dataset paths.
-        """
-        data_dir = "WSC - Wisconsin Sleep Cohort/polysomnography"
-        ann_dir = "WSC - Wisconsin Sleep Cohort/polysomnography"
-        return data_dir, ann_dir
+        return [
+            os.path.join(self.dataset_name,'polysomnography'),
+            os.path.join(self.dataset_name,'polysomnography')
+        ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """

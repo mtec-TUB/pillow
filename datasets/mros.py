@@ -67,21 +67,10 @@ class MROS(BaseDataset):
             "LOC": self.Mapping(self.TTRef.EL, self.TTRef.Fpz)
         }
         
-        
         self.file_extensions = {
             'psg_ext': '**/*.edf',
             'ann_ext': '**/*-nsrr.xml'
         }
-
-
-    
-    def dataset_paths(self) -> Tuple[str, str]:
-        """
-        MROS dataset paths.
-        """
-        data_dir = "MROS - MrOS Sleep Study/polysomnography/edfs"
-        ann_dir = "MROS - MrOS Sleep Study/polysomnography/annotations-events-nsrr"
-        return data_dir, ann_dir
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 

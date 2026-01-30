@@ -70,12 +70,10 @@ class DCSM(BaseDataset):
         }
 
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        DCSM dataset paths.
-        """
-        data_dir = "DCSM - Danish Center of Sleep Medicine/edfs"
-        ann_dir = "DCSM - Danish Center of Sleep Medicine/annot"
-        return data_dir, ann_dir
+        return [
+            os.path.join(self.dataset_name, "edfs"),
+            os.path.join(self.dataset_name, "annot")
+        ]
     
 
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
