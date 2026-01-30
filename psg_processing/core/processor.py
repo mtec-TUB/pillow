@@ -69,8 +69,8 @@ class DatasetProcessor:
                     )
                     if ann_fname is None:
                         self.logger.warning(
-                            f"No matching annotation found for PSG: "
-                            f"{Path(psg_fname).relative_to(self.data_dir)}. Skipping file."
+                            f"No matching annotation file found for PSG: "
+                            f"{Path(psg_fname).relative_to(self.config.data_dir)}. Skipping file."
                         )
                         continue
                 else:
@@ -121,7 +121,7 @@ class DatasetProcessor:
 
             if ann_stage_events == []:
                 self.logger.warning(
-                    f"No sleep stage annotations found in {Path(ann_fname).relative_to(self.config.ann_dir)}"
+                    f"No sleep stage annotations found in {Path(ann_fname).relative_to(self.config.ann_dir)}, skipping file."
                 )
                 return
             
@@ -178,8 +178,13 @@ class DatasetProcessor:
 
         # Skip if file already exists and overwrite is False
         if not self.config.overwrite and os.path.exists(file_output_path):
-            print(f"File already exists: {file_output_path}")
-            return True, None, None    
+            if self.config.output_format == "npz":
+                print(f"File already exists: {file_output_path}")
+                return True, None, None    
+            else:
+                self.logger.info(f"File already exists: {file_output_path}")
+                # other channels are ignored as well because all channels in one file (that already exists)
+                return False, None, None    
 
         self.logger.info(f"Channel selected: {file_data["ch_name_orig"]}")
         self.logger.info(f"Mapped channel name {file_data["ch_name_orig"]} to {file_data["ch_name"]}")
@@ -484,14 +489,19 @@ class DatasetProcessor:
                 for i, file_data in enumerate(all_file_data):
                     signal = file_data["signal"].flatten()
                     scale = 10**3  # to get 3 decimals for physical min and max
+                    phys_min = floor(np.nanmin(signal) * scale) / scale
+                    phys_max = ceil(np.nanmax(signal) * scale) / scale
+                    if phys_min == phys_max:
+                        phys_min -= 1.0
+                        phys_max += 1.0
                     channel_info = {
                         "label": file_data["ch_name"],
                         "dimension": (
                             file_data["unit"] if "unit" in file_data else "a.u."
                         ),
                         "sample_frequency": file_data["sampling_rate"],
-                        "physical_min": floor(np.nanmin(signal) * scale) / scale,
-                        "physical_max": ceil(np.nanmax(signal) * scale) / scale,
+                        "physical_min": phys_min,
+                        "physical_max": phys_max,
                         "digital_min": -32768,
                         "digital_max": 32767,
                         "transducer": "",
