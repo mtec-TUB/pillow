@@ -1,3 +1,4 @@
+import os
 from typing import Tuple
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -26,7 +27,7 @@ class HOMEPAP(BaseDataset):
                 'cannula_flow': ['Cannulaflow', 'CannlulaFlow','CannualFlow','Cannula Flow', 'CannulaFlow','CannulaFLow',],
                 'cannula_nasal': ['Nasal Cannula','CannulaNasal'],
                 'chin': ['CHIN', 'Chin EMG', 'Chin', 'EMG Chin',],
-                'chest': ['CHEST','Chest'],
+                'chest': ['CHEST','Chest','Thorax'],
                 'lchin': ['LCHIN','Lchin','LChin'],
                 'rchin': ['Rchin','RChin','RCHIN',],
                 'cchin':['Cchin','CChin', 'CCHIN'],
@@ -39,7 +40,7 @@ class HOMEPAP(BaseDataset):
                 'EtCo2': ['EtCO2 #', 'ETCO2#', 'EtCO2'],
                 'EtCo2_Wave': ['ETCO2Wave','EtCO2 Wave'],
                 'TcCO2': ['TcCO2 #','TcCO2','TCCO2#','TCCO2',],
-                'airflow': ['AIRFLOW','Airflow','AirFlow','AIR-flow'],
+                'airflow': ['AIRFLOW','Airflow','AirFlow','AIR-flow','Flow'],
                 'heartrate': ['HeartRate','Heart Rate','HRate'],
                 'leak': ['Leak', 'LEAK1','MaskLeak', 'LEAK'],
                 'lleg': ['L-Legs', 'Lleg', 'LLeg', 'LLEG','L Leg', ],     
@@ -55,7 +56,7 @@ class HOMEPAP(BaseDataset):
                 'body_position': ['Body Position','BodyPosition'],
                 'pressure': ['Pressure', 'pressure','PRESSURE1'],
                 'pulse': [ 'PULSE', 'Pulse'],
-                'r_r': ['R-R', 'Resp Rate', 'RespRate', 'Resp'],
+                'r_r': ['R-R', 'Resp Rate', 'RespRate', 'Resp','RR'],
                 'rleg': [ 'RLEG', 'RLeg', 'R Leg', 'R-Legs','Rleg'],
                 'rleg1': ['RLEG1','RLeg1','Rleg1','R-LEG1'],
                 'rleg2': ['RLeg2','Rleg2', 'RLEG2','R-LEG2' ],                
@@ -68,7 +69,7 @@ class HOMEPAP(BaseDataset):
                 'saO2': ['SaO2', 'Sa02','SA02', 'SAO2'],
                 'spostat': ['OXSTAT','Ox Status','Ox',],
                 'therm': ['Thermistor'],
-                'tvol': ['TidVol'],
+                'tvol': ['TidVol','Tidal Volume'],
                 'xsum': ['XSum'],
                 }
         
@@ -107,7 +108,8 @@ class HOMEPAP(BaseDataset):
         }
         
         
-        self.channel_names = ['A1', 'A2', 'ABD', 'ABDOMEN', 'AIR-flow', 'AIRFLOW', 'Abd', 'Abd2', 'Abdomen', 'AirFlow', 'Airflow', 'Arm',
+        self.channel_names = [ # lab
+                                'A1', 'A2', 'ABD', 'ABDOMEN', 'AIR-flow', 'AIRFLOW', 'Abd', 'Abd2', 'Abdomen', 'AirFlow', 'Airflow', 'Arm',
                                'Body', 'Body Position', 'BodyPosition', 'C', 'C.', 'C3', 'C3-M2', 'C4', 'C4-M1', 'CCHIN', 'CChin', 'CFLOW',
                                 'CHEST', 'CHIN', 'CPAP', 'CPAPFLOW', 'CPAPMask', 'CPAPPressure', 'CannlulaFlow', 'CannualFlow', 'Cannula',
                                 'Cannula Flow', 'Cannula Snore', 'CannulaFLow', 'CannulaFlow', 'CannulaNasal', 'CannulaSnore', 'Cannulaflow',
@@ -128,7 +130,10 @@ class HOMEPAP(BaseDataset):
                                 'Reg2', 'Resp', 'Resp Rate', 'RespRate', 'Rleg', 'Rleg1', 'Rleg2', 'Room Light', 'SA02', 'SAO2', 'SNORE', 
                                 'SNORE MIC 1', 'SNORE Mic', 'SPO2', 'SUM', 'Sa02', 'SaO2', 'Snore', 'Snore Mic', 'Snore Sensor', 'SnoreSensor', 
                                 'SpO2', 'TCCO2', 'TCCO2#', 'THOR', 'TcCO2', 'TcCO2 #', 'TcCO2 Pleth', 'Thermistor', 'TidVol', 'VTinsp', 'Volume', 
-                                'XFlow', 'XSum', 'ecg3', 'ecg3-ECG2', 'pressure', 'xPAP', 'xPAP CPAP']
+                                'XFlow', 'XSum', 'ecg3', 'ecg3-ECG2', 'pressure', 'xPAP', 'xPAP CPAP',
+                                # home
+                                'Battery', 'XFlow_PDS', 'Elevation', 'Activity', 'Flattening', 'RD-Pleth', 'RR', 'RD-Quality', 'Tidal Volume',
+                                'Gravity X', 'SpO2-Quality', 'SpO2-BB', 'Thorax', 'Gravity Y', 'Flow']#,'RR-0','RR-1']
 
         
         
@@ -151,14 +156,14 @@ class HOMEPAP(BaseDataset):
                                          'CHIN', 'FPz', 'Leg Ltibial', 'ROC', 'Reg2', 'ECG I', 'C.', 'Mask Flow', 'HeartRate', 'Phase', 'L', 
                                          'FLOW', 'Cannula Flow', 'Chin1', 'CannulaFlow', 'E1', 'CHEST', 'Leak', 'ECG3', 'O1-M2', 'CannulaNasal', 
                                          'Rleg2', 'M2', 'L-Legs', 'O1', 'HRate', 'XFlow', 'E1-E2', 'L Leg', 'EMG2', 'RIGHT', 'Chest', 
-                                         'RLeg1-RLeg2', 'ECG1', 'Chin1-Chin2'], 
+                                         'RLeg1-RLeg2', 'ECG1', 'Chin1-Chin2','Battery', 'XFlow_PDS', 'Elevation', 'Activity', 'Flattening',
+                                         'RD-Pleth', 'RR', 'Tidal Volume', 'Gravity X', 'Thorax', 'Gravity Y', 'Flow'], 
                             'digital': ['PressureE', 'C', 'xPAP CPAP', 'PRESSURE1', 'Ox Status', 'Room Light', 'NPV flow', 
                                         'Body Position', 'VTinsp', 'Resp', 'SA02', 'EtCO2 Wave', 'Positiom', 'Gravity', 'ETCO2#', 
                                         'DC09', 'TCCO2#', 'EtCO2 #', 'pressure', 'Volume', 'RES', 'xPAP', 'PAP', 'BodyPosition', 
                                         'SaO2', 'SpO2', 'Body', 'PressureI', 'OXSTAT', 'CPAP', 'LEAK1', 'Ox', 'Sa02', 'NPV', 'RMI', 
-                                        'ETCO2Wave', 'SPO2', 'TcCO2 #', 'Resp Rate', 'EtCO2', 'TidVol']}
+                                        'ETCO2Wave', 'SPO2', 'TcCO2 #', 'Resp Rate', 'EtCO2', 'TidVol', 'RD-Quality', 'SpO2-Quality', 'SpO2-BB']}
 
-        
         
         self.channel_groups = {
             'eeg_eog': ['C3-M2', 'C3', 'C4', 'C4-M1', 'F2-M2', 'F3-M2', 'F3', 'F4-M1', 'F4', 'M1-M2', 'O1-M2', 'O2-M1','O2',
@@ -179,14 +184,12 @@ class HOMEPAP(BaseDataset):
         
         
         self.file_extensions = {
-            'psg_ext': '*/*.edf',
-            'ann_ext': '*/*-nsrr.xml'
+            'psg_ext': '**/*.edf',
+            'ann_ext': '**/*-nsrr.xml'
         }
     
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        HOMEPAP dataset paths.
-        """
-        data_dir = "HOMEPAP - Home Positive Airway Pressure/polysomnography/edfs/lab"
-        ann_dir = "HOMEPAP - Home Positive Airway Pressure/polysomnography/annotations-events-nsrr/lab"
-        return data_dir, ann_dir
+        return [
+            os.path.join(self.dataset_name, "polysomnography", "edfs"),
+            os.path.join(self.dataset_name, "polysomnography", "annotations-events-nsrr")
+        ]

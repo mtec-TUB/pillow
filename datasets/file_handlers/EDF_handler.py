@@ -2,12 +2,15 @@
 EDF file handler for PSG data processing.
 """
 
+import os
 import pyedflib
 import mne
+from warnings import catch_warnings
 
 
 class EDFHandler:
     """Handler for EDF files."""
+
 
     def get_channels(self, logger, filepath):
         """Extract channel names and frequencies from EDF files."""
@@ -19,8 +22,22 @@ class EDFHandler:
                 return labels
         except:
             try:
-                raw = mne.io.read_raw_edf(filepath, preload=False, verbose='WARNING')
-                labels = raw.ch_names
+                with catch_warnings(record=True) as w:
+                    raw = mne.io.read_raw_edf(filepath, preload=False, verbose='WARNING')
+                    if w:
+                        if w[0].message.args[0].startswith("Channel names are not unique"):
+                            duplicates = []
+                            for ch in raw.ch_names:
+                                dupl_test_raw = mne.io.read_raw_edf(filepath, include=ch,preload=False, verbose='WARNING')
+                                if ch not in dupl_test_raw.ch_names:
+                                    # Channel not found because it was mapped to a different name due to duplication
+                                    duplicates.append(ch)
+                            prefix = os.path.commonprefix(duplicates)
+                            common = prefix.rstrip("-")
+                                
+                            labels = list(set(raw.ch_names) - set(duplicates)) + [common]
+                    else:
+                        labels = raw.ch_names
                 return labels
             except Exception as e:
                 logger.error(f"Error processing EDF file with pyedflib and mne: {e}")
@@ -39,12 +56,22 @@ class EDFHandler:
                     return psg_f.readSignal(ch_idx)
         except:
             try:
-                raw = mne.io.read_raw_edf(filepath, include=channel,preload=True, verbose='WARNING')
-                signal = raw.get_data()[0]
-                return signal
+                with catch_warnings(record=True) as w:
+                    raw = mne.io.read_raw_edf(filepath, include=channel,preload=True, verbose='WARNING')
+                    if w:
+                        if w[0].message.args[0].startswith("Channel names are not unique"):
+                            channel = raw.ch_names[0]
+                        else:
+                            logger.warning(str(w.message))
+                if channel in raw.ch_names:
+                    signal = raw.get_data()
+                    return signal
             except Exception as e:
-                logger.error(f"Error reading EDF signal from: {e}")
-                logger.error("Maybe the repair_edfs.py script can help.")
+                logger.error(f"Error processing EDF file with pyedflib and mne: {e}")
+                logger.error(
+                    "Maybe the repair_edfs.py script or EDF Browser header repairer can help."
+                )
+        return None
 
     def get_signal_data(self, logger, filepath, channel):
         """Get complete EDF signal information for processing."""
@@ -71,8 +98,15 @@ class EDFHandler:
 
         except:
             try:
-                raw = mne.io.read_raw_edf(filepath, include=channel,preload=False, verbose='WARNING')
-                signal = raw.get_data()[0]
+                with catch_warnings(record=True) as w:
+                    raw = mne.io.read_raw_edf(filepath, include=channel,preload=False, verbose='WARNING')
+                    if w:
+                        if w[0].message.args[0].startswith("Channel names are not unique"):
+                            channel = raw.ch_names[0]
+                        else:
+                            logger.warning(str(w.message))
+                
+                signal = raw.get_data(picks=channel)[0]
                 start_datetime = raw.info['meas_date']
                 sampling_rate = raw.info['sfreq']
                 file_duration = raw.n_times / sampling_rate
