@@ -12,7 +12,7 @@ class Physio2018(BaseDataset):
     """Physio2018 (PhysioNet Challenge 2018) dataset."""
     
     def __init__(self):
-        super().__init__("PHYSIO2018","Physio2018 - PysioNet Challenge 2018", keep_folder_structure = False)
+        super().__init__("PHYSIO2018","Physio2018 - PysioNet Challenge 2018", keep_folder_structure = True)
 
         self._file_handler = WFDBHandler()
   
@@ -63,12 +63,10 @@ class Physio2018(BaseDataset):
         }
     
     def dataset_paths(self) -> Tuple[str, str]:
-        """
-        Physio2018 dataset paths.
-        """
-        data_dir = "Physio2018 - PysioNet Challenge 2018/1.0.0/training"
-        ann_dir = "Physio2018 - PysioNet Challenge 2018/1.0.0/training"
-        return data_dir, ann_dir
+        return [
+            os.path.join(self.dataset_name,'1.0.0'),
+            os.path.join(self.dataset_name,'1.0.0')
+            ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
