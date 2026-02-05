@@ -44,6 +44,25 @@ class DODH(BaseDataset):
             "EMG": ["emg/EMG"],
             "ECG": ["emg/ECG"]
         }
+
+        self.inter_dataset_mapping= {
+            "C3_M2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            "F4_M1": self.Mapping(self.TTRef.F4, self.TTRef.LPA),
+            "FP2_F4": self.Mapping(self.TTRef.Fp2, self.TTRef.F4),
+            "FP1_M2": self.Mapping(self.TTRef.Fp1, self.TTRef.RPA),
+            "F3_F4": self.Mapping(self.TTRef.F3, self.TTRef.F4),
+            "FP2_O2": self.Mapping(self.TTRef.Fp2, self.TTRef.O2),
+            "FP1_O1": self.Mapping(self.TTRef.Fp1, self.TTRef.O1),
+            "FP2_M1": self.Mapping(self.TTRef.Fp2, self.TTRef.LPA),
+            "FP1_F3": self.Mapping(self.TTRef.Fp1, self.TTRef.F3),
+            "F3_M2": self.Mapping(self.TTRef.F3, self.TTRef.RPA),
+            "F3_O1": self.Mapping(self.TTRef.F3, self.TTRef.O1),
+            "F4_O2": self.Mapping(self.TTRef.F4, self.TTRef.O2),
+            "EOG1": self.Mapping(self.TTRef.EL, None),
+            "EOG2": self.Mapping(self.TTRef.ER, None),
+            "ECG": self.Mapping(self.TTRef.ECG, None),
+            "EMG": self.Mapping(self.TTRef.EMG_CHIN, None)
+        }
         
         
         self.channel_names = [
@@ -72,21 +91,6 @@ class DODH(BaseDataset):
             'eeg_eog': ['eeg/F4_O2', 'eeg/FP2_F4', 'eeg/F3_M2', 'eeg/F3_O1', 'eeg/F4_M1', 'eeg/C3_M2', 'eeg/FP1_M2', 'eeg/F3_F4', 'eeg/FP2_O2', 'eeg/FP1_O1', 'eeg/FP2_M1', 'eeg/FP1_F3', 'eog/EOG2', 'eog/EOG1'],
             'emg': ['emg/EMG'],
             'ecg': ['emg/ECG']
-        }
-
-        self.inter_dataset_mapping= {
-            "C3_M2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
-            "C4_M1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
-            "F4_F4": self.Mapping(self.TTRef.F3, self.TTRef.F4),
-            "F3_M2": self.Mapping(self.TTRef.F3, self.TTRef.RPA),
-            "F3_O1": self.Mapping(self.TTRef.F3, self.TTRef.O1),
-            "F4_O2": self.Mapping(self.TTRef.F4, self.TTRef.O2),
-            "O1_M2": self.Mapping(self.TTRef.O1, self.TTRef.RPA),
-            "O2_M1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
-            "EOG1": self.Mapping(self.TTRef.EL, self.TTRef.RPA), # TODO: Find out refs
-            "EOG2": self.Mapping(self.TTRef.ER, self.TTRef.RPA), # TODO: Find out refs
-            "ECG": self.Mapping(self.TTRef.ECG, None),
-            "EMG": self.Mapping(self.TTRef.EMG_CHIN, None)
         }
         
         self.file_extensions = {

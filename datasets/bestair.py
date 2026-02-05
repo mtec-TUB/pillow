@@ -90,7 +90,6 @@ class BESTAIR(BaseDataset):
                 'Nasal', 'Flow Patient 1', 'DC01', 'Flow', 'Abdomen', 'SaO2', 'ECG', 'EMG Chin 1', 'Differential Pre', 'X6-X5',
                 'X15', 'X18', 'X16', 'X3', 'X7', 'X5', 'X19', 'X4', 'X21', 'X17', 'X6', 'X7-X6', 'X20']
         
-        ### NOT DONE!!
         self.inter_dataset_mapping = {
             'E1': self.Mapping(self.TTRef.EL, None),
             'E1_M2': self.Mapping(self.TTRef.EL, self.TTRef.RPA),
@@ -112,10 +111,9 @@ class BESTAIR(BaseDataset):
             'thorax': self.Mapping(self.TTRef.THORACIC, None),
             'position': self.Mapping(self.TTRef.POSITION, None),
             'chin': self.Mapping(self.TTRef.EMG_CHIN, None),
+            'flow': self.Mapping(self.TTRef.AIRFLOW, None),
             'papflow': self.Mapping(self.TTRef.CPAP , None),
-
         }
-        
         
         self.channel_types = {
             'analog': ['RMI', 'RR', 'L-Leg', 'Flow Patient 2', 'Flow', 'E2-M2', 'Position', 'M1-X4', 'X15', 'Gravity Y', 'X1', 'SNORE',

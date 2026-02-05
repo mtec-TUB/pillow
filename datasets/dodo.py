@@ -41,6 +41,22 @@ class DODO(BaseDataset):
             "EMG": ["emg/EMG"],
             "ECG": ["emg/ECG"]
         }
+
+        self.inter_dataset_mapping= {
+            "C3_M2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            "C4_M1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            "F3_F4": self.Mapping(self.TTRef.F3, self.TTRef.F4),
+            "F3_M2": self.Mapping(self.TTRef.F3, self.TTRef.RPA),
+            "F3_O1": self.Mapping(self.TTRef.F3, self.TTRef.O1),
+            "F4_O2": self.Mapping(self.TTRef.F4, self.TTRef.O2),
+            "O1_M2": self.Mapping(self.TTRef.O1, self.TTRef.RPA),
+            "O2_M1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
+            "O1_M1": self.Mapping(self.TTRef.O1, self.TTRef.LPA),
+            "EOG1": self.Mapping(self.TTRef.EL, self.TTRef.RPA),
+            "EOG2": self.Mapping(self.TTRef.ER, self.TTRef.RPA),
+            "ECG": self.Mapping(self.TTRef.ECG, None),
+            "EMG": self.Mapping(self.TTRef.EMG_CHIN, None)
+        }
         
         
         self.channel_names = [
@@ -69,20 +85,6 @@ class DODO(BaseDataset):
             'ecg': ['emg/ECG']
         }
 
-        self.inter_dataset_mapping= {
-            "C3_M2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
-            "C4_M1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
-            "F4_F4": self.Mapping(self.TTRef.F3, self.TTRef.F4),
-            "F3_M2": self.Mapping(self.TTRef.F3, self.TTRef.RPA),
-            "F3_O1": self.Mapping(self.TTRef.F3, self.TTRef.O1),
-            "F4_O2": self.Mapping(self.TTRef.F4, self.TTRef.O2),
-            "O1_M2": self.Mapping(self.TTRef.O1, self.TTRef.RPA),
-            "O2_M1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
-            "EOG1": self.Mapping(self.TTRef.EL, self.TTRef.RPA), # TODO: Find out refs
-            "EOG2": self.Mapping(self.TTRef.ER, self.TTRef.RPA), # TODO: Find out refs
-            "ECG": self.Mapping(self.TTRef.ECG, None),
-            "EMG": self.Mapping(self.TTRef.EMG_CHIN, None)
-        }
                 
         self.file_extensions = {
             'psg_ext': '*.h5',

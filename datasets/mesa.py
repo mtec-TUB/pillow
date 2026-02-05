@@ -52,6 +52,8 @@ class MESA(BaseDataset):
             "Abdo": self.Mapping(self.TTRef.ABDOMINAL, None),
             "Thor": self.Mapping(self.TTRef.THORACIC, None),
             "EMG": self.Mapping(self.TTRef.EMG_CHIN, None),
+            "Snore": self.Mapping(self.TTRef.SNORE, None),
+            "Pos": self.Mapping(self.TTRef.POSITION, None),
         }
         
         

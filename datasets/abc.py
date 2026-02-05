@@ -38,7 +38,7 @@ class ABC(BaseDataset):
                                 'nasal_pressure': ['Nasal Pressure'],
                                 'snoring': ['Snore']
                                 }
-        
+        # https://sleepdata.org/datasets/abc/pages/montage-and-sampling-rate-information.md
         self.inter_dataset_mapping = {
             "F3": self.Mapping(self.TTRef.F3, self.TTRef.Fz),
             "F4": self.Mapping(self.TTRef.F4, self.TTRef.Fz),

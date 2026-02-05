@@ -20,6 +20,17 @@ class HMC(BaseDataset):
             "Sleep stage N3": 3,  # NREM Stage 3
             "Sleep stage R": 4,   # REM sleep
         }
+
+        self.inter_dataset_mapping = {
+            "EEG C4-M1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            "EEG F4-M1": self.Mapping(self.TTRef.F4, self.TTRef.LPA),
+            "EEG O2-M1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
+            "EEG C3-M2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            "EOG E1-M2": self.Mapping(self.TTRef.EL, self.TTRef.RPA),
+            "EOG E2-M2": self.Mapping(self.TTRef.ER, self.TTRef.RPA),
+            "EMG chin": self.Mapping(self.TTRef.EMG_CHIN, None),
+            "ECG": self.Mapping(self.TTRef.ECG, None)
+        }
         
         self.channel_names = [
             'EEG C4-M1', 'EEG F4-M1', 'EEG O2-M1', 'EEG C3-M2',

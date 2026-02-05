@@ -28,8 +28,22 @@ class MITBIH(BaseDataset):
                 }
         
         self.intra_dataset_mapping = {
-            "Resp (abdomen)": ["Resp (abdomen)","Resp (abdominal)"]
+            "Resp (abdomen)": ["Resp (abdomen)","Resp (abdominal)"],
+            "rEOG": ["EOG (right)","EOG"],
             }
+        
+        # https://physionet.org/files/slpdb/1.0.0/slpdb.html
+        self.inter_dataset_mapping = {
+            "ECG": self.Mapping(self.TTRef.ECG, None),
+            "EEG (C3-O1)": self.Mapping(self.TTRef.C3, self.TTRef.O1),
+            "EEG (C4-A1)": self.Mapping(self.TTRef.C4, self.TTRef.A1),
+            "EEG (O2-A1)": self.Mapping(self.TTRef.O2, self.TTRef.A1),
+            "EMG": self.Mapping(self.TTRef.EMG_CHIN, None),
+            "rEOG": self.Mapping(self.TTRef.ER, None),
+            "SO2": self.Mapping(self.TTRef.SPO2, None),
+            "Resp (abdomen)": self.Mapping(self.TTRef.ABDOMINAL, None),
+            "Resp (chest)": self.Mapping(self.TTRef.THORACIC, None),
+        }
         
         self.channel_names = ['BP', 'ECG', 'EEG (C3-O1)', 'EEG (C4-A1)',
                               'EEG (O2-A1)', 'EMG', 'EOG', 'EOG (right)', 

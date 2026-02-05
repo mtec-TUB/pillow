@@ -100,7 +100,7 @@ class HOMEPAP(BaseDataset):
             "snore": self.Mapping(self.TTRef.SNORE, None),
             "abdomen": self.Mapping(self.TTRef.ABDOMINAL, None),
             "chest": self.Mapping(self.TTRef.THORACIC, None),
-
+            "airflow": self.Mapping(self.TTRef.AIRFLOW, None),
         }
         
         

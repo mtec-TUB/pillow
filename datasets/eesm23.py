@@ -33,6 +33,20 @@ class EESM23(BaseDataset):
         
         
         self.channel_names = ['F3', 'EMGl', 'F4', 'O2', 'O1', 'EMGr', 'EOGr', 'EMGc', 'C4', 'C3', 'M2', 'M1', 'EOGl']
+
+        self.inter_dataset_mapping = {
+            "F3": self.Mapping(self.TTRef.F3, None),
+            "F4": self.Mapping(self.TTRef.F4, None),
+            "O1": self.Mapping(self.TTRef.O1, None),
+            "O2": self.Mapping(self.TTRef.O2, None),
+            "C3": self.Mapping(self.TTRef.C3, None),
+            "C4": self.Mapping(self.TTRef.C4, None),
+            "M1": self.Mapping(self.TTRef.LPA, None),
+            "M2": self.Mapping(self.TTRef.RPA, None),
+            "EOGl": self.Mapping(self.TTRef.EL, None),
+            "EOGr": self.Mapping(self.TTRef.ER, None),
+            "EMGc": self.Mapping(self.TTRef.EMG_CHIN, None)
+        }
         
         
         self.channel_types = {'analog': ['F3', 'EMGl', 'F4', 'O2', 'O1', 'EMGr', 'EOGr', 'EMGc', 'C4', 'C3', 'M2', 'M1', 'EOGl'], 'digital': []}
