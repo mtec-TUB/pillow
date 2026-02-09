@@ -215,6 +215,8 @@ class BaseDataset(ABC):
         # Other PSG Channels
         ECG = auto()
         EMG_CHIN = auto()
+        EMG_LCHIN = auto()
+        EMG_RCHIN = auto()
         EMG_LLEG = auto()
         EMG_RLEG = auto()
         AIRFLOW = auto()
