@@ -60,7 +60,7 @@ class DatasetProcessor:
             # Process each file
             ann_idx = 0
             for psg_idx, psg_fname in enumerate(psg_fnames):
-                print(f"\n--- Processing file {psg_idx+1}/{len(psg_fnames)} ---")
+                self.logger.info(f"\n--- Processing file {psg_idx+1}/{len(psg_fnames)} ---")
 
                 # Find matching annotation file
                 if self.config.use_annot and ann_fnames is not None:
@@ -81,7 +81,7 @@ class DatasetProcessor:
 
             # Finalize processing
             self.logging_manager.cleanup_file_handlers(self.logger)
-            self.logger.info("\n" + "=" * 60)
+            self.logger.info("=" * 60)
             self.logger.info("DATASET PREPARATION COMPLETED")
         except KeyboardInterrupt:
             self.logging_manager.cleanup_file_handlers(self.logger)
@@ -114,51 +114,107 @@ class DatasetProcessor:
         file_data["psg_fname"] = psg_fname
         file_data["ann_fname"] = ann_fname
 
-        if self.config.use_annot:
-            # Parse annotations first (is same for all channels)
-            ann_stage_events, ann_Startdatetime = self.dataset.ann_parse(ann_fname)
-            file_data["ann_start_datetime"] = ann_Startdatetime
+        # Start buffering logs for this file
+        self.logging_manager.start_buffering(self.logger)
+        log_paths = {}  # Store log paths for each channel/file
 
-            if ann_stage_events == []:
-                self.logger.warning(
-                    f"No sleep stage annotations found in {Path(ann_fname).relative_to(self.config.ann_dir)}, skipping file."
+        try:
+            if self.config.use_annot:
+                # Parse annotations first (is same for all channels)
+                ann_stage_events, ann_Startdatetime = self.dataset.ann_parse(ann_fname)
+                file_data["ann_start_datetime"] = ann_Startdatetime
+
+                if ann_stage_events == []:
+                    self.logger.warning(
+                        f"No sleep stage annotations found in {Path(ann_fname).relative_to(self.config.ann_dir)}, skipping file."
+                    )
+                    return
+                
+                # Map dataset-labels to standardized labels and check consistency
+                file_data["labels"] = self.dataset.ann_label(
+                    self.logger, ann_stage_events, self.config.epoch_duration
                 )
-                return
+            else:
+                file_data["labels"] = None
+                file_data["ann_start_datetime"] = None          
+
+
+            # List channels to process for this file (based on config and available channels in this file)
+            channels = list(
+                set(self.config.channels)
+                & set(self.dataset.get_channels(self.logger, psg_fname))
+            )
+            if len(channels)==0:
+                self.logger.info("No selected channels found in this file. Skipping.")
+                return 
+
+            # Process each channel
+            all_file_data = []
+            for channel in channels:
+                # Set current channel for logging (to tag log records)
+                self.logging_manager.set_current_channel(channel)
+
+                channel_harm = self._harmonize_channel_name(channel)
+                file_data["ch_name"] = channel_harm
+                self.logger.info(f"Mapped channel name {channel} to {channel_harm}")
+
+                file_output_path, log_path = self._setup_output(
+                    channel_harm,
+                    file_data["psg_fname"],
+                )
+                log_paths[channel] = log_path
+
+                # Skip if file already exists and overwrite is False
+                if not self.config.overwrite and os.path.exists(file_output_path):
+                    if self.config.output_format == "npz":
+                        self.logger.warning(f"File already exists: {file_output_path}")
+                        continue
+                    else:
+                        self.logger.info(f"File already exists: {file_output_path}")
+                        # other channels are ignored as well because all channels in one file (that already exists)
+                        break
+
+                ret, proc_file_data = self._process_channel(
+                    copy.deepcopy(file_data),
+                    channel,
+                )
+                if not ret:  
+                    # marks that other channels of this file don't have to be processed (e.g. not enough sleep epochs)
+                    break
+
+                # Save processed data if output is npz, else save it together with all other channels to save after
+                if proc_file_data is not None:
+                    if self.config.output_format == "npz":
+                        self._save_processed_data(proc_file_data, file_output_path)
+                    elif self.config.output_format in ["edf", "hdf5"]:
+                        if proc_file_data is not None:
+                            # edf or h5 output
+                            all_file_data.append(proc_file_data)
+
+
+            # Save multi-channel data if edf or hdf5 output specified (npz already saved per channel)
+            if all_file_data and self.config.output_format in ["edf", "hdf5"]:
+                self._save_processed_data(all_file_data, file_output_path)
+        
+        except Exception as e:
+            # Log the exception
+            self.logger.error(f"Error processing file {Path(psg_fname).name}: {str(e)}", exc_info=True)
+            raise  # Re-raise after logging
+        
+        finally:
+            # Flush buffered logs to file(s), even if an exception occurred
+            if self.config.output_format == "npz":
+                # For npz, flush to each channel's log file with channel filtering
+                for channel, log_path in log_paths.items():
+                    self.logging_manager.flush_buffer_to_file(log_path, channel=channel)
+                    self.logging_manager.clear_buffer(channel=channel)
+            elif self.config.output_format in ["edf", "hdf5"] and log_paths:
+                # For edf/hdf5, flush all channels' logs to single file
+                first_log_path = next(iter(log_paths.values()))
+                self.logging_manager.flush_buffer_to_file(first_log_path)
             
-            # Map dataset-labels to standardized labels and check consistency
-            file_data["labels"] = self.dataset.ann_label(
-                self.logger, ann_stage_events, self.config.epoch_duration
-            )
-        else:
-            file_data["labels"] = None
-            file_data["ann_start_datetime"] = None          
-
-
-        # List channels to process for this file (based on config and available channels in this file)
-        channels = list(
-            set(self.config.channels)
-            & set(self.dataset.get_channels(self.logger, psg_fname))
-        )
-        if len(channels)==0:
-            self.logger.info("No selected channels found in this file. Skipping.")
-
-        # Process each channel
-        all_file_data = []
-        for channel in channels:
-            ret, proc_file_data, file_output_path = self._process_channel(
-                copy.deepcopy(file_data),
-                channel,
-            )
-            if not ret:  
-                # marks that other channels of this file don't have to be processed (e.g. not enough sleep epochs)
-                break
-            if proc_file_data is not None:
-                # edf or h5 output
-                all_file_data.append(proc_file_data)
-
-        # Save multi-channel data if edf or hdf5 output specified (npz already saved per channel)
-        if all_file_data and self.config.output_format in ["edf", "hdf5"]:
-            self._save_processed_data(all_file_data, file_output_path)
+            # Stop buffering for next file
+            self.logging_manager.stop_buffering(self.logger)
 
     def _process_channel(
         self,
@@ -167,27 +223,9 @@ class DatasetProcessor:
     ):
         """Process a single channel from a single file."""
 
-        # Setup harmonized channel name, output paths and logging
-        file_output_path, channel_harm = self._setup_output(
-            channel,
-            file_data["psg_fname"],
-        )
-
-        file_data["ch_name"] = channel_harm
         file_data["ch_name_orig"] = channel
 
-        # Skip if file already exists and overwrite is False
-        if not self.config.overwrite and os.path.exists(file_output_path):
-            if self.config.output_format == "npz":
-                print(f"File already exists: {file_output_path}")
-                return True, None, None    
-            else:
-                self.logger.info(f"File already exists: {file_output_path}")
-                # other channels are ignored as well because all channels in one file (that already exists)
-                return False, None, None    
-
         self.logger.info(f"Channel selected: {file_data["ch_name_orig"]}")
-        self.logger.info(f"Mapped channel name {file_data["ch_name_orig"]} to {file_data["ch_name"]}")
         self.logger.info(f"Signal file: {Path(file_data['psg_fname']).relative_to(self.config.data_dir)}")
         if self.config.use_annot:
             self.logger.info(f"Annotation file: {Path(file_data['ann_fname']).relative_to(self.config.ann_dir)}")
@@ -244,7 +282,7 @@ class DatasetProcessor:
             self.logger.warning(
                 f"Channel does not hold at least one epoch, only {len(signal)} samples"
             )
-            return True, None, None # mark that other channels can still be processed
+            return True, None # mark that other channels can still be processed
 
         self.logger.info(f"Seconds in unfilled (cropped) epoch: {remainder / fs:.4f} sec")
 
@@ -270,27 +308,24 @@ class DatasetProcessor:
             signal_epoched, labels = self._clean_signal(signal_epoched, labels)
 
             if signal_epoched is None:  # Marker that not enough sleep epochs detected -> all other channels in this file can be skipped aswell
-                return False, None, None
+                return False, None
 
         # update signal, labels and sampling_rate after the processing
         file_data.update({"signal": signal_epoched, "labels": labels, "sampling_rate": fs})
 
-        # Save processed data if output is npz, else return the data and save it together with all other channels after
-        if self.config.output_format == "npz":
-            self._save_processed_data(file_data, file_output_path)
-            self.logger.info("=" * 40)
-            return True, None, None
+        self.logger.info("=" * 40)
 
-        elif self.config.output_format in ["edf", "hdf5"]:
-            self.logger.info("=" * 40)
-            return True, file_data, file_output_path
-        
+        return True, file_data
+
+    def _harmonize_channel_name(self, channel):
+        """Harmonize channel name based on dataset-specific mapping."""
+        if self.config.map_channel_names:
+            return self.dataset.map_channel(channel)
         else:
-            self.logger.error(f"Unknown output format: {self.config.output_format}")
-            raise ValueError(f"Unknown output format: {self.config.output_format}")
+            return channel
 
     def _setup_output(self, channel, psg_fname):
-        """Setup output directory and filename for a channel."""
+        """Setup generic output parts shared across formats."""
 
         # Create output directory
         if self.dataset.keep_folder_structure:
@@ -300,48 +335,39 @@ class DatasetProcessor:
         else:
             relative_path = ""
 
-        # Channel name harmonization
-        if self.config.map_channel_names:       
-            channel_harm = self.dataset.map_channel(channel)
-        else:
-            channel_harm = channel
-
-        # Generate output file name
-        filename = f"{Path(psg_fname).stem}.{self.config.output_format}"
-
         if self.config.output_format == "npz":
             # Output is generated per channel and sorted into channel folders with corresponding log file
-
             # replace slash in folder names to avoid nester output structure and colon because it is often not accepted in folder names
-            channel_harm_clean = re.sub(r"[:/]", "_", channel_harm)
+            channel_clean = re.sub(r"[:/]", "_", channel)
             output_dir = os.path.join(
                 self.config.output_dir,
                 relative_path,
-                channel_harm_clean,
+                channel_clean,
             )
-            file_output_path = os.path.join(output_dir, filename)
             log_dir = output_dir
-            log_filename = channel_harm_clean + ".log"
+            log_filename = channel_clean + ".log"
 
         elif self.config.output_format in ["edf", "hdf5"]:
             # Output is generated per PSG file containing all channels, log files are saved per PSG file separately
-
             output_dir = os.path.join(
                 self.config.output_dir, relative_path
             )
-            file_output_path = os.path.join(output_dir, filename)
             log_dir = os.path.join(output_dir, "log_files")
             log_filename = f"{Path(psg_fname).stem}.log"
+        else:
+            self.logger.error(f"Unknown output format: {self.config.output_format}")
+            raise ValueError(f"Unknown output format: {self.config.output_format}")
 
+        # Generate output file name
+        filename = f"{Path(psg_fname).stem}.{self.config.output_format}"
+        file_output_path = os.path.join(output_dir, filename)
         os.makedirs(output_dir, exist_ok=True)
         os.makedirs(log_dir, exist_ok=True)
 
-        # Setup logging
-        self.logging_manager.setup_file_logging(
-            self.logger, log_dir, log_filename
-        )
+        # Prepare log file path (will be written later after all channels processed)
+        log_file_path = os.path.join(log_dir, log_filename)
 
-        return file_output_path, channel_harm
+        return file_output_path, log_file_path
 
     def _handle_start_datetime(self, signal, labels, fs, ann_start_datetime, signal_start_datetime):
         # If annotation holds a start datetime, check if alignment is needed
@@ -588,4 +614,5 @@ class DatasetProcessor:
                         h5f.create_dataset("y", data=labels[:, 0], compression="gzip")
                         h5f.create_dataset("y2", data=labels[:, 1], compression="gzip")
 
+        
         self.logger.info(f"Successfully saved: {file_output_path}")
