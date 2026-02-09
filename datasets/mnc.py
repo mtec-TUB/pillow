@@ -16,7 +16,7 @@ class MNC(BaseDataset):
     """MNC - Mignot Nature Communications"""
     
     def __init__(self):
-        super().__init__("MNC","MNC - Mignot Nature Communications")
+        super().__init__("MNC","MNC - Mignot Nature Communications",keep_folder_structure=False)
 
     def _setup_dataset_config(self):
         self.ann2label = {
@@ -34,7 +34,8 @@ class MNC(BaseDataset):
         }
 
         self.intra_dataset_mapping = {
-            "ECG": ["ECG","ECG1_2","ECG1"]
+            "ECG": ["ECG","ECG1_2","ECG1"],
+            "chin": ['chin','cchin'],
         }
 
         #https://sleepdata.org/datasets/mnc/pages/montage-and-sampling-rate-information.md
@@ -53,6 +54,9 @@ class MNC(BaseDataset):
             "rleg": self.Mapping(self.TTRef.EMG_RLEG, None),
             "lleg": self.Mapping(self.TTRef.EMG_LLEG, None),
             "chin": self.Mapping(self.TTRef.EMG_CHIN, None),
+            "cchin_l": self.Mapping(self.TTRef.EMG_CHIN, self.TTRef.EMG_LCHIN),
+            "rchin_c": self.Mapping(self.TTRef.EMG_CHIN, self.TTRef.EMG_RCHIN),
+            "rchin": self.Mapping(self.TTRef.EMG_RCHIN, None),
             "position": self.Mapping(self.TTRef.POSITION, None),
             "abdomen": self.Mapping(self.TTRef.ABDOMINAL, None),
             "thorax": self.Mapping(self.TTRef.THORACIC, None),

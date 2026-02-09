@@ -32,7 +32,9 @@ class SHHS(BaseDataset):
                             }
         
         
-        self.channel_names = ['EEG', 'EEG(sec)', 'EMG', 'ABDO RES', 'new air', 'CPAP', 'POSITION', 'EOG(L)', 'H.R.', 'LEG(L)', 'EEG2', 'LIGHT', 'epms', 'NEW AIR', 'New AIR', 'SOUND', 'THOR RES', 'SaO2', 'OX STAT', 'New Air', 'NASAL', 'New A/F', 'NEWAIR', 'PR', 'EEG 2', 'ECG', 'EEG(SEC)', 'EEG sec', 'OX stat', 'AIRFLOW', 'EPMS', 'LEG(R)', 'EOG(R)', 'AUX']
+        self.channel_names = ['EEG', 'EEG(sec)', 'EMG', 'ABDO RES', 'new air', 'CPAP', 'POSITION', 'EOG(L)', 'H.R.', 'LEG(L)', 'EEG2', 'LIGHT', 'epms', 'NEW AIR', 
+                              'New AIR', 'SOUND', 'THOR RES', 'SaO2', 'OX STAT', 'New Air', 'NASAL', 'New A/F', 'NEWAIR', 'PR', 'EEG 2', 'ECG', 'EEG(SEC)', 'EEG sec', 
+                              'OX stat', 'AIRFLOW', 'EPMS', 'LEG(R)', 'EOG(R)', 'AUX']
         
         
         self.channel_types = {'analog': ['EMG', 'EEG sec', 'AIRFLOW', 'EOG(R)', 'ECG', 'EEG', 'NEW AIR', 'ABDO RES', 'New A/F', 'SOUND', 'PR', 'H.R.',
@@ -48,10 +50,9 @@ class SHHS(BaseDataset):
             'snoring': ['SOUND']
         }
 
+        # https://sleepdata.org/datasets/shhs/pages/11-montage-and-sampling-rate-information-shhs2.md and https://sleepdata.org/datasets/shhs/pages/11-montage-and-sampling-rate-information-shhs1.md
         self.inter_dataset_mapping = {
             "EEG_sec": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
-            "EEG 2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
-            "EEG2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
             "EEG": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
             "EOG(L)": self.Mapping(self.TTRef.EL, self.TTRef.Nz),
             "EOG(R)": self.Mapping(self.TTRef.ER, self.TTRef.Nz),

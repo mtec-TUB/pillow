@@ -20,7 +20,7 @@ class BESTAIR(BaseDataset):
             "Unscored": 6
         }
         
-        
+        # https://gitlab-scm.partners.org/zzz-public/nsrr/-/blob/master/studies/legacy/bestair/sigs.alias.1
         self.intra_dataset_mapping = {
             'abdomen': ['abdomen', 'Abdomen', 'ABDOMEN', 'Effort Abd', 'X21'],
             'activity': ['Activity'],
@@ -74,22 +74,7 @@ class BESTAIR(BaseDataset):
             'xflow': ['XFlow'],
             'xsum': ['XSum'],
         }
-        
-        
-        self.channel_names = ['LOC', 'E1-M2', 'M2-X3', 'M2-F3', 'E2-M2', 'M1-X1', 
-                'M1-O2', 'O1-M2', 'X1', 'M2-C3', 'EEG O2-M1', 'EEG C4-M1', 'M1-X4', 
-                'C3-M2', 'X2', 'EEG F4-M1', 'C4-M1', 'M1-C4', 'EEG M1-M2',
-                'M2-PG1', 'M1-F4', 'F4-M1', 'EEG C3-M2', 'EOG Right', 
-                'F3-M2', 'M2-X2', 'EEG O1-M2', 'ROC', 'T2-T1', 'EOG Left', 'M1-PG2', 'O2-M1',  
-                'EEG F3-M2', 'M2-O1', 'EMG Chin', 'Leg L-LEG', 'xPAP IPAP', 'Effort Tho', 'ABDOMEN', 'CFLOW', 'DHR', 'DC03', 'Tidal Volume', 'R-R',
-                'THORAX', 'Leak', 'Phase', 'Body', 'Snore', 'Chin', 'SpO2', 'Sum', 'Effort Abd', 'DC07', 'Thermistor',
-                'EKG', 'RD-Pleth', 'CHIN', 'Flow Patient 2', 'RMI', 'FLOW', 'L-LEG', 'SNORE', 'SpO2-BB', 'BODY', 'Activity',
-                'XSum', 'SpO2-Quality', 'SAO2', 'CHIN2', 'DC04', 'THO', 'Pulse', 'L-Leg', 'SAO2W', 'Battery', 'XFlow', 
-                'Gravity Y', 'DC05', 'Thorax', 'CPAP', 'Position', 'DC02', 'NAF', 'Gravity X', 'Elevation', 
-                'CHIN 2', 'RD-Quality', 'CFlow', 'Flow Patient 3', 'RR', 'xPAP EPAP', 'EMG Chin 2', 'R-LEG', 'R-Leg',
-                'Nasal', 'Flow Patient 1', 'DC01', 'Flow', 'Abdomen', 'SaO2', 'ECG', 'EMG Chin 1', 'Differential Pre', 'X6-X5',
-                'X15', 'X18', 'X16', 'X3', 'X7', 'X5', 'X19', 'X4', 'X21', 'X17', 'X6', 'X7-X6', 'X20']
-        
+
         self.inter_dataset_mapping = {
             'E1': self.Mapping(self.TTRef.EL, None),
             'E1_M2': self.Mapping(self.TTRef.EL, self.TTRef.RPA),
@@ -111,9 +96,26 @@ class BESTAIR(BaseDataset):
             'thorax': self.Mapping(self.TTRef.THORACIC, None),
             'position': self.Mapping(self.TTRef.POSITION, None),
             'chin': self.Mapping(self.TTRef.EMG_CHIN, None),
+            'lchin': self.Mapping(self.TTRef.EMG_LCHIN, None),
+            'rchin': self.Mapping(self.TTRef.EMG_RCHIN, None),
             'flow': self.Mapping(self.TTRef.AIRFLOW, None),
             'papflow': self.Mapping(self.TTRef.CPAP , None),
         }
+        
+        
+        self.channel_names = ['LOC', 'E1-M2', 'M2-X3', 'M2-F3', 'E2-M2', 'M1-X1', 
+                'M1-O2', 'O1-M2', 'X1', 'M2-C3', 'EEG O2-M1', 'EEG C4-M1', 'M1-X4', 
+                'C3-M2', 'X2', 'EEG F4-M1', 'C4-M1', 'M1-C4', 'EEG M1-M2',
+                'M2-PG1', 'M1-F4', 'F4-M1', 'EEG C3-M2', 'EOG Right', 
+                'F3-M2', 'M2-X2', 'EEG O1-M2', 'ROC', 'T2-T1', 'EOG Left', 'M1-PG2', 'O2-M1',  
+                'EEG F3-M2', 'M2-O1', 'EMG Chin', 'Leg L-LEG', 'xPAP IPAP', 'Effort Tho', 'ABDOMEN', 'CFLOW', 'DHR', 'DC03', 'Tidal Volume', 'R-R',
+                'THORAX', 'Leak', 'Phase', 'Body', 'Snore', 'Chin', 'SpO2', 'Sum', 'Effort Abd', 'DC07', 'Thermistor',
+                'EKG', 'RD-Pleth', 'CHIN', 'Flow Patient 2', 'RMI', 'FLOW', 'L-LEG', 'SNORE', 'SpO2-BB', 'BODY', 'Activity',
+                'XSum', 'SpO2-Quality', 'SAO2', 'CHIN2', 'DC04', 'THO', 'Pulse', 'L-Leg', 'SAO2W', 'Battery', 'XFlow', 
+                'Gravity Y', 'DC05', 'Thorax', 'CPAP', 'Position', 'DC02', 'NAF', 'Gravity X', 'Elevation', 
+                'CHIN 2', 'RD-Quality', 'CFlow', 'Flow Patient 3', 'RR', 'xPAP EPAP', 'EMG Chin 2', 'R-LEG', 'R-Leg',
+                'Nasal', 'Flow Patient 1', 'DC01', 'Flow', 'Abdomen', 'SaO2', 'ECG', 'EMG Chin 1', 'Differential Pre', 'X6-X5',
+                'X15', 'X18', 'X16', 'X3', 'X7', 'X5', 'X19', 'X4', 'X21', 'X17', 'X6', 'X7-X6', 'X20']
         
         self.channel_types = {
             'analog': ['RMI', 'RR', 'L-Leg', 'Flow Patient 2', 'Flow', 'E2-M2', 'Position', 'M1-X4', 'X15', 'Gravity Y', 'X1', 'SNORE',
@@ -134,7 +136,7 @@ class BESTAIR(BaseDataset):
             'eeg_eog': ['LOC', 'E1-M2', 'M2-X3', 'M2-F3', 'E2-M2', 'M1-X1', 'M1-O2', 'O1-M2', 'X1', 'M2-C3', 'EEG O2-M1', 'EEG C4-M1', 'M1-X4', 'C3-M2', 'X2', 'EEG F4-M1', 'C4-M1', 'M1-C4', 'EEG M1-M2', 'M2-PG1', 'M1-F4', 'F4-M1', 'EEG C3-M2', 'EOG Right', 'F3-M2', 'M2-X2', 'EEG O1-M2', 'ROC', 'T2-T1', 'EOG Left', 'M1-PG2', 'O2-M1', 'EEG F3-M2', 'M2-O1'],
             'emg': ['chin', 'CHIN', 'Chin', 'EMG_Chin', 'lchin', 'CHIN2', 'CHIN_2', 'X5', 'rchin', 'EMG_Chin_2', 'X7', 'rchin_c', 'X7-X6', 'cchin', 'EMG_Chin_1', 'X6', 'cchin_l', 'X6-X5', 'lleg', 'Leg_L-LEG', 'L-Leg', 'L-LEG', 'X17', 'rleg', 'R-Leg', 'R-LEG', 'X16'],
             'ecg': ['ECG', 'EKG', 'X15'],
-            'thoraco_abdo_resp': ['abdomen', 'Abdomen', 'ABDOMEN', 'Effort_Abd', 'X21', 'thorax', 'Effort_Tho', 'THO', 'Thorax', 'THORAX', 'X20'],
+            'thoraco_abdo_resp': ['abdomen', 'Abdomen', 'ABDOMEN', 'Effort_Abd', 'X21', 'thorax', 'Effort_Tho', 'THO', 'Thorax', 'THORAX', 'X20','Thermistor', 'X19', 'Flow Patient 1','FLOW', 'Flow', 'Flow Patient2'],
             'nasal_pressure': ['nas_pres'],
             'snoring': ['snore', 'Snore', 'SNORE', 'X18']
         }

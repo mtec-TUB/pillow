@@ -134,7 +134,7 @@ class CAP(BaseDataset):
                                   'O2', 'O2-A1', 'O2A1','P3', 'P3-O1', 'P4', 'P4-O2',  'ROC', 'ROC-A2', 'ROC-LOC', 'T3', 'T3-T5', 'T4', 'T4-T6', 'T5', 'T6', ],
             'emg': ['CHIN1', 'CHIN2', 'EMG', 'EMG-EMG', 'EMG1', 'EMG1-EMG2', 'EMG2','Tib dx', 'Tib sx','TIB Dx', 'TIB Sx', 'deltoide', 'tib dx', 'tib sin' ],
             'ecg': ['ECG', 'ECG1', 'ECG1-ECG2', 'ECG2', 'EKG','ekg',],
-            'thoraco_abdo_resp':[ 'ADDDOME', 'ADDOME', 'Abdo','Flow','Torace', 'abdomen', 'toracico', 'thorax','TORACE','flow', 'Canula', 'cannula','TERMISTORE', 'THE',  ],
+            'thoraco_abdo_resp':[ 'ADDDOME', 'ADDOME', 'Abdo','Flow','Torace', 'abdomen', 'toracico', 'thorax','TORACE','flow', 'TERMISTORE'],
             'snoring': ['MIC','Sound',]
         }
         

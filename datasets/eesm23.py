@@ -45,7 +45,9 @@ class EESM23(BaseDataset):
             "M2": self.Mapping(self.TTRef.RPA, None),
             "EOGl": self.Mapping(self.TTRef.EL, None),
             "EOGr": self.Mapping(self.TTRef.ER, None),
-            "EMGc": self.Mapping(self.TTRef.EMG_CHIN, None)
+            "EMGc": self.Mapping(self.TTRef.EMG_CHIN, None),
+            "EMGl": self.Mapping(self.TTRef.EMG_LCHIN, None),
+            "EMGr": self.Mapping(self.TTRef.EMG_RCHIN, None),
         }
         
         

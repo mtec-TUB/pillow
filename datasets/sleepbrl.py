@@ -22,10 +22,6 @@ class SLEEPBRL(BaseDataset):
                 "R": 4,
                 }
         
-        self.intra_dataset_mapping = {
-            "Resp (abdomen)": ["Resp (abdomen)","Resp (abdominal)"]
-            }
-        
         self.channel_names = ['S9', 'S14', 'S1', 'S10', 'S5', 'S6', 'S3',
                               'S15', 'S4', 'S13', 'S2', 'S11', 'S8', 'S7', 'S12', 'S16']
         
@@ -59,7 +55,7 @@ class SLEEPBRL(BaseDataset):
         record_name, extension = os.path.splitext(ann_fname)
         annot = wfdb.rdann(record_name, extension.strip('.'))
 
-        epoch_duration = 30  # SLEEPBRL uses default 30-second epochs, is calculated afterwards
+        epoch_duration = 30  # place-holder, real duration is calculated afterwards
 
         fs = 50 # 50 Hz for all channels
 

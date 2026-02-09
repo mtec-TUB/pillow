@@ -23,8 +23,15 @@ class MWT(BaseDataset):
         #### No usable scoring (BERN)
         self.ann2label = {
         }
-    
-    
+
+        # https://zenodo.org/records/3251716
+        self.inter_dataset_mapping = {
+            "eeg_O1": self.Mapping(self.TTRef.O1, self.TTRef.RPA),
+            "eeg_O2": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
+            "E1": self.Mapping(self.TTRef.EL, self.TTRef.LPA),
+            "E2": self.Mapping(self.TTRef.ER, self.TTRef.LPA),
+        }
+
         self.channel_names = ['E1', 'E2', 'eeg_O1', 'eeg_O2']
     
         
@@ -78,7 +85,7 @@ class MWT(BaseDataset):
 
             return {
                 "signal": signal,
-                "sampling_rate": sampling_rate,
+                "sampling_rate": float(sampling_rate),
                 "start_datetime": None,
                 "file_duration": file_duration,
             }

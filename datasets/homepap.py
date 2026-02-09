@@ -94,6 +94,8 @@ class HOMEPAP(BaseDataset):
             "lleg": self.Mapping(self.TTRef.EMG_LLEG, self.TTRef.Fpz),
             "rleg": self.Mapping(self.TTRef.EMG_RLEG, self.TTRef.Fpz),
             "chin": self.Mapping(self.TTRef.EMG_CHIN, self.TTRef.Fpz),
+            "lchin": self.Mapping(self.TTRef.EMG_LCHIN, self.TTRef.Fpz),
+            "rchin": self.Mapping(self.TTRef.EMG_RCHIN, self.TTRef.Fpz),
             "position": self.Mapping(self.TTRef.POSITION, None),
             "spo2": self.Mapping(self.TTRef.SPO2, None),
             "pap_flow": self.Mapping(self.TTRef.CPAP, None),
@@ -171,7 +173,7 @@ class HOMEPAP(BaseDataset):
                     'RLeg1-RLeg2', 'R-LEG2', 'R-LEG1', 'R-Legs', 'Rleg', 'LEG/R2', 'Leg Rtibial'],
             'ecg': ['EKG3', 'ecg3-ECG2', 'EKG1', 'ECG3-ECG1', 'ecg3', 'ECG2', 'EKG', 'EKG2', 'ECG', 'ECG I', 
                     'ECG1-ECG2', 'ECG3', 'ECG1', 'ECG1-ecg3', 'ECG II'],
-            'thoraco_abdo_resp': ['Thermistor', 'ABDOMEN', 'Abdomen', 'ABD', 'Abd', 'Abd2', 'THOR', 'CHEST', 'Chest', 'Chest1'],
+            'thoraco_abdo_resp': ['Thermistor', 'ABDOMEN', 'Abdomen', 'ABD', 'Abd', 'Abd2', 'THOR', 'CHEST', 'Chest', 'Chest1','Thermistor','AIRFLOW','Airflow','AirFlow','AIR-flow','Flow'],
             'nasal_pressure': ['Nasal', 'Nasal Pressure'],
             'snoring': ['SNORE', 'Snore', 'Snore Mic', 'Snore Sensor', 'CannulaSnore', 'SnoreSensor', 'SNORE mic', 
                         'Cannula Snore', 'SNORE MIC 1']

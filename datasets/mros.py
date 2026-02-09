@@ -28,7 +28,7 @@ class MROS(BaseDataset):
                 'ECGL': ['ECGL','ECG L'],
                 'RChin': ['R Chin','RChin'],
                 'LChin': [ 'LChin','L Chin'],
-                'Chest': ['Thoracic'],
+                'Thorax': ['Thoracic', 'Chest'],
                 'LLeg': ['LegL','Leg L'],
                 'RLeg': [ 'Leg R', 'LegR',],
                 'Nasal_press': ['Cannula Flow', 'CannulaFlow','CH37'],
@@ -36,7 +36,31 @@ class MROS(BaseDataset):
                 'SpO2': ['SpO2','SaO2'],
                 'E1': ['E1','LOC'],
                 'E2': ['E2','ROC'],
+                'A1': ['A1', 'M1'],
+                'A2': ['A2', 'M2'],
                 }
+
+        # https://sleepdata.org/datasets/mros/pages/equipment-mros1.md and https://sleepdata.org/datasets/mros/pages/equipment-mros2.md 
+        self.inter_dataset_mapping = {
+            "C3": self.Mapping(self.TTRef.C3, self.TTRef.Fpz),
+            "C3-A2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            "C4": self.Mapping(self.TTRef.C4, self.TTRef.Fpz),
+            "C4-A1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            "A1": self.Mapping(self.TTRef.LPA, self.TTRef.Fpz),
+            "A2": self.Mapping(self.TTRef.RPA, self.TTRef.Fpz),
+            "E1": self.Mapping(self.TTRef.ER, self.TTRef.Fpz),
+            "E2": self.Mapping(self.TTRef.EL, self.TTRef.Fpz),
+            "Thorax": self.Mapping(self.TTRef.THORACIC, None),
+            "Abdominal": self.Mapping(self.TTRef.ABDOMINAL, None),
+            "Airflow": self.Mapping(self.TTRef.AIRFLOW, None),
+            "Position": self.Mapping(self.TTRef.POSITION, None),
+            "SpO2": self.Mapping(self.TTRef.SPO2, None),
+            "LLeg": self.Mapping(self.TTRef.EMG_LLEG, self.TTRef.Fpz),
+            "RLeg": self.Mapping(self.TTRef.EMG_RLEG, self.TTRef.Fpz),
+            "RChin": self.Mapping(self.TTRef.EMG_RCHIN, self.TTRef.Fpz),
+            "L Chin-R Chin": self.Mapping(self.TTRef.EMG_LCHIN, self.TTRef.EMG_RCHIN),
+            "ECGR": self.Mapping(self.TTRef.ECG, None), # most frequently used ECG channel
+        }
         
         
         self.channel_names = ['STAT', 'M1', 'Chest', 'DHR', 'CH37', 'ECG R', 'R Chin', 'Leg R', 'LegL', 'M2', 'ECGL', 'C4', 'Airflow', 'CH36', 'ECG L', 'HR', 'Thoracic',
@@ -53,18 +77,9 @@ class MROS(BaseDataset):
         self.channel_groups = {
             'eeg_eog': ['E1','LOC','E2','ROC', 'M1', 'M2',  'C4','C3'],
             'emg': ['R Chin', 'RChin', 'LChin', 'L Chin', 'LegL', 'Leg L', 'Leg R', 'LegR'],
-            'ecg': ['ECG R', 'ECGR', 'ECGL', 'ECG L'],
+            'ecg': ['ECG R', 'ECGR', 'ECGL', 'ECG L','ECG L-ECG R'],
             'thoraco_abdo_resp': ['Abdominal', 'ABD', 'Chest', 'Thoracic'],
             'nasal_pressure': ['Cannula Flow', 'CannulaFlow', 'CH37']
-        }
-
-        self.inter_dataset_mapping = {
-            "C3": self.Mapping(self.TTRef.C3, self.TTRef.Fpz),
-            "C4": self.Mapping(self.TTRef.C4, self.TTRef.Fpz),
-            "A1": self.Mapping(self.TTRef.LPA, self.TTRef.Fpz),
-            "A2": self.Mapping(self.TTRef.RPA, self.TTRef.Fpz),
-            "ROC": self.Mapping(self.TTRef.ER, self.TTRef.Fpz),
-            "LOC": self.Mapping(self.TTRef.EL, self.TTRef.Fpz)
         }
         
         self.file_extensions = {

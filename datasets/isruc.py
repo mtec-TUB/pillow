@@ -49,6 +49,26 @@ class ISRUC(BaseDataset):
             'LOC_A2': ['LOC-A2', 'E1-M2'],
             'ROC_A1': ['ROC-A1', 'E2-M1'],
         }
+
+                
+        self.inter_dataset_mapping = {
+            "F3_A2": self.Mapping(self.TTRef.F3, self.TTRef.RPA),
+            "C3_A2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            "F4_A1": self.Mapping(self.TTRef.F4, self.TTRef.LPA),
+            "C4_A1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            "O1_A2": self.Mapping(self.TTRef.O1, self.TTRef.RPA),
+            "O2_A1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
+            "ROC_A1": self.Mapping(self.TTRef.ER, self.TTRef.LPA),
+            "LOC_A2": self.Mapping(self.TTRef.EL, self.TTRef.RPA),
+            "SpO2": self.Mapping(self.TTRef.SPO2, None),
+            "ECG": self.Mapping(self.TTRef.ECG, None),
+            "Chin": self.Mapping(self.TTRef.EMG_CHIN, None),
+            "LLeg": self.Mapping(self.TTRef.EMG_LLEG, None),
+            "RLeg": self.Mapping(self.TTRef.EMG_RLEG, None),
+            "Body": self.Mapping(self.TTRef.POSITION, None),
+            "Abdominal_X7": self.Mapping(self.TTRef.ABDOMINAL, None),
+            "Snore": self.Mapping(self.TTRef.SNORE, None),
+        }
         
         
         self.channel_names = [
@@ -73,27 +93,8 @@ class ISRUC(BaseDataset):
             'eeg_eog': ['O1', 'C3', 'F3', 'F4', 'O2', 'C4', 'LOC', 'ROC', 'C3', 'O1', 'O2', 'A1', 'C4', 'A2', 'F4', 'O2-M1', 'O2-A1', 'C4-M1', 'C4-A1', 'C3-M2', 'C3-A2', 'O1-M2', 'O1-A2', 'F3-M2', 'F3-A2', 'F4-M1', 'F4-A1', 'LOC-A2', 'E1-M2', 'ROC-A1', 'E2-M1'],
             'emg': ['24', 'X1', '26', 'X3', '27', 'X4'],
             'ecg': ['25', 'X2'],
-            'thoraco_abdo_resp': ['X7', 'X8', '30', '31', 'X7-X8'],
+            'thoraco_abdo_resp': ['X7', 'X8', '30', '31', 'X7-X8','X6','DC3'],
             'snoring': ['28', 'X5']
-        }
-        
-        self.inter_dataset_mapping = {
-            "F3_A2": self.Mapping(self.TTRef.F3, self.TTRef.RPA),
-            "C3_A2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
-            "F4_A1": self.Mapping(self.TTRef.F4, self.TTRef.LPA),
-            "C4_A1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
-            "O1_A2": self.Mapping(self.TTRef.O1, self.TTRef.RPA),
-            "O2_A1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
-            "ROC_A1": self.Mapping(self.TTRef.ER, self.TTRef.LPA),
-            "LOC_A2": self.Mapping(self.TTRef.EL, self.TTRef.RPA),
-            "SpO2": self.Mapping(self.TTRef.SPO2, None),
-            "ECG": self.Mapping(self.TTRef.ECG, None),
-            "Chin": self.Mapping(self.TTRef.EMG_CHIN, None),
-            "LLeg": self.Mapping(self.TTRef.EMG_LLEG, None),
-            "RLeg": self.Mapping(self.TTRef.EMG_RLEG, None),
-            "Body": self.Mapping(self.TTRef.POSITION, None),
-            "Abdominal_X7": self.Mapping(self.TTRef.ABDOMINAL, None),
-            "Snore": self.Mapping(self.TTRef.SNORE, None),
         }
         
         self.file_extensions = {

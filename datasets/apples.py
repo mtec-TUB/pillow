@@ -54,7 +54,7 @@ class APPLES(BaseDataset):
         self.channel_groups = {'eeg_eog': ['O1_M2', 'C3_M2', 'C4_M1', 'O2_M1', 'LOC', 'ROC'],
                                 'emg': ['EMG', 'LEG'],
                                 'ecg': ['ECG'],
-                                'thoraco_abdo_resp': ['abdomen', 'thorax'],
+                                'thoraco_abdo_resp': ['abdomen', 'thorax','thermistor'],
                                 'nasal_pressure': ['nasal_pres'],
                                 'snoring': ['snore']
                                 }

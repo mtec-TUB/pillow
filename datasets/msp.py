@@ -24,6 +24,25 @@ class MSP(BaseDataset):
                 'R': 4,
                 '?': 6,
         }
+
+        self.inter_dataset_mapping = {
+            "C3_M2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            "C4_M1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            "F3_M2": self.Mapping(self.TTRef.F3, self.TTRef.RPA),
+            "F4_M1": self.Mapping(self.TTRef.F4, self.TTRef.LPA),
+            "O1_M2": self.Mapping(self.TTRef.O1, self.TTRef.RPA),
+            "O2_M1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
+            "LOC": self.Mapping(self.TTRef.EL, None),
+            "ROC": self.Mapping(self.TTRef.ER, None),
+            "RAT": self.Mapping(self.TTRef.EMG_RLEG, None),
+            "LAT": self.Mapping(self.TTRef.EMG_LLEG, None),
+            "abdomen": self.Mapping(self.TTRef.ABDOMINAL, None),
+            "thorax": self.Mapping(self.TTRef.THORACIC, None),
+            "SpO2": self.Mapping(self.TTRef.SPO2, None),
+            "ECG": self.Mapping(self.TTRef.ECG, None),
+            "EMG1": self.Mapping(self.TTRef.EMG_LCHIN, None),   # not sure if this is correct (left/right)
+            "EMG2": self.Mapping(self.TTRef.EMG_RCHIN, None),
+        }
         
         self.channel_names =  ['RAT', 'LAT', 'EMG2', 'EMG1', 'ECG', 'abdomen', 'thorax', 'nasal_pres',
                                'pulse', 'F4_M1', 'ROC', 'O2_M1', 'HR', 'thermistor', 'O1_M2', 'C4_M1', 

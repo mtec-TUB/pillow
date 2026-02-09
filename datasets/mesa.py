@@ -19,26 +19,7 @@ class MESA(BaseDataset):
             "REM sleep": 4,
             "Unscored": 6,
         }
-        
 
-        self.channel_names = ['Thor', 'DHR', 'Snore', 'EKG', 'HR', 'EEG2_Off', 'EMG', 'EEG1', 'Pos', 'Therm',
-                'Leg', 'EEG2', 'EOG-R', 'Flow', 'Pleth', 'EEG3_Off', 'Aux_AC', 'SpO2', 'EOG-R_Off','Pres',
-                'EOG-L_Off', 'EMG_Off', 'EKG_Off', 'EEG3', 'Abdo', 'PTT', 'OxStatus', 'EEG1_Off', 'EOG-L']
-        
-        
-        self.channel_types = {'analog': ['Thor', 'DHR', 'Snore', 'EKG', 'EMG', 'EEG1', 'Therm', 'Leg', 'EEG2', 'EOG-R', 'Flow', 'Pleth', 'Aux_AC', 'EEG3', 'Abdo', 'PTT', 
-                           'EOG-L', 'Pres'], 
-                'digital': ['EEG2_Off', 'Pos', 'SpO2', 'EEG3_Off', 'EOG-R_Off', 'EOG-L_Off', 'EMG_Off', 'EKG_Off', 'EEG1_Off', 'OxStatus', 'HR']}
-    
-        
-        
-        self.channel_groups = {
-            'eeg_eog': ['EEG1', 'EEG2', 'EEG3', 'EOG-R', 'EOG-L'],
-            'emg': ['EMG', 'Leg'],
-            'ecg': ['EKG'],
-            'thoraco_abdo_resp': ['Thor', 'Abdo'],
-            'snoring': ['Snore']
-        }
 
         self.inter_dataset_mapping = {
             "EOG-L": self.Mapping(self.TTRef.EL, self.TTRef.Fpz),
@@ -56,6 +37,25 @@ class MESA(BaseDataset):
             "Pos": self.Mapping(self.TTRef.POSITION, None),
         }
         
+
+        self.channel_names = ['Thor', 'DHR', 'Snore', 'EKG', 'HR', 'EEG2_Off', 'EMG', 'EEG1', 'Pos', 'Therm',
+                'Leg', 'EEG2', 'EOG-R', 'Flow', 'Pleth', 'EEG3_Off', 'Aux_AC', 'SpO2', 'EOG-R_Off','Pres',
+                'EOG-L_Off', 'EMG_Off', 'EKG_Off', 'EEG3', 'Abdo', 'PTT', 'OxStatus', 'EEG1_Off', 'EOG-L']
+        
+        
+        self.channel_types = {'analog': ['Thor', 'DHR', 'Snore', 'EKG', 'EMG', 'EEG1', 'Therm', 'Leg', 'EEG2', 'EOG-R', 'Flow', 'Pleth', 'Aux_AC', 'EEG3', 'Abdo', 'PTT', 
+                           'EOG-L', 'Pres'], 
+                'digital': ['EEG2_Off', 'Pos', 'SpO2', 'EEG3_Off', 'EOG-R_Off', 'EOG-L_Off', 'EMG_Off', 'EKG_Off', 'EEG1_Off', 'OxStatus', 'HR']}
+    
+        
+        
+        self.channel_groups = {
+            'eeg_eog': ['EEG1', 'EEG2', 'EEG3', 'EOG-R', 'EOG-L'],
+            'emg': ['EMG', 'Leg'],
+            'ecg': ['EKG'],
+            'thoraco_abdo_resp': ['Thor', 'Abdo','Therm','Flow'],
+            'snoring': ['Snore']
+        }        
         
         self.file_extensions = {
             'psg_ext': '*.edf',

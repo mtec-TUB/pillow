@@ -25,11 +25,17 @@ class SleepEDF2018(BaseDataset):
             "Movement time": 5       # Movement
         }
 
+        self.inter_dataset_mapping = {
+            "EOG horizontal": self.Mapping(self.TTRef.EL, self.TTRef.ER), 
+            "EEG Fpz-Cz": self.Mapping(self.TTRef.Fpz, self.TTRef.Cz),
+            "EEG Pz-Oz": self.Mapping(self.TTRef.Pz, self.TTRef.Oz),
+            'EMG submental': self.Mapping(self.TTRef.EMG_CHIN, None),
+        }
+
         self.channel_names =  [
             'EMG submental', 'Resp oro-nasal', 'EOG horizontal', 'Temp rectal', 
             'EEG Pz-Oz', 'Event marker', 'EEG Fpz-Cz', 'Marker'
         ]
-        
         
         self.channel_types = {
             'analog': [
@@ -39,21 +45,12 @@ class SleepEDF2018(BaseDataset):
             'digital': ['Marker']
         }
         
-        
         self.channel_groups = {
             'eeg_eog': ['EOG horizontal', 'EEG Fpz-Cz', 'EEG Pz-Oz'],
             'emg': ['EMG submental'],
             'thoraco_abdo_resp': ['Resp oro-nasal']
         }
-
-        self.inter_dataset_mapping = {
-            "EOG horizontal": self.Mapping(self.TTRef.EL, self.TTRef.ER), 
-            "EEG Fpz-Cz": self.Mapping(self.TTRef.Fpz, self.TTRef.Cz),
-            "EEG Pz-Oz": self.Mapping(self.TTRef.Pz, self.TTRef.Oz),
-            'EMG submental': self.Mapping(self.TTRef.EMG_CHIN, None),
-        }
-        
-        
+    
         self.file_extensions = {
             'psg_ext': '**/*0-PSG.edf',
             'ann_ext': '**/*-Hypnogram.edf'

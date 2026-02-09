@@ -118,7 +118,7 @@ class APOE(BaseDataset):
             'eeg_eog': ['Chest', 'CHEST #1', 'Arms', 'LAT-U', 'Chin EMG', 'Chin2 EMG', 'ARM', 'RAT-L', 'RAT-U', 'Chin-R', 'L/RAT', 'Arm', 'Chin-L', 'LAT-L', 'Chin-Ctr'],
             'emg': ['Chest', 'CHEST #1', 'Arms', 'LAT-U', 'Chin EMG', 'Chin2 EMG', 'ARM', 'RAT-L', 'RAT-U', 'Chin-R', 'L/RAT', 'Arm', 'Chin-L', 'LAT-L', 'Chin-Ctr'],
             'ecg': ['EKG'],
-            'thoraco_abdo_resp': ['ABDOM', 'Abdmn', 'Abdominal', 'Abdomen', 'CHEST #1', 'Chest', 'THOR', 'RIC-U', 'RIC-L'],
+            'thoraco_abdo_resp': ['ABDOM', 'Abdmn', 'Abdominal', 'Abdomen','Airflow', 'Oral Thermistor','CHEST #1', 'Chest', 'THOR', 'RIC-U', 'RIC-L'],
             'nasal_pressure': ['Nasal Pressure'],
             'snoring': ['Snore', 'Snore2']
         }

@@ -30,6 +30,23 @@ class UCDDB(BaseDataset):
         self.intra_dataset_mapping = {
             'Sound': ['Sound', 'Soud'],
         }
+
+        self.inter_dataset_mapping = {
+            'BodyPos': self.Mapping(self.TTRef.POSITION, None),
+            'C3A2': self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            'C4A1': self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            'ECG': self.Mapping(self.TTRef.ECG, None),
+            'EMG': self.Mapping(self.TTRef.EMG_CHIN, None),
+            'Flow': self.Mapping(self.TTRef.AIRFLOW, None),
+            'Left leg': self.Mapping(self.TTRef.EMG_LLEG, None),
+            'Lefteye': self.Mapping(self.TTRef.EL, None),
+            'Right leg': self.Mapping(self.TTRef.EMG_RLEG, None),
+            'RightEye': self.Mapping(self.TTRef.ER, None),
+            'Sound': self.Mapping(self.TTRef.SNORE, None),
+            'SpO2': self.Mapping(self.TTRef.SPO2, None),
+            'abdo': self.Mapping(self.TTRef.ABDOMINAL, None),
+            'ribcage': self.Mapping(self.TTRef.THORACIC, None),
+        }
         
         
         self.channel_names = ['BodyPos', 'C3A2', 'C4A1', 'ECG', 'EMG', 'Flow', 'Left leg', 'Lefteye', 'Pulse',
@@ -42,10 +59,10 @@ class UCDDB(BaseDataset):
         
         
         self.channel_groups = {
-            'eeg_eog': ['C3A2', 'C4A1','RightEye',  'Lefteye',],
+            'eeg_eog': ['C3A2', 'C4A1','RightEye', 'Lefteye',],
             'emg': ['EMG', 'Right leg', 'Left leg', ],
             'ecg': ['ECG'],
-            'thoraco_abdo_resp': ['abdo', 'ribcage','Flow'],
+            'thoraco_abdo_resp': ['abdo', 'ribcage'],
         }
         
         self.file_extensions = {

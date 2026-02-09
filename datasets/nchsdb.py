@@ -54,9 +54,32 @@ class NCHSDB(BaseDataset):
                               'Chin1-Chin3': ['EEG Chin1-Chin3','EMG Chin1-Chin3','EMG CHIN1-CHIN3'],
                               'Snore':['EEG Snore','Snore'],
                               'SnoreDR': ['Snore_DR','SNORE_DR'],
-                              'SpO2': ['SpO2','OSAT','Osat'],
+                              'SpO2': ['OSAT',"SpO2"],  # channel "OSat" is not listed because only one file has this channel and it also contains SpO2, so we can use SpO2 for mapping
                               'Resp Chest': ['Resp Chest','Resp Thoracic'],
+        }
 
+        # chose mostly channels that appear often (more than 28% of files) in dataset (doi: 10.1038/s41597-022-01545-6)
+        self.inter_dataset_mapping = {
+            "Resp Abdomen": self.Mapping(self.TTRef.ABDOMINAL, None),
+            "Cz-O1": self.Mapping(self.TTRef.Cz, self.TTRef.O1),
+            "ECG2-ECG": self.Mapping(self.TTRef.ECG, None),
+            "EMG LLeg-RLeg": self.Mapping(self.TTRef.EMG_LLEG, self.TTRef.EMG_RLEG),
+            "LOC-M2": self.Mapping(self.TTRef.EL, self.TTRef.RPA),
+            "ROC-M1": self.Mapping(self.TTRef.ER, self.TTRef.LPA),
+            "Chin1-Chin2": self.Mapping(self.TTRef.EMG_LCHIN, self.TTRef.EMG_RCHIN),    # not sure
+            "Snore": self.Mapping(self.TTRef.SNORE, None),
+            "SpO2": self.Mapping(self.TTRef.SPO2, None),
+            "EEG C3-M2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
+            "EEG C4-M1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            "EEG O1-M2": self.Mapping(self.TTRef.O1, self.TTRef.RPA),
+            "EEG O2-M1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
+            "EEG F3-M2": self.Mapping(self.TTRef.F3, self.TTRef.RPA),
+            "EEG F4-M1": self.Mapping(self.TTRef.F4, self.TTRef.LPA),
+            "C-flow": self.Mapping(self.TTRef.CPAP, None),
+            "Resp Airflow": self.Mapping(self.TTRef.AIRFLOW, None),
+            "Resp Chest": self.Mapping(self.TTRef.THORACIC, None),
+            "EMG LLEG+-LLEG-": self.Mapping(self.TTRef.EMG_LLEG, None),
+            "EMG RLEG+-RLEG-": self.Mapping(self.TTRef.EMG_RLEG, None),
         }
 
         self.channel_names =  ['EEG F3', 'EEG 22', 'EEG M1', 'EEG 28', 'EEG 24', 'EEG Cz-O1', 'C-Flow', 'EEG 31', 'LLeg', 'Abdominal', 'EEG 29', 
