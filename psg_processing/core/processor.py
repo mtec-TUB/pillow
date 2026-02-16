@@ -32,11 +32,11 @@ class DatasetProcessor:
     def __init__(self, dataset, config):
 
         self.logging_manager = LoggingManager(level=config.logging_level)
-        self.logger = None
         self.dataset = dataset
         self.config = config
 
-    # Sleep stage labels mapping (did not yet find a better place for this, maybe in config?)
+    # Final sleep stage labels mapping (did not yet find a better place for this, maybe in config?)
+    # labels will appear like this in output 
     STAGE_DICT = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "MOVE": 5, "UNK": 6}
 
     def process_files(self):
@@ -48,14 +48,13 @@ class DatasetProcessor:
             )
 
             # Get all PSG and Annot files names
-            explorer = Dataset_Explorer(
+            psg_fnames, ann_fnames  = Dataset_Explorer(
                 self.logger,
                 self.dataset,
                 self.config.data_dir,
                 self.config.ann_dir,
                 log_level=self.config.logging_level,
-            )
-            psg_fnames, ann_fnames = explorer.get_files()
+            ).get_files()
 
             # Process each file
             ann_idx = 0
@@ -131,9 +130,23 @@ class DatasetProcessor:
                     return
                 
                 # Map dataset-labels to standardized labels and check consistency
-                file_data["labels"] = self.dataset.ann_label(
+                labels = self.dataset.ann_label(
                     self.logger, ann_stage_events, self.config.epoch_duration
                 )
+
+                sleep_idx = np.where(
+                    (labels != self.STAGE_DICT["W"])
+                    & (labels != self.STAGE_DICT["MOVE"])
+                    & (labels != self.STAGE_DICT["UNK"])
+                )[0]
+
+                if len(sleep_idx) <= self.config.min_sleep_epochs:
+                    self.logger.warning(
+                        "File contains less sleep epochs than required. Skipping"
+                    )
+                    return
+                
+                file_data["labels"] = labels
             else:
                 file_data["labels"] = None
                 file_data["ann_start_datetime"] = None          
@@ -151,13 +164,12 @@ class DatasetProcessor:
             # Process each channel
             all_file_data = []
             for channel in channels:
-                # Set current channel for logging (to tag log records)
+                # Set current channel for logging
                 self.logging_manager.set_current_channel(channel)
 
                 channel_harm = self._harmonize_channel_name(channel)
                 file_data["ch_name"] = channel_harm
-                self.logger.info(f"Mapped channel name {channel} to {channel_harm}")
-
+                
                 file_output_path, log_path = self._setup_output(
                     channel_harm,
                     file_data["psg_fname"],
@@ -167,29 +179,25 @@ class DatasetProcessor:
                 # Skip if file already exists and overwrite is False
                 if not self.config.overwrite and os.path.exists(file_output_path):
                     if self.config.output_format == "npz":
-                        self.logger.warning(f"File already exists: {file_output_path}")
+                        self.logger.info(f"File already exists: {file_output_path}, skipping channel {channel} and continuing with next channel if available.")
                         continue
                     else:
-                        self.logger.info(f"File already exists: {file_output_path}")
+                        self.logger.info(f"File already exists: {file_output_path}, skipping file and continuing with next file.")
                         # other channels are ignored as well because all channels in one file (that already exists)
                         break
 
-                ret, proc_file_data = self._process_channel(
+                proc_file_data = self._process_channel(
                     copy.deepcopy(file_data),
                     channel,
                 )
-                if not ret:  
-                    # marks that other channels of this file don't have to be processed (e.g. not enough sleep epochs)
-                    break
 
                 # Save processed data if output is npz, else save it together with all other channels to save after
                 if proc_file_data is not None:
                     if self.config.output_format == "npz":
                         self._save_processed_data(proc_file_data, file_output_path)
                     elif self.config.output_format in ["edf", "hdf5"]:
-                        if proc_file_data is not None:
-                            # edf or h5 output
-                            all_file_data.append(proc_file_data)
+                        # edf or h5 output
+                        all_file_data.append(proc_file_data)
 
 
             # Save multi-channel data if edf or hdf5 output specified (npz already saved per channel)
@@ -199,8 +207,7 @@ class DatasetProcessor:
         except Exception as e:
             # Log the exception
             self.logger.error(f"Error processing file {Path(psg_fname).name}: {str(e)}", exc_info=True)
-            raise  # Re-raise after logging
-        
+            raise  # Re-raise after logging        
         finally:
             # Flush buffered logs to file(s), even if an exception occurred
             if self.config.output_format == "npz":
@@ -223,16 +230,17 @@ class DatasetProcessor:
     ):
         """Process a single channel from a single file."""
 
-        file_data["ch_name_orig"] = channel
-
-        self.logger.info(f"Channel selected: {file_data["ch_name_orig"]}")
         self.logger.info(f"Signal file: {Path(file_data['psg_fname']).relative_to(self.config.data_dir)}")
         if self.config.use_annot:
             self.logger.info(f"Annotation file: {Path(file_data['ann_fname']).relative_to(self.config.ann_dir)}")
 
+        file_data["ch_name_orig"] = channel
+        self.logger.info(f"Channel selected: {file_data['ch_name_orig']}")
+
         # Extract data from psg file and add to file_data dictionary
         psg_data = self.dataset.get_signal_data(self.logger, file_data["psg_fname"], file_data["ch_name_orig"])
         file_data.update(psg_data)
+        del psg_data  # free memory
 
         self.logger.info(f"File duration: {file_data['file_duration']} sec, {file_data['file_duration']/3600:.2f} h")
         self.logger.info(f"Start datetime: {file_data['start_datetime']}")
@@ -259,12 +267,11 @@ class DatasetProcessor:
                 signal = signal_processor.filter_signal(
                     signal,
                     fs,
-                    file_data["ch_name_orig"],
                     self.dataset.channel_groups,
                 )
 
         if self.config.use_annot:
-            # Check if annotations and signal start at the same timestamp
+            # Check if annotations and signal start at the same timestamp and pad/crop if necessary and configured
             signal, labels = self._handle_start_datetime(signal, labels, fs, file_data["ann_start_datetime"], file_data["start_datetime"])
 
         # Reshape into epochs
@@ -282,7 +289,7 @@ class DatasetProcessor:
             self.logger.warning(
                 f"Channel does not hold at least one epoch, only {len(signal)} samples"
             )
-            return True, None # mark that other channels can still be processed
+            return
 
         self.logger.info(f"Seconds in unfilled (cropped) epoch: {remainder / fs:.4f} sec")
 
@@ -307,27 +314,26 @@ class DatasetProcessor:
             # Clean signal data based on annotations (e.g. remove movement/unknown epochs, select sleep periods)
             signal_epoched, labels = self._clean_signal(signal_epoched, labels)
 
-            if signal_epoched is None:  # Marker that not enough sleep epochs detected -> all other channels in this file can be skipped aswell
-                return False, None
-
         # update signal, labels and sampling_rate after the processing
         file_data.update({"signal": signal_epoched, "labels": labels, "sampling_rate": fs})
 
         self.logger.info("=" * 40)
 
-        return True, file_data
+        return file_data
 
     def _harmonize_channel_name(self, channel):
         """Harmonize channel name based on dataset-specific mapping."""
         if self.config.map_channel_names:
-            return self.dataset.map_channel(channel)
+            channel_harm = self.dataset.map_channel(channel)
+            self.logger.info(f"Mapped channel name {channel} to {channel_harm}")
+            return channel_harm
         else:
             return channel
 
     def _setup_output(self, channel, psg_fname):
         """Setup generic output parts shared across formats."""
 
-        # Create output directory
+        # Create output directory (including subfolders of original data structure if keep_folder_structure is True)
         if self.dataset.keep_folder_structure:
             relative_path = os.path.split(
                 Path(psg_fname).relative_to(self.config.data_dir)
@@ -361,11 +367,12 @@ class DatasetProcessor:
         # Generate output file name
         filename = f"{Path(psg_fname).stem}.{self.config.output_format}"
         file_output_path = os.path.join(output_dir, filename)
-        os.makedirs(output_dir, exist_ok=True)
-        os.makedirs(log_dir, exist_ok=True)
 
         # Prepare log file path (will be written later after all channels processed)
         log_file_path = os.path.join(log_dir, log_filename)
+
+        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(log_dir, exist_ok=True)
 
         return file_output_path, log_file_path
 
@@ -441,12 +448,6 @@ class DatasetProcessor:
             & (labels != self.STAGE_DICT["MOVE"])
             & (labels != self.STAGE_DICT["UNK"])
         )[0]
-
-        if len(sleep_idx) <= self.config.min_sleep_epochs:
-            self.logger.warning(
-                "File contains less sleep epochs than required. Skipping"
-            )
-            return None, None
 
         if self.config.n_wake_epochs == "all":
             start_idx = 0
