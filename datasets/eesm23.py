@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import numpy as np
 from scipy.interpolate import interp1d
 import pandas as pd
@@ -10,6 +11,8 @@ from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
 from datasets.file_handlers import EEGLABHandler
+
+from datasets.eesm19 import EESM_Preprocessor
 
 
 @register_dataset("EESM23")
@@ -32,7 +35,7 @@ class EESM23(BaseDataset):
                         }
         
         
-        self.channel_names = ['F3', 'EMGl', 'F4', 'O2', 'O1', 'EMGr', 'EOGr', 'EMGc', 'C4', 'C3', 'M2', 'M1', 'EOGl']
+        self.channel_names = ['EOGr', 'EMGc', 'EMGl', 'C4', 'F3', 'EMGr', 'C3', 'M1', 'F4', 'EOGl', 'O2', 'RT', 'LT', 'LB', 'RB', 'O1', 'ELE', 'M2']
 
         self.inter_dataset_mapping = {
             "F3": self.Mapping(self.TTRef.F3, None),
@@ -51,16 +54,22 @@ class EESM23(BaseDataset):
         }
         
         
-        self.channel_types = {'analog': ['F3', 'EMGl', 'F4', 'O2', 'O1', 'EMGr', 'EOGr', 'EMGc', 'C4', 'C3', 'M2', 'M1', 'EOGl'], 'digital': []}
+        self.channel_types = {'analog': ['C3', 'F4', 'F3', 'O2', 'RT', 'O1', 'LB', 'LT', 'EMGr', 'EOGl', 'EOGr', 'EMGl', 'EMGc', 'C4', 'RB', 'M1', 'M2','ELE'], 
+                              'digital': []}
         
-        
-        self.channel_groups = {'eeg_eog': ['F3', 'F4', 'O2', 'O1', 'C4', 'C3', 'EOGr', 'EOGl','M2', 'M1'],
+        self.channel_groups = {'eeg_eog': ['C3', 'F4', 'F3', 'O2', 'RT', 'O1', 'LB', 'LT', 'EOGl', 'EOGr', 'C4', 'RB', 'M1', 'M2','ELE'],
                                 'emg': ['EMGl', 'EMGr', 'EMGc'],
                                 }
                 
         
-        self.file_extensions = {'psg_ext': '**/*_task-sleep_acq-PSG_eeg.set',
+        self.file_extensions = {'psg_ext': '**/*_eeg.set',
                                 'ann_ext': '**/*_task-sleep_acq-scoring_events.tsv'}
+        
+    def get_file_identifier(self, psg_fname, ann_fname):
+        psg_id = Path(psg_fname).parent
+        ann_id = Path(ann_fname).parent
+        return psg_id, ann_id
+    
     def dataset_paths(self) -> tuple[str, str]:
         return [
             self.dataset_name,
@@ -73,8 +82,9 @@ class EESM23(BaseDataset):
         ann_stage_events = []
         start_time_label = None
 
+        start_time_label = None
         for i, row in annot.iterrows():
-            start = row['onset']
+            start = round(row['onset'])
 
             if start_time_label == None:
                 start_time_label = Decimal(str(start))
@@ -103,106 +113,4 @@ class EESM23(BaseDataset):
             return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
     
     def preprocess(self, data_dir, ann_dir, output_dir):
-        print("\n EESM23 files originally contain NaN values in signals. \n")
-        
-        execute_preprocess = input("Do you want to interpolate over these NaN values now (as recommended from the dataset authors)? (Y/N) ")
-        
-        if str(execute_preprocess).lower() == "y":
-
-            self.interpolate_files(data_dir, ann_dir, output_dir)
-
-            self.file_extensions['psg_ext'] = '**/*_task-sleep_acq-PSG_eeg_interpolated.set'
-            
-            if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
-                return False
-        
-        if str(input("Do you want to use the interpolated files for processing (if existing)? (Y/N) ")).lower() == "y":
-            self.file_extensions['psg_ext'] = '**/*_task-sleep_acq-PSG_eeg_interpolated.set'
-        return True
-    
-
-    def interpolate_files(self, data_dir, ann_dir, output_dir):
-        # Get files using dataset-specific extensions
-        explorer = Dataset_Explorer(
-            logger=None,
-            psg_file_handler=None,
-            data_dir=data_dir,
-            ann_dir=ann_dir
-        )
-        psg_fnames, _ = explorer.get_files()
-
-        # Process each file
-        for psg_idx, psg_fname in enumerate(psg_fnames):
-            print(f"\n--- Preprocessing file {psg_idx+1}/{len(psg_fnames)} ---")
-            
-            raw_data = read_raw_eeglab(psg_fname, verbose=False, preload=True)
-
-            signals = raw_data.get_data()
-            fs = raw_data.info['sfreq']
-
-            signals_interpolated = self.interpolateOverNans(signals, fs)
-                
-            raw_data._data= signals_interpolated
-            path,ext = os.path.splitext(psg_fname)
-            raw_data.export(os.path.join(path + '_interpolated' + ext), fmt='eeglab', verbose=False,overwrite=True)
-            print(f"Interpolated file saved as {os.path.basename(path + '_interpolated' + ext)}")
-
-
-    def findRuns(self,input,noWarning=False):
-
-        runStarts=[]
-        runLengths=[]
-
-        if len(input)==0:
-            print('Warning: findRuns received empty input')
-            return np.array(runStarts), np.array(runLengths)
-
-        sequence=np.asarray(input).reshape(-1)
-        if ~(sequence.all() | ((1-sequence).all())):
-            sequence=sequence.astype(int) #diff complains if it's boolean
-            changes=np.diff([0, *sequence, 0])
-            runStarts=(changes>0).nonzero()[0]
-            runEnds=(changes<0).nonzero()[0]
-            runLengths=runEnds-runStarts
-            assert all(runLengths>0)
-        elif sequence.all():
-            runStarts=np.array([0])
-            runLengths=np.array([len(sequence)])
-        elif (1-sequence).all():
-            if not noWarning:
-                print('Warning: findRuns received vector of all zeros')
-
-        return np.array(runStarts), np.array(runLengths)
-
-    def interpolateOverNans(self,allDeriv,fs):
-        #we can't have nans at the end:
-        allDeriv[np.isnan(allDeriv[:,0]),0]=0
-        allDeriv[np.isnan(allDeriv[:,-1]),-1]=0
-
-
-        for iDeriv in range(allDeriv.shape[0]):
-
-            nanSamples=np.isnan(allDeriv[iDeriv,:]).nonzero()[0]
-
-            if nanSamples.size>0:
-                [nanStart, nanDur]=self.findRuns(np.isnan(allDeriv[iDeriv,:]))
-                nanDur=nanDur-1
-                realSamples=np.unique([nanStart-1, (nanStart+nanDur)+1])
-
-                distanceToReal=nanSamples*0
-                counter=0
-                for iRun in range(len(nanDur)):
-                    distanceToReal[range(counter,counter+nanDur[iRun])]=[*range(int(np.floor(nanDur[iRun]/2))), *range(int(np.ceil(nanDur[iRun]/2)),0,-1) ]
-                    counter=counter+nanDur[iRun]
-
-                interpValues=interp1d(realSamples,allDeriv[iDeriv,realSamples])(nanSamples)
-                interpValues=interpValues*np.exp(-distanceToReal/(fs*1))
-
-                # plt.plot(allDeriv[iDeriv,:],label='Before Interp')
-
-                allDeriv[iDeriv,nanSamples]=interpValues
-                # plt.plot(allDeriv[iDeriv,:],'--',label='Interpolated')
-                # plt.show()
-
-        return allDeriv
-
+        return EESM_Preprocessor(self).preprocess(data_dir, ann_dir, output_dir)
