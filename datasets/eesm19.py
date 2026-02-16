@@ -37,6 +37,21 @@ class EESM19(BaseDataset):
         self.channel_names = ['ERC', 'ELC', 'EOGl', 'ELA', 'O2', 'EMGr', 'EMGl', 'ELT', 'M1', 'C3', 'EOGr', 'O1', 'C4', 'ERA', 'EMGc', 'ERE', 
                               'ERT', 'F4', 'ELE', 'ELI', 'ELB', 'ERI', 'ERB', 'M2', 'F3']
         
+        self.inter_dataset_mapping = {
+            "F3": self.Mapping(self.TTRef.F3, None),
+            "F4": self.Mapping(self.TTRef.F4, None),
+            "O1": self.Mapping(self.TTRef.O1, None),
+            "O2": self.Mapping(self.TTRef.O2, None),
+            "C3": self.Mapping(self.TTRef.C3, None),
+            "C4": self.Mapping(self.TTRef.C4, None),
+            "M1": self.Mapping(self.TTRef.LPA, None),
+            "M2": self.Mapping(self.TTRef.RPA, None),
+            "EOGl": self.Mapping(self.TTRef.EL, None),
+            "EOGr": self.Mapping(self.TTRef.ER, None),
+            "EMGc": self.Mapping(self.TTRef.EMG_CHIN, None),
+            "EMGl": self.Mapping(self.TTRef.EMG_LCHIN, None),
+            "EMGr": self.Mapping(self.TTRef.EMG_RCHIN, None),
+        }
         
         self.channel_types = {'analog': ['ELA', 'ELT', 'C3', 'ERC', 'EMGc', 'ERB', 'M2', 'ERE', 'M1', 'O1', 'ELB', 'EOGr', 'C4', 'O2', 'ELC', 
                                          'F3', 'ERA', 'EMGl', 'EMGr', 'EOGl', 'ERT', 'ELE', 'ERI', 'ELI', 'F4'], 
