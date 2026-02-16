@@ -110,7 +110,7 @@ class Dataset_Explorer:
         # Validate that we have matching numbers of files
         if ann_ext != "" and len(self.ann_fnames) != len(self.psg_fnames):
             self.logger.warning(
-                f"\n Number of PSG files and Annotation files do not match: ({len(self.psg_fnames)}/{len(self.ann_fnames)})"
+                f"Number of PSG files and Annotation files do not match: ({len(self.psg_fnames)}/{len(self.ann_fnames)})"
             )
 
         return self.psg_fnames, self.ann_fnames
@@ -155,8 +155,7 @@ class Dataset_Explorer:
             f"Found {len(self.ch_names)} channels to analyze across {len(self.psg_fnames)} files"
         )
         self.logger.info(
-            "TIP: Press Ctrl+C during any channel analysis to skip remaining files \
-                         and classify that channel as DIGITAL immediately.\n"
+            "TIP: Press Ctrl+C during any channel analysis to skip remaining files and classify that channel as DIGITAL immediately.\n"
         )
 
         channel_types = {"analog": [], "digital": []}
