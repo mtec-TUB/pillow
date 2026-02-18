@@ -1,5 +1,5 @@
 
-# Polysomnography Integrated Large-scale Library Of Waveforms
+# PILLOW _ Polysomnography Integrated Large-scale Library Of Waveforms
 
 A comprehensive toolkit for processing and storing polysomnography (PSG) datasets in a harmonized way, supporting various file formats and automated signal processing.
 
