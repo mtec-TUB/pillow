@@ -30,6 +30,7 @@ class SignalProcessor:
         self.signal_min = None
         self.signal_max = None
         self.filter_freq = filter_freq
+        self.select_ch = ch_name
         self.ch_type = self._get_channel_type(ch_name, ch_types)
 
     def get_filt_freq(
@@ -135,7 +136,7 @@ class SignalProcessor:
 
         return signal_resampled
 
-    def filter_signal(self, signal, fs, select_ch, channel_groups):
+    def filter_signal(self, signal, fs, channel_groups):
         """
         Filter signal based on channel type and parameters.
 
@@ -155,7 +156,7 @@ class SignalProcessor:
             self.signal_min = np.nanmin(signal) - np.nanmean(signal)
             self.signal_max = np.nanmax(signal) - np.nanmean(signal)
 
-        [low, high] = self.get_filt_freq(select_ch, channel_groups)
+        [low, high] = self.get_filt_freq(self.select_ch, channel_groups)
 
         # Filter signal according to AASM Manual
         if not (low is None and high is None) and (self.ch_type == "analog"):
