@@ -26,7 +26,7 @@ output_dir: null
 # - npz: saves a dictionary per channel per file with keys x, y, fs, ch_label, ch_label_orig, file_duration, epoch_duration, n_epochs
 # - edf: saves signal and annotation in one EDF file per recording with annotations inside the annotation channel
 # - hdf5: saves signal, annotations and metadata in one HDF5 file per recording, with datasets for each channel and annotations, and metadata as attributes
-output_format: "hdf5"
+output_format: "edf"
 
 # Overwrite existing output files
 # if false, files that exist already in the output directory will be skipped
