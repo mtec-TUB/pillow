@@ -7,15 +7,15 @@
 #                    DREAMT, EESM19, EESM23, FDCSR, HMC, HOMEPAP, ISRUC, MESA, MIT-BIH, 
 #                    MNC, MROS, MSP, MWT, NCHSDB, PHYSIO2018, SHHS, SLEEP-EDF, SLEEPBRL,
 #                    SOF, STAGES, UCDDB, WSC
-dataset: "CPS"
+dataset: "ABC"
 
 # Base directory where your sleep datasets are stored
 base_data_dir: "/media/linda/Elements/sleep_data"
 
-# Specific data directory (null = use automatic path from dataset definition)
+# Specific data directory (null = use automatic path from dataset definition and base_data_dir)
 data_dir: null
 
-# Specific annotation directory (null = use automatic path from dataset definition)
+# Specific annotation directory (null = use automatic path from dataset definition and base_data_dir)
 ann_dir: null
 
 # Specific output directory (null = use automatic path under base_data_dir)
@@ -23,25 +23,17 @@ output_dir: null
 
 # Output file format
 # Options: "npz" (numpy compressed), "edf" (European Data Format), "hdf5" (Hierarchical Data Format)
-# - npz, hdf5: saves dictionary:
-#   - x: Processed signal data array with dim [num_epochs, epoch_dur * fs]
-#   - y: Sleep stage annotations (0:"Wach", 1:"N1", 2:"N2", 3:"N3", 4:"REM", 5:"MOVE", 6:"Unknown")
-#   - fs: Sampling rate
-#   - ch_label: Channel label (like it was originally found in the input file)
-#   - file_duration Total duration of the original signal in seconds
-#   - epoch_duration Duration of each epoch (def: 30 seconds)
-#   - n_epochs: Number of epochs
-# - edf: 
-#   - saves signal and annotation in standard EDF format with annotations in the annotation channel
-# - for edf and hdf5 all chosen channels will be in one file together, for npz each channel will be saved in a separate file
-output_format: "edf"  # Options: "npz", "edf", "hdf5"
+# - npz: saves a dictionary per channel per file with keys x, y, fs, ch_label, ch_label_orig, file_duration, epoch_duration, n_epochs
+# - edf: saves signal and annotation in one EDF file per recording with annotations inside the annotation channel
+# - hdf5: saves signal, annotations and metadata in one HDF5 file per recording, with datasets for each channel and annotations, and metadata as attributes
+output_format: "hdf5"
 
 # Overwrite existing output files
 # if false, files that exist already in the output directory will be skipped
 overwrite: false
 
 # Logging level
-# Options: "INFO", "WARNING", "ERROR"
+# Options: 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'
 logging_level: "INFO"
 
 # Action to perform
@@ -54,61 +46,63 @@ resample: 100
 # Apply filtering after resampling
 filter: true
 
-# Filter frequencies to use when 'filter'=True for different signal groups (default: AASM guidelines)
+# Filter frequencies to use when 'filter'=true for different signal groups (default: AASM guidelines)
 # Filter format: [low_cutoff, high_cutoff] (null = no cutoff)
 filter_freq:
-  eeg_eog: [0.3, 35]  # EEG and EOG channels: 0.3-35 Hz
+  eeg_eog: [0.3, 35]  # EEG and EOG channels: 0.3-35 Hz (band-pass)
   emg: [10, null]  # EMG channels: 10+ Hz (high-pass)
   ecg: [0.3, null]  # ECG channels: 0.3+ Hz (high-pass)
-  thoraco_abdo_resp: [0.1, 15]  # thoraco_abdo_resp signals: 0.1-15 Hz
+  thoraco_abdo_resp: [0.1, 15]  # Thoraco_abdo_resp signals: 0.1-15 Hz (band-pass)
   nasal_pressure: [0.03, null]  # Nasal pressure: 0.03+ Hz (high-pass)
   snoring: [10, null]  # Snoring: 10+ Hz (high-pass)
-  default: [null, null]  # Default: no filtering
+  default: [null, null]  # Default for all channels that do not belong to above groups: no filtering
   
 # List of specific channel names to process (empty list = process all channels)
 # Example: ["C3", "C4", "EOG-L", "EOG-R", "EMG", "ECG"]
 channels: []
 
+# Map channel names to standards names if possible (true = map names, false = use original names)
+map_channel_names: true
+
 # Epoch duration in seconds
-# Options: 1, 2, 3, 5, 10, 15, 30
+# Options: 1, 2, 3, 5, 6, 10, 15, 30
 epoch_duration: 30
 
-# Remove Movement epochs during processing (only if 'use_annot' is true)
-rm_move: true
+# Use annotations
+# 'false' can be used if only signals are needed, e.g.,for unsupervised tasks -> save storage space
+# if 'true', but dataset contains PSG file without corresponding annotataion file, these PSG files will be skipped
+use_annot: true
 
-# Remove Unknown epochs during processing (only if 'use_annot' is true)
-rm_unk: true
-
-# Number of wake epochs to keep at start and end
-# Can be a number (e.g., "60" for 30 minutes with 30s epochs) or "all"
-n_wake_epochs: "60"
-
-# How to align signal and annotation lengths
+# How to align signal and annotation lengths (if 'use_annot' is true)
 # Most datasets already have aligned signals and annotations, these options are for edge cases
 # If labels do not matter for your application and you want to keep the signals as original as possible, use "match_signal" (they will only be cropped to full epochs)
+# Use in combination with parameter pad_values
 # Options: "match_shorter", "match_longer", "match_signal", "match_annot"
 # - match shorter one (crop the longer one at front and/or end), guarantees no padding
-# - match longer one (pad signal with VALUE to match annotations (with 0, None or whatever), and/or pad annotations with VALUE to match signals(with Unknown, None or whatever))
-# - match signal length (crop or pad Annot with VALUE if needed but never change signal)
-# - match annot length (crop or pad signal with VALUE if needed but never change annot)
-
-# Only usable if 'use_annot' is true
-alignment: "match_shorter"
+# - match longer one (pad signal with VALUE to match longer annotations, and/or pad annotations with VALUE to match longer signal)
+# - match signal length (crop or pad annotation with VALUE if needed but never change signal)
+# - match annot length (crop or pad signal with VALUE if needed but never change annotation)
+alignment: "match_signal"
 
 # Padding values for signal and labels when using alignment options that require padding
-# Format: [signal_pad_value, label_pad_value]
-# default padding will use np.nan for padded signal values and -1 for padded label values
-# pad value for labels can only be an integer (already in use: {0:"Wach", 1:"N1", 2:"N2", 3:"N3", 4:"REM", 5:"MOVE", 6:"Unknown"}), recommended to choose -1 or 6 (Unknown)
+# default signal padding 'null' will use np.nan (if you choose EDF as file output, NaN will be converted to the physical minimum)
+# pad value for labels must be an integer (already in use: {0:"Wach", 1:"N1", 2:"N2", 3:"N3", 4:"REM", 5:"MOVE", 6:"Unknown"}), recommended to choose -1 or 6 (Unknown)
 pad_values: 
   signal: null
   label: -1
 
-# Minimum required sleep epochs (N1, N2, N3, REM) after preprocessing
+# Remove Movement epochs during processing (only if 'use_annot' is true)
+rm_move: false
+
+# Remove Unknown epochs during processing (only if 'use_annot' is true)
+rm_unk: false
+
+# Number of wake epochs to keep at start and end (only if 'use_annot' is true)
+# Used to remove extensive wake periods at the start and end of recordings while keeping some wake epochs for context (e.g., for sleep onset detection)
+# Can be "all" or an integer number (e.g., 60 to keep 30 minutes with epoch duration of 30s)
+n_wake_epochs: "all"
+
+# Minimum required sleep epochs (N1, N2, N3, REM) (only if 'use_annot' is true)
 # Recordings with fewer sleep epochs will be discarded
-# Only usable if 'use_annot' is true
-min_sleep_epochs: 0 # all files included
-
-# Use annotations
-# false be used if only signals are needed for example for unsupervised tasks or if dataset has no annotations) -> save storage space
-use_annot: true
-
+# Default is 0 to include all files
+min_sleep_epochs: 0
