@@ -360,9 +360,6 @@ class DatasetProcessor:
             )
             log_dir = os.path.join(output_dir, "log_files")
             log_filename = f"{Path(psg_fname).stem}.log"
-        else:
-            self.logger.error(f"Unknown output format: {self.config.output_format}")
-            raise ValueError(f"Unknown output format: {self.config.output_format}")
 
         # Generate output file name
         filename = f"{Path(psg_fname).stem}.{self.config.output_format}"
@@ -454,7 +451,7 @@ class DatasetProcessor:
             end_idx = len(labels) - 1
         else:
             # Remove extensive wake epochs at start and end as given in config
-            n_wake_epochs = int(self.config.n_wake_epochs)
+            n_wake_epochs = self.config.n_wake_epochs
             start_idx = max(0, sleep_idx[0] - n_wake_epochs)
             end_idx = min(len(labels) - 1, sleep_idx[-1] + n_wake_epochs)
 

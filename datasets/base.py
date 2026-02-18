@@ -65,7 +65,7 @@ class BaseDataset(ABC):
         - self.inter_dataset_mapping: Dict[str, Mapping]
         - self.file_extensions: Dict[str, str]
         - self.channel_groups: Dict[str, List[str]]
-        - self.intra_dataset_mapping: Dict[str, List[str]] (optional)
+        - self.intra_dataset_mapping: Dict[str, List[str]]
         """
         pass
 
@@ -359,8 +359,6 @@ class BaseDataset(ABC):
                 logger.info(f"Signal started {advance_sec:.2f} sec after label start, signal will be padded with constant value:{np.float64(pad_values["signal"])} at the front to match")
                 n_pad_samples = int(advance_sec*fs)
                 signal = np.hstack((np.full((n_pad_samples,), np.float64(pad_values["signal"])), signal))
-            else:
-                raise ValueError(f"Unknown alignment option: {alignment}")
         else:
             if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_ANNOT.value:
                 logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, signal will be shortened at the front to match")
@@ -372,8 +370,6 @@ class BaseDataset(ABC):
                 if delay_sec % epoch_duration != 0:
                     logger.info(f"Partial epoch detected at start, signal will be shortened at the front to match")
                     signal = signal[int((delay_sec % epoch_duration)*fs):]
-            else:
-                raise ValueError(f"Unknown alignment option: {alignment}")
         return signal, labels
 
 
@@ -397,8 +393,6 @@ class BaseDataset(ABC):
             n_pad = (len(labels) - len(signals))
             logger.info(f"Signal (len:{len(signals)}) will be padded at the end with {n_pad} epochs of constant value:{np.float64(pad_values["signal"])} to match labels length (len:{len(labels)})")
             signals = np.vstack((signals, np.full((n_pad, signals.shape[1]), np.float64(pad_values["signal"]))))
-        else:
-            raise ValueError(f"Unknown alignment option: {alignment}")
         return signals,labels
 
     def base_align_end_signals_longer(self, logger, alignment, pad_values, signals, labels):
@@ -409,8 +403,6 @@ class BaseDataset(ABC):
             n_pad = int((len(signals) - len(labels)))
             logger.info(f"Labels (len:{len(labels)}) will be padded at the end with {n_pad} epochs of value:{pad_values["label"]} to match signals (len:{len(signals)}))")
             labels = np.hstack((labels, np.full((n_pad,),pad_values["label"])))
-        else:
-            raise ValueError(f"Unknown alignment option: {alignment}")
         return signals, labels
 
 
