@@ -1,15 +1,3 @@
-#!/usr/bin/env python3
-"""
-Main entry point for processing a sleep dataset.
-
-Usage:
-  From command line:
-    python process_dataset.py --config custom_config.yaml
-    python process_dataset.py --dataset ABC --data_dir /path/to/ABC/polysomnograpy --output_dir /path/to/output --action process --resample None
-
-  From VS Code (interactive):
-    Edit the config.yaml with your parameters, then run the script.
-"""
 import os
 import argparse
 import sys
@@ -30,16 +18,14 @@ def build_parser() -> argparse.ArgumentParser:
         epilog=f"""
                 Available datasets:
                 {', '.join(DatasetRegistry.list_datasets())}
-                
-                Modify config.json or provide a custom config file with --config to set parameters.
-                Command line arguments override config file settings.""",
+                """,
     )
 
     # Configuration file (optional)
     parser.add_argument(
         "--config",
         type=str,
-        help="Path to YAML configuration file. CLI arguments override config file values.",
+        help="Path to YAML configuration file. Adapt config.yaml according to your needs.",
     )
 
     return parser
@@ -56,7 +42,7 @@ def _resolve_paths(
     """Return resolved (data_dir, ann_dir, output_dir).
 
     - If data_dir or ann_dir not provided, use dataset.dataset_paths() and join with base_data_dir.
-    - If output_dir not provided, construct under base_data_dir using dataset_name and resample info.
+    - If output_dir not provided, construct under base_data_dir using dataset_name and output format info.
     """
     # Start from dataset-provided relative paths
     rel_data_dir, rel_ann_dir = dataset.dataset_paths()
