@@ -29,6 +29,7 @@ class SignalProcessor:
         self.logger = logger
         self.signal_min = None
         self.signal_max = None
+        self.signal_mean = None
         self.filter_freq = filter_freq
         self.select_ch = ch_name
         self.ch_type = self._get_channel_type(ch_name, ch_types)
@@ -77,8 +78,9 @@ class SignalProcessor:
         self.logger.info(f"Sample rate before: {sampling_rate}")
 
         # Store clipping threshold
-        self.signal_min = np.nanmin(signal) - np.nanmean(signal)
-        self.signal_max = np.nanmax(signal) - np.nanmean(signal)
+        self.signal_min = np.nanmin(signal)
+        self.signal_max = np.nanmax(signal)
+        self.signal_mean = np.nanmean(signal)
 
         # if fs not already desired resample fs -> resample
         if resample_freq != sampling_rate:
@@ -151,10 +153,11 @@ class SignalProcessor:
             tuple: (processed_signal, final_sampling_rate)
         """
 
-        # Store clipping threshold if no resampling has been done yet
+        # Store clipping threshold if no resampling was done (otherwise they are already stored in resample_signal)
         if self.signal_max is None or self.signal_min is None:
-            self.signal_min = np.nanmin(signal) - np.nanmean(signal)
-            self.signal_max = np.nanmax(signal) - np.nanmean(signal)
+            self.signal_min = np.nanmin(signal)
+            self.signal_max = np.nanmax(signal)
+            self.signal_mean = np.nanmean(signal)
 
         [low, high] = self.get_filt_freq(self.select_ch, channel_groups)
 
@@ -186,8 +189,11 @@ class SignalProcessor:
                 n_jobs="cuda" if cupy.cuda.is_available() else -1,
                 verbose="WARNING",
             )
-            # Final clipping to original signal range if highpass filter was applied
+            # Final clipping to original signal range if filtering was applied
             if low is not None and low != 0:
+                # if highpass filter was applied, signal is now centered around zero, so we need to adjust the clipping range accordingly
+                signal = np.clip(signal, a_min=self.signal_min - self.signal_mean, a_max=self.signal_max - self.signal_mean)
+            elif high is not None:
                 signal = np.clip(signal, a_min=self.signal_min, a_max=self.signal_max)
 
         elif not (low is None and high is None) and self.ch_type == "digital":
