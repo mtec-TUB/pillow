@@ -36,8 +36,8 @@ class MITBIH(BaseDataset):
         self.inter_dataset_mapping = {
             "ECG": self.Mapping(self.TTRef.ECG, None),
             "EEG (C3-O1)": self.Mapping(self.TTRef.C3, self.TTRef.O1),
-            "EEG (C4-A1)": self.Mapping(self.TTRef.C4, self.TTRef.A1),
-            "EEG (O2-A1)": self.Mapping(self.TTRef.O2, self.TTRef.A1),
+            "EEG (C4-A1)": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            "EEG (O2-A1)": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
             "EMG": self.Mapping(self.TTRef.EMG_CHIN, None),
             "rEOG": self.Mapping(self.TTRef.ER, None),
             "SO2": self.Mapping(self.TTRef.SPO2, None),
