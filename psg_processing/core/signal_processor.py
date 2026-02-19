@@ -19,7 +19,7 @@ class SignalProcessor:
     during processing.
     """
 
-    def __init__(self, logger, ch_name, filter_freq, ch_types):
+    def __init__(self, logger, signal, ch_name, filter_freq, ch_types):
         """
         Initialize the SignalProcessor.
 
@@ -27,12 +27,17 @@ class SignalProcessor:
             logger: Logger instance for operation tracking
         """
         self.logger = logger
-        self.signal_min = None
-        self.signal_max = None
-        self.signal_mean = None
+
+        self.signal = signal
+        # Store original signal range for clipping
+        self.signal_min = np.nanmin(signal)
+        self.signal_max = np.nanmax(signal)
+        self.signal_mean = np.nanmean(signal)
+
         self.filter_freq = filter_freq
         self.select_ch = ch_name
         self.ch_type = self._get_channel_type(ch_name, ch_types)
+        self.highpassed = False
 
     def get_filt_freq(
         self, ch_name: str, channel_groups: Dict[str, List[str]]
@@ -62,12 +67,11 @@ class SignalProcessor:
 
         raise Exception(f"channel {channel} not listed in channel_types")
 
-    def resample_signal(self, signal, sampling_rate, resample_freq):
+    def resample_signal(self, sampling_rate, resample_freq):
         """
         Resample signal based on channel type and parameters.
 
         Args:
-            signal: Input signal data
             ch_type: Channel type ('analog' or 'digital')
             sampling_rate: Current sampling rate
             resample_freq: Target sampling rate
@@ -77,23 +81,18 @@ class SignalProcessor:
         """
         self.logger.info(f"Sample rate before: {sampling_rate}")
 
-        # Store clipping threshold
-        self.signal_min = np.nanmin(signal)
-        self.signal_max = np.nanmax(signal)
-        self.signal_mean = np.nanmean(signal)
-
         # if fs not already desired resample fs -> resample
         if resample_freq != sampling_rate:
 
             if self.ch_type == "digital":
-                signal = self.resample_dig(signal, sampling_rate, resample_freq)
+                self.signal = self.resample_dig(self.signal, sampling_rate, resample_freq)
 
             elif self.ch_type == "analog":
-                signal = self.resample_ana(signal, sampling_rate, resample_freq)
+                self.signal = self.resample_ana(self.signal, sampling_rate, resample_freq)
 
         self.logger.info(f"Sample rate after: {resample_freq}")
 
-        return signal
+        return
 
     def resample_dig(self, signal, input_rate, output_rate):
         """
@@ -138,12 +137,11 @@ class SignalProcessor:
 
         return signal_resampled
 
-    def filter_signal(self, signal, fs, channel_groups):
+    def filter_signal(self, fs, channel_groups):
         """
         Filter signal based on channel type and parameters.
 
         Args:
-            signal: Input signal data
             fs: Sampling rate of signal
             ch_type: Channel type ('analog' or 'digital')
             sampling_rate: Current sampling rate
@@ -153,12 +151,6 @@ class SignalProcessor:
             tuple: (processed_signal, final_sampling_rate)
         """
 
-        # Store clipping threshold if no resampling was done (otherwise they are already stored in resample_signal)
-        if self.signal_max is None or self.signal_min is None:
-            self.signal_min = np.nanmin(signal)
-            self.signal_max = np.nanmax(signal)
-            self.signal_mean = np.nanmean(signal)
-
         [low, high] = self.get_filt_freq(self.select_ch, channel_groups)
 
         # Filter signal according to AASM Manual
@@ -166,13 +158,15 @@ class SignalProcessor:
 
             if low and low >= fs / 2:
                 self.logger.warning(
-                    f"Low cutoff frequency {low} Hz is >= Nyquist frequency {fs/2} Hz. Skipping lowpass filter."
+                    f"Low cutoff frequency {low} Hz is >= Nyquist frequency {fs/2} Hz. Skipping highpass filter."
                 )
                 low = None  # Avoid invalid low cutoff frequency
+            else:
+                self.highpassed = True  # for clipping
 
             if high and high >= fs / 2:
                 self.logger.warning(
-                    f"High cutoff frequency {high} Hz is >= Nyquist frequency {fs/2} Hz. Skipping highpass filter."
+                    f"High cutoff frequency {high} Hz is >= Nyquist frequency {fs/2} Hz. Skipping lowpass filter."
                 )
                 high = None  # Avoid invalid high cutoff frequency
 
@@ -180,8 +174,8 @@ class SignalProcessor:
                 f"Filter signal with low: {low} Hz and high: {high} Hz bandpass"
             )
 
-            signal = filter_data(
-                signal,
+            self.signal = filter_data(
+                self.signal,
                 fs,
                 low,
                 high,
@@ -189,15 +183,19 @@ class SignalProcessor:
                 n_jobs="cuda" if cupy.cuda.is_available() else -1,
                 verbose="WARNING",
             )
-            # Final clipping to original signal range if filtering was applied
-            if low is not None and low != 0:
-                # if highpass filter was applied, signal is now centered around zero, so we need to adjust the clipping range accordingly
-                signal = np.clip(signal, a_min=self.signal_min - self.signal_mean, a_max=self.signal_max - self.signal_mean)
-            elif high is not None:
-                signal = np.clip(signal, a_min=self.signal_min, a_max=self.signal_max)
 
         elif not (low is None and high is None) and self.ch_type == "digital":
             self.logger.error("Digital channels cannot be filtered.")
             raise Exception("Digital channels cannot be filtered.")
 
-        return signal
+        return
+    
+    def clip_signal(self):
+        # Final clipping to original signal range if filtering was applied
+        if self.highpassed:
+            # if highpass filter was applied, signal is now centered around zero, so we need to adjust the clipping range accordingly
+            self.signal = np.clip(self.signal, a_min=self.signal_min - self.signal_mean, a_max=self.signal_max - self.signal_mean)
+        else:
+            self.signal = np.clip(self.signal, a_min=self.signal_min, a_max=self.signal_max)
+
+        return

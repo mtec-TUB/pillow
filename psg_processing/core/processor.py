@@ -251,12 +251,11 @@ class DatasetProcessor:
         fs = file_data["sampling_rate"]
 
         if self.config.resample is not None or self.config.filter:
-            signal_processor = SignalProcessor(self.logger, file_data["ch_name_orig"], self.config.filter_freq, self.dataset.channel_types)
+            signal_processor = SignalProcessor(self.logger, signal, file_data["ch_name_orig"], self.config.filter_freq, self.dataset.channel_types)
 
             if self.config.resample is not None:
                 # Resample signal
-                signal = signal_processor.resample_signal(
-                    signal,
+                signal_processor.resample_signal(
                     fs,
                     self.config.resample,
                 )
@@ -264,11 +263,13 @@ class DatasetProcessor:
 
             if self.config.filter:
                 # Filter signal according to AASM
-                signal = signal_processor.filter_signal(
-                    signal,
+                signal_processor.filter_signal(
                     fs,
                     self.dataset.channel_groups,
                 )
+            
+            signal_processor.clip_signal()
+            signal = signal_processor.signal
 
         if self.config.use_annot:
             # Check if annotations and signal start at the same timestamp and pad/crop if necessary and configured
