@@ -341,7 +341,7 @@ class BaseDataset(ABC):
 
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs) -> Tuple[bool, float]:
         """ Align front part of signals and labels, in some datasets annotations start after signal recording"""
-
+        logger.error("Signal and Annotations do not start at the same time. TODO: implement alignment function")
         raise NotImplementedError("Subclass has no front alignment implemented")
 
     def base_align_front(self, logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels, fs):
@@ -383,6 +383,7 @@ class BaseDataset(ABC):
         signals: np.ndarray,
         labels: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
+        logger.error(f"Length mismatch: signal ({os.path.basename(psg_fname)})={len(signals)}, labels({os.path.basename(ann_fname)})={len(labels)}")
         raise NotImplementedError("Subclass has no end alignment implemented but is required")
     
     def base_align_end_labels_longer(self, logger, alignment, pad_values, signals, labels):

@@ -292,7 +292,7 @@ class DatasetProcessor:
             )
             return
 
-        self.logger.info(f"Seconds in unfilled (cropped) epoch: {remainder / fs:.4f} sec")
+        self.logger.info(f"Seconds in unfilled (cropped) epoch: {remainder / fs:.2f} sec")
 
         signal_epoched = signal[: n_epochs * n_epoch_samples].reshape(n_epochs, -1)
 
@@ -310,7 +310,7 @@ class DatasetProcessor:
                 )
 
             assert len(signal_epoched) == len(labels), \
-            f"Length mismatch: signal ({os.path.basename(file_data['psg_fname'])})={len(signal_epoched)}, labels({os.path.basename(file_data['ann_fname'])})={len(labels)} TODO: implement alignment function"
+            f"Length mismatch: signal ({os.path.basename(file_data['psg_fname'])})={len(signal_epoched)}, labels({os.path.basename(file_data['ann_fname'])})={len(labels)} TODO: adapt alignment function"
 
             # Clean signal data based on annotations (e.g. remove movement/unknown epochs, select sleep periods)
             signal_epoched, labels = self._clean_signal(signal_epoched, labels)
