@@ -87,24 +87,13 @@ class ProcessorConfig:
         self.use_annot: bool = self._validate_bool(kwargs.get("use_annot"))
 
         # Other parameters
-        self.resample: Optional[int] = self._validate_resample(
-            kwargs.get("resample"),
-            "resample"
-        )
+        self.resample: Optional[int] = self._validate_resample(kwargs.get("resample"))
 
-        self.epoch_duration: int = self._validate_epoch_duration(
-            kwargs.get("epoch_duration")
-        )
+        self.epoch_duration: int = self._validate_epoch_duration(kwargs.get("epoch_duration"))
 
-        self.min_sleep_epochs: int = self._validate_min_sleep_epochs(
-            kwargs.get("min_sleep_epochs"),
-            "min_sleep_epochs"
-        )
+        self.min_sleep_epochs: int = self._validate_min_sleep_epochs(kwargs.get("min_sleep_epochs"))
 
-        self.channels: List[str] = self._validate_channels(
-            kwargs.get("channels"),
-            "channels"
-        )
+        self.channels: List[str] = self._validate_channels(kwargs.get("channels"))
 
         self.n_wake_epochs: Union[int, str] = \
             self._validate_n_wake_epochs(kwargs.get("n_wake_epochs"))
@@ -145,8 +134,10 @@ class ProcessorConfig:
             raise ConfigError(f"resample must be positive int.")
         return value
 
-    def _validate_min_sleep_epochs(self, value, name):
-        return self._validate_non_negative_int(value, name)
+    def _validate_min_sleep_epochs(self, value):
+        if not isinstance(value, int) or value < 0:
+            raise ConfigError(f"min_sleep_epochs must be non-negative integer.")
+        return value
 
     def _validate_epoch_duration(self, value):
         if not isinstance(value, int) or value <= 0:
