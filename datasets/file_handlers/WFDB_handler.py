@@ -1,18 +1,13 @@
-"""
-WFDB file handler for PSG data processing.
-"""
-
 import os
 import numpy as np
 import wfdb
-from datetime import datetime, date
-
+from datetime import datetime, date, time
 
 class WFDBHandler:
-    """Handler for WFDB files."""
+    """Handler for WFDB files (.hea + .dat)."""
 
     def get_channels(self, logger, filepath):
-        """Extract channel names from WFDB files."""
+        """Extract channel names from file."""
         try:
             psg_fname_no_ext, _ = os.path.splitext(filepath)
             record = wfdb.rdheader(psg_fname_no_ext)
@@ -23,51 +18,45 @@ class WFDBHandler:
             return record.sig_name  # , freqs
         except Exception as e:
             logger.error(f"Error reading WFDB file {filepath}: {e}")
-            return []
+            raise
 
     def read_signal(self, logger, filepath, channel):
-        """Read signal from WFDB file for specific channel."""
+        """Read signal from file for specific channel."""
         try:
             psg_fname_no_ext, _ = os.path.splitext(filepath)
-            record = wfdb.rdrecord(psg_fname_no_ext)
-            signal = np.transpose(record.p_signal)
+            record = wfdb.rdrecord(psg_fname_no_ext, channel_names=[channel])
 
-            if channel in record.sig_name:
-                select_ch_idx = record.sig_name.index(channel)
-                return signal[select_ch_idx]
+            if record.n_sig != 0:
+                return record.p_signal[:, 0]
+            else:
+                return None # channel not found in this file
         except Exception as e:
-            logger.error(f"Error reading WFDB signal from {filepath}: {e}")
-        return None
+            logger.error(f"Error reading signal from {filepath}: {e}")
+            raise
 
     def get_signal_data(self, logger, filepath, channel):
-        """Get complete WFDB signal information for processing."""
+        """Get complete signal information for processing."""
         try:
-            psg_fname, _ = os.path.splitext(filepath)
-            record = wfdb.rdheader(psg_fname)
-            signal_labels = record.sig_name
+            psg_fname_no_ext, _ = os.path.splitext(filepath)
+            record = wfdb.rdrecord(psg_fname_no_ext, channel_names=[channel])
+            
+            psg_date = record.base_date
+            if psg_date == None:
+                psg_date = date(1985, 1, 1)
+            psg_time = record.base_time
+            start_datetime = datetime.combine(psg_date, psg_time)
 
-            if record.base_datetime:
-                start_datetime = record.base_datetime
-            elif record.base_date and record.base_time:
-                start_datetime = datetime.combine(record.base_date, record.base_time)
-            elif record.base_time:
-                start_datetime = datetime.combine(date(1985, 1, 1), record.base_time)
-            else:
-                start_datetime = None
+            sampling_rate = record.fs
+            signal = record.p_signal[:,0]
 
-            records, fields = wfdb.rdsamp(psg_fname, channel_names=[channel])
-            select_ch_idx = fields["sig_name"].index(channel)
+            file_duration = record.sig_len / sampling_rate
 
-            sampling_rate = fields["fs"]
-            signal = records[:, select_ch_idx]
-
-            logger.info(f"Select channel samples: {len(signal)}")
-
-            file_duration = fields["sig_len"] / sampling_rate
+            unit = record.units[0]
 
             return {
                 "signal": signal,
                 "sampling_rate": sampling_rate,
+                "unit": unit,
                 "start_datetime": start_datetime,
                 "file_duration": file_duration,
             }
