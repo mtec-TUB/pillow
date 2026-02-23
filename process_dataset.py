@@ -2,19 +2,18 @@ import os
 import argparse
 import sys
 from pathlib import Path
+import yaml
 
-# Add the current directory to the Python path
-sys.path.append(str(Path(__file__).parent))
-
-from psg_processing.utils import load_config_file
 from datasets.registry import get_dataset, DatasetRegistry
 from psg_processing.core import Dataset_Explorer, DatasetProcessor
+from psg_processing.utils.config import ProcessorConfig
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Process sleep datasets for harmonization",
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        # Load all registered datasets
         epilog=f"""
                 Available datasets:
                 {', '.join(DatasetRegistry.list_datasets())}
@@ -31,7 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _resolve_paths(
+def resolve_paths(
     dataset,
     base_data_dir: str,
     data_dir: str | None,
@@ -63,6 +62,20 @@ def _resolve_paths(
 
     return data_dir_resolved, ann_dir_resolved, output_dir_resolved
 
+def load_config_file(config_file_path: str) -> dict:
+    """Load configuration from a YAML file."""
+
+    file_path = Path(config_file_path)
+    if not file_path.exists():
+        raise FileNotFoundError(f"Configuration file not found: {config_file_path}")
+
+    try:
+        with open(config_file_path, "r") as f:
+            config = ProcessorConfig(**yaml.safe_load(f))
+        print(f"Loaded configuration from: {config_file_path}")
+        return config
+    except yaml.YAMLError as e:
+        raise ValueError(f"Invalid YAML in configuration file: {e}")
 
 def main(config):
     """
@@ -73,7 +86,7 @@ def main(config):
 
     print(f"Processing dataset: {dataset.dset_name}")
 
-    config.data_dir, config.ann_dir, config.output_dir = _resolve_paths(
+    config.data_dir, config.ann_dir, config.output_dir = resolve_paths(
         dataset,
         config.base_data_dir,
         config.data_dir,

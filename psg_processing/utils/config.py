@@ -1,12 +1,7 @@
-"""
-Configuration management for PSG processing.
-"""
-
 import logging
-import yaml
 from pathlib import Path
 from enum import Enum
-from typing import Optional, List, Dict, Union, Literal
+from typing import Optional, List, Dict, Union
 
 class Alignment(Enum):
     """Options for aligning signal and annotation lengths at front and/or end."""
@@ -21,24 +16,25 @@ class ConfigError(ValueError):
     pass
 
 class ProcessorConfig:
-    """Configuration dataclass for dataset processing."""
+    """Configuration dataclass for dataset processing.
+    See config.yaml for detailed explanations of each parameter."""
+
+    # Define valid options for configuration parameters
     VALID_OUTPUT_FORMATS = {"npz", "edf", "hdf5"}
     VALID_ACTIONS = {"process", "get_channel_names", "get_channel_types"}
-    VALID_ALIGNMENT = {
-        "match_shorter", "match_longer",
-        "match_signal", "match_annot"
-    }
-    FILTER_GROUPS = {
+    VALID_ALIGNMENT = [a.value for a in Alignment]
+    VALID_FILTER_GROUPS = {
         "eeg_eog", "emg", "ecg",
         "thoraco_abdo_resp", "nasal_pressure",
         "snoring", "default"
     }
 
     def __init__(self, **kwargs):
+        # validate and set all required parameters
 
         self.dataset = kwargs.get("dataset")
 
-        # ---------- Paths ----------
+        # Path parameters
         self.base_data_dir: Path = self._validate_path(
             kwargs.get("base_data_dir"),
         )
@@ -55,7 +51,7 @@ class ProcessorConfig:
             kwargs.get("output_dir")
         )
 
-        # ---------- Simple enums ----------
+        # Enum parameters
         self.output_format: str = self._validate_enum(
             kwargs.get("output_format"),
             self.VALID_OUTPUT_FORMATS,
@@ -80,7 +76,7 @@ class ProcessorConfig:
             "alignment"
         )
 
-        # ---------- Booleans ----------
+        # Boolean parameters
         self.overwrite: bool = self._validate_bool(kwargs.get("overwrite"))
         self.filter: bool = self._validate_bool(kwargs.get("filter"))
         self.map_channel_names: bool = self._validate_bool(
@@ -90,46 +86,38 @@ class ProcessorConfig:
         self.rm_unk: bool = self._validate_bool(kwargs.get("rm_unk"))
         self.use_annot: bool = self._validate_bool(kwargs.get("use_annot"))
 
-        # ---------- Numeric ----------
-        self.resample: Optional[int] = self._validate_positive_int_or_none(
+        # Other parameters
+        self.resample: Optional[int] = self._validate_resample(
             kwargs.get("resample"),
             "resample"
         )
 
-        self.epoch_duration: int = self._validate_epoch(
+        self.epoch_duration: int = self._validate_epoch_duration(
             kwargs.get("epoch_duration")
         )
 
-        self.min_sleep_epochs: int = self._validate_non_negative_int(
+        self.min_sleep_epochs: int = self._validate_min_sleep_epochs(
             kwargs.get("min_sleep_epochs"),
             "min_sleep_epochs"
         )
 
-        # ---------- Channels ----------
-        self.channels: List[str] = self._validate_string_list(
+        self.channels: List[str] = self._validate_channels(
             kwargs.get("channels"),
             "channels"
         )
 
-        # ---------- Wake handling ----------
         self.n_wake_epochs: Union[int, str] = \
             self._validate_n_wake_epochs(kwargs.get("n_wake_epochs"))
 
-        # ---------- Filter frequencies ----------
         self.filter_freq: Dict[str, List[Optional[float]]] = \
             self._validate_filter_freq(kwargs.get("filter_freq"))
 
-        # ---------- Padding ----------
         self.pad_values = self._validate_pad_values(
             kwargs.get("pad_values")
         )
 
         # ---------- Cross-checks ----------
         self._validate_consistency()
-
-    # ============================================================
-    # Validation Helpers
-    # ============================================================
 
     def _validate_enum(self, value, valid_set, name):
         if value not in valid_set:
@@ -150,33 +138,31 @@ class ProcessorConfig:
             raise ConfigError(f"Invalid path type: {value}")
         return Path(value)
 
-    def _validate_positive_int_or_none(self, value, name):
+    def _validate_resample(self, value):
         if value is None:
             return None
         if not isinstance(value, int) or value <= 0:
-            raise ConfigError(f"{name} must be positive int or None.")
+            raise ConfigError(f"resample must be positive int.")
         return value
 
-    def _validate_non_negative_int(self, value, name):
-        if not isinstance(value, int) or value < 0:
-            raise ConfigError(f"{name} must be >= 0.")
-        return value
+    def _validate_min_sleep_epochs(self, value, name):
+        return self._validate_non_negative_int(value, name)
 
-    def _validate_epoch(self, value):
+    def _validate_epoch_duration(self, value):
         if not isinstance(value, int) or value <= 0:
             raise ConfigError("epoch_duration must be positive integer.")
         if 30 % value == 0:
             return value
         raise ConfigError(
-            "epoch_duration must divide 30."
+            "Epoch_duration must divide 30."
         )
 
-    def _validate_string_list(self, value, name):
+    def _validate_channels(self, value):
         if value is None:
             return []
         if not isinstance(value, list) or \
            not all(isinstance(v, str) for v in value):
-            raise ConfigError(f"{name} must be list of strings.")
+            raise ConfigError(f"channels must be list of strings.")
         return value
 
     def _validate_n_wake_epochs(self, value):
@@ -193,7 +179,7 @@ class ProcessorConfig:
             raise ConfigError("filter_freq must be a dictionary.")
 
         for key in value:
-            if key not in self.FILTER_GROUPS:
+            if key not in self.VALID_FILTER_GROUPS:
                 raise ConfigError(
                     f"Invalid filter group: {key}"
                 )
@@ -261,28 +247,3 @@ class ProcessorConfig:
                     "min_sleep_epochs requires use_annot=True."
                 )
 
-def load_config_file(config_file_path: str) -> dict:
-    """
-    Load configuration from a YAML file.
-
-    Args:
-        config_file_path: Path to the YAML configuration file
-
-    Returns:
-        Dictionary containing configuration parameters
-
-    Raises:
-        ValueError: If file doesn't exist or contains invalid YAML
-    """
-    file_path = Path(config_file_path)
-
-    if not file_path.exists():
-        raise FileNotFoundError(f"Configuration file not found: {config_file_path}")
-
-    try:
-        with open(config_file_path, "r") as f:
-            config = ProcessorConfig(**yaml.safe_load(f))
-        print(f"Loaded configuration from: {config_file_path}")
-        return config
-    except yaml.YAMLError as e:
-        raise ValueError(f"Invalid YAML in configuration file: {e}")
