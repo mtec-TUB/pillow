@@ -1,15 +1,12 @@
-"""
-H5 file handler for PSG data processing.
-"""
-
 import h5py
 
-
 class DOD_H5Handler:
-    """Handler for H5 files."""
+    """Handler for DOD dataset files
+    Works for DOD-O and DOD-H dataset
+    """
 
     def get_channels(self, logger, filepath):
-        """Extract channel names (datasets) from H5 files."""
+        """Extract channel names from file."""
         try:
             channel_names = []
             with h5py.File(filepath, "r") as f:
@@ -21,11 +18,11 @@ class DOD_H5Handler:
                 f["signals"].visititems(visitor)    # only get channels in signals subfolder
             return channel_names
         except Exception as e:
-            logger.error(f"Error reading H5 file {filepath}: {e}")
-            return []
+            logger.error(f"Error during channel extraction from {filepath}: {e}")
+            raise
 
     def read_signal(self, logger, filepath, channel):
-        """Read signal from H5 file for specific channel."""
+        """Read signal from file for specific channel."""
         try:
             with h5py.File(filepath, "r") as f:
                 if channel not in f["signals"]:
@@ -34,30 +31,28 @@ class DOD_H5Handler:
                 signal = f["signals"][channel][:]
                 return signal
         except Exception as e:
-            logger.error(f"Error reading H5 signal from {filepath}: {e}")
+            logger.error(f"Error during signal extraction from {filepath}: {e}")
+            raise
 
     def get_signal_data(self, logger, filepath, channel):
-        """Get complete H5 signal information for processing."""
+        """Get complete signal information for specific channel."""
         try:
             with h5py.File(filepath, "r") as f:
                 dataset = f["signals"][channel]
                 signal = dataset[:]
-                logger.info(f"Channel selected: {channel}")
-                logger.info(f"Select channel samples: {len(signal)}")
 
-                # works for DOD-H and DOD-O
                 unit = dataset.parent.attrs.get("unit")
-                sampling_rate = dataset.parent.attrs.get("fs")
 
+                sampling_rate = dataset.parent.attrs.get("fs")
                 file_duration = len(signal) / sampling_rate
 
                 return {
                     "signal": signal,
                     "sampling_rate": sampling_rate,
                     "unit": unit,
-                    "start_datetime": None,
+                    "start_datetime": None,     # no starttime stored in DOD files
                     "file_duration": file_duration,
                 }
         except Exception as e:
-            logger.error(f"Error processing H5 file {filepath}: {e}")
+            logger.error(f"Error during data retrieval {filepath}: {e}")
             raise
