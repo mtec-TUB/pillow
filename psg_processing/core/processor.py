@@ -242,6 +242,7 @@ class DatasetProcessor:
         file_data.update(psg_data)
         del psg_data  # free memory
 
+        self.logger.info(f"Select channel samples: {len(file_data["signal"])}")
         self.logger.info(f"File duration: {file_data['file_duration']} sec, {file_data['file_duration']/3600:.2f} h")
         self.logger.info(f"Start datetime: {file_data['start_datetime']}")
 
