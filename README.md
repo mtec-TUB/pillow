@@ -131,7 +131,7 @@ The pipeline generates one h5 file per input psg file, including all chosen chan
         
     - register the dataset using the decorator `@register_dataset("YOUR_DS_NAME")`.
     - Check if the polysomnography file extension is already covered by one of the [file_handlers](/datasets/file_handlers/). For standardized formats (e.g. EDF, EEGLAB, WFDB) you can use the existing generic handlers by specifying them inside the __init__ function. For all others you have to implement the following functions yourself inside the dataset script to be able to use the pipeline:
-        - get_channles()
+        - get_channels()
         - read_signals()
         - get_signal_data()
 
