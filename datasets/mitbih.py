@@ -25,6 +25,7 @@ class MITBIH(BaseDataset):
                 "3": 3,
                 "4": 3,
                 "R": 4,
+                "M": 5,
                 }
         
         self.intra_dataset_mapping = {
@@ -66,10 +67,11 @@ class MITBIH(BaseDataset):
              'Resp (nasal)', 'Resp (sum)',]
         }
         
-        
+        # dataset contains two annotation files per psg file: '.st' and '.st-',
+        # we use only '.st-' files because it's labels seem to be more accurat
         self.file_extensions = {
             'psg_ext': '*.hea',
-            'ann_ext': 'slp*.st'
+            'ann_ext': 'slp*.st-'   
         }
     
     def dataset_paths(self) -> Tuple[str, str]:
@@ -87,52 +89,35 @@ class MITBIH(BaseDataset):
         record_name, extension = os.path.splitext(ann_fname)
         annot = wfdb.rdann(record_name, extension.strip('.'))
         
-        fs = annot.fs
-
-        epoch_duration = 30  # default epoch duration, is calculated afterwards
+        fs = 250
 
         start_time_label = None
         
         for i, (sample, aux_note) in enumerate(zip(annot.sample, annot.aux_note)):
-            aux_note = aux_note.strip('\x00')
-            
-            parts = aux_note.split()
-            
-            # often several annotations in one string
-            if parts and parts[0] in self.ann2label:
-                label = parts[0]      
-            else:
-                label = aux_note
-            
-            if not any(note in label for note in ['LA','HA','MT','CA','X','H','L','A','M']):
-                if label not in self.ann2label:
-                    print(label)
-                    raise Exception
-                
-                if start_time_label==None:
-                    if sample == 1:
+            label = aux_note.strip('\x00')
+                            
+            if start_time_label==None:
+                if sample == 1:
                         sample = 0
-                    start_time_label = sample
-                    
-                start = float(sample - start_time_label)/fs
+                start_time_label = sample
+                
+            start = float(sample - start_time_label)/fs
 
-                ann_stage_events.append({'Stage': label,
-                                            'Start': start,
-                                            'Duration': epoch_duration})        #place holder
+            if "slp32.st-" in ann_fname and (start - 2)%30==0:
+                # this file has some weird stages in between that are shifted by 2 seconds
+                start = start-2
+
+            ann_stage_events.append({'Stage': label,
+                                        'Start': start,
+                                        'Duration': 30})        #place holder, is calculated afterwards
 
         for i, event in enumerate(ann_stage_events[:-1]):
             ann_stage_events[i]['Duration'] = ann_stage_events[i+1]['Start'] - event['Start']
 
-        return ann_stage_events, float(start_time_label)
+        return ann_stage_events, float(start_time_label)/fs
     
-    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_samples, signal, labels, fs):
-
-        delay_sec = delay_samples/fs
-
-        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)
-
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
-        if 'slp66.st' in ann_fname:
+        if len(signals) > len(labels):
             return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
     
