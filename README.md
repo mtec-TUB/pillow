@@ -96,7 +96,7 @@ You can choose the desired output format inside the [config.yaml](/config.yaml).
 **Format `.npz`:**
 The pipeline generates one .npz file per processed channel and per file in a channel based folder structure. Thus for example three input .edf files with each five recorded channels, result in five output folders named after the channels with each containing three .npz files. It is possible that not all output folders contain the number of input files, which only means that some input files recorded only a subset of channels. 
 
-This structure is espacially helpful if you plan to use the processed data as input for SleePyCo.
+This structure is espacially helpful if you plan to use the processed data as input for [SleePyCo](https://github.com/gist-ailab/SleePyCo).
 
 The .npz-files can be extracted afterwards with numpy.load() and contain the following entries:
 
