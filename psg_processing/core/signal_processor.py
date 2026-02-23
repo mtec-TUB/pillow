@@ -9,6 +9,11 @@ from scipy.interpolate import interp1d
 from mne.filter import resample, filter_data
 import cupy
 
+def has_cuda():
+    try:
+        return cupy.cuda.is_available()
+    except Exception:
+        return False
 
 class SignalProcessor:
     """
@@ -180,7 +185,7 @@ class SignalProcessor:
                 low,
                 high,
                 method="fir",
-                n_jobs="cuda" if cupy.cuda.is_available() else -1,
+                n_jobs="cuda" if has_cuda() else -1,
                 verbose="WARNING",
             )
 
