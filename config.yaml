@@ -3,10 +3,8 @@
 # Edit these values according to your needs.
 
 # Dataset to process (required)
-# Available options: ABC, ANPHY, APOE, APPLES, BESTAIR, CAP, CFS, CPS, DCSM, DOD-H, DOD-O,
-#                    DREAMT, EESM19, EESM23, FDCSR, HMC, HOMEPAP, ISRUC, MESA, MIT-BIH, 
-#                    MNC, MROS, MSP, MWT, NCHSDB, PHYSIO2018, SHHS, SLEEP-EDF, SLEEPBRL,
-#                    SOF, STAGES, UCDDB, WSC
+# Available options: ABC, BESTAIR, CAP, DOD-H, MESA, WSC and many more
+# Execute "python3 process_dataset.py --help" to get a full up-to-date list
 dataset: "ABC"
 
 # Base directory where your sleep datasets are stored
@@ -41,10 +39,10 @@ logging_level: "INFO"
 action: "process"
 
 # Resample frequency in Hz (null = keep original sampling rate)
-resample: 100
+resample: null
 
 # Apply filtering after resampling
-filter: true
+filter: false
 
 # Filter frequencies to use when 'filter'=true for different signal groups (default: AASM guidelines)
 # Filter format: [low_cutoff, high_cutoff] (null = no cutoff)
