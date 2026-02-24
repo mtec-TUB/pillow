@@ -10,6 +10,7 @@ from math import ceil, floor
 from datetime import datetime, date
 from pyedflib import EdfWriter
 import h5py
+import glob
 from pathlib import Path
 from decimal import Decimal
 import numpy as np
@@ -42,14 +43,18 @@ class DatasetProcessor:
     def process_files(self):
 
         try:
-            # Set up Terminal logger 
-            self.logger = self.logging_manager.setup_logger(
-                self.config.output_dir, self.config.overwrite
-            )
+            if self.config.overwrite:
+                log_files = glob.glob(os.path.join(self.config.output_dir, "**", "*.log"), recursive=True)
+                for f in log_files:
+                    os.remove(f)
+
+            self.pipeline_logger = self.logging_manager.create_pipeline_logger()
+
+            self.pipeline_logger.info("Starting dataset preparation")
 
             # Get all PSG and Annot files names
             psg_fnames, ann_fnames  = Dataset_Explorer(
-                self.logger,
+                self.pipeline_logger,
                 self.dataset,
                 self.config.data_dir,
                 self.config.ann_dir,
@@ -59,7 +64,7 @@ class DatasetProcessor:
             # Process each file
             ann_idx = 0
             for psg_idx, psg_fname in enumerate(psg_fnames):
-                self.logger.info(f"\n--- Processing file {psg_idx+1}/{len(psg_fnames)} ---")
+                self.pipeline_logger.info(f"---------- Processing file {psg_idx+1}/{len(psg_fnames)} ----------")
 
                 # Find matching annotation file
                 if self.config.use_annot and ann_fnames is not None:
@@ -67,7 +72,7 @@ class DatasetProcessor:
                         psg_fname, ann_fnames, ann_idx
                     )
                     if ann_fname is None:
-                        self.logger.warning(
+                        self.pipeline_logger.warning(
                             f"No matching annotation file found for PSG: "
                             f"{Path(psg_fname).relative_to(self.config.data_dir)}. Skipping file."
                         )
@@ -79,12 +84,10 @@ class DatasetProcessor:
                 )
 
             # Finalize processing
-            self.logging_manager.cleanup_file_handlers(self.logger)
-            self.logger.info("=" * 60)
-            self.logger.info("DATASET PREPARATION COMPLETED")
+            self.pipeline_logger.info("=" * 60)
+            self.pipeline_logger.info("DATASET PREPARATION COMPLETED")
         except KeyboardInterrupt:
-            self.logging_manager.cleanup_file_handlers(self.logger)
-            self.logger.info("Stopped processing")
+            self.pipeline_logger.info("Stopped processing")
 
     def _find_matching_annotation(self, psg_fname, ann_fnames, start_idx):
         """
@@ -114,7 +117,10 @@ class DatasetProcessor:
         file_data["ann_fname"] = ann_fname
 
         # Start buffering logs for this file
-        self.logging_manager.start_buffering(self.logger)
+        file_id = Path(psg_fname).stem
+        file_logger, buffer_handler = self.logging_manager.create_file_logger(
+            file_identifier=file_id,
+        )
         log_paths = {}  # Store log paths for each channel/file
 
         try:
@@ -124,14 +130,14 @@ class DatasetProcessor:
                 file_data["ann_start_datetime"] = ann_Startdatetime
 
                 if ann_stage_events == []:
-                    self.logger.warning(
+                    file_logger.warning(
                         f"No sleep stage annotations found in {Path(ann_fname).relative_to(self.config.ann_dir)}, skipping file."
                     )
                     return
                 
                 # Map dataset-labels to standardized labels and check consistency
                 labels = self.dataset.ann_label(
-                    self.logger, ann_stage_events, self.config.epoch_duration
+                    file_logger, ann_stage_events, self.config.epoch_duration
                 )
 
                 sleep_idx = np.where(
@@ -141,7 +147,7 @@ class DatasetProcessor:
                 )[0]
 
                 if len(sleep_idx) <= self.config.min_sleep_epochs:
-                    self.logger.warning(
+                    file_logger.warning(
                         "File contains less sleep epochs than required. Skipping"
                     )
                     return
@@ -155,19 +161,19 @@ class DatasetProcessor:
             # List channels to process for this file (based on config and available channels in this file)
             channels = list(
                 set(self.config.channels)
-                & set(self.dataset.get_channels(self.logger, psg_fname))
+                & set(self.dataset.get_channels(file_logger, psg_fname))
             )
             if len(channels)==0:
-                self.logger.info("No selected channels found in this file. Skipping.")
+                file_logger.info("No selected channels found in this file. Skipping.")
                 return 
 
             # Process each channel
             all_file_data = []
             for channel in channels:
                 # Set current channel for logging
-                self.logging_manager.set_current_channel(channel)
+                buffer_handler.set_channel(channel)
 
-                channel_harm = self._harmonize_channel_name(channel)
+                channel_harm = self._harmonize_channel_name(file_logger,channel)
                 file_data["ch_name"] = channel_harm
                 
                 file_output_path, log_path = self._setup_output(
@@ -179,14 +185,15 @@ class DatasetProcessor:
                 # Skip if file already exists and overwrite is False
                 if not self.config.overwrite and os.path.exists(file_output_path):
                     if self.config.output_format == "npz":
-                        self.logger.info(f"File already exists: {file_output_path}, skipping channel {channel} and continuing with next channel if available.")
+                        file_logger.info(f"File already exists: {file_output_path}, skipping channel {channel} and continuing with next channel if available.")
                         continue
                     else:
-                        self.logger.info(f"File already exists: {file_output_path}, skipping file and continuing with next file.")
+                        file_logger.info(f"File already exists: {file_output_path}, skipping file and continuing with next file.")
                         # other channels are ignored as well because all channels in one file (that already exists)
                         break
 
                 proc_file_data = self._process_channel(
+                    file_logger,
                     copy.deepcopy(file_data),
                     channel,
                 )
@@ -195,6 +202,7 @@ class DatasetProcessor:
                 if proc_file_data is not None:
                     if self.config.output_format == "npz":
                         self._save_processed_data(proc_file_data, file_output_path)
+                        file_logger.info(f"Successfully saved: {file_output_path}")
                     elif self.config.output_format in ["edf", "hdf5"]:
                         # edf or h5 output
                         all_file_data.append(proc_file_data)
@@ -203,48 +211,46 @@ class DatasetProcessor:
             # Save multi-channel data if edf or hdf5 output specified (npz already saved per channel)
             if all_file_data and self.config.output_format in ["edf", "hdf5"]:
                 self._save_processed_data(all_file_data, file_output_path)
+                file_logger.info(f"Successfully saved: {file_output_path}")
         
         except Exception as e:
             # Log the exception
-            self.logger.error(f"Error processing file {Path(psg_fname).name}: {str(e)}", exc_info=True)
+            file_logger.error(f"Error processing file {Path(psg_fname).name}: {str(e)}", exc_info=True)
             raise  # Re-raise after logging        
         finally:
-            # Flush buffered logs to file(s), even if an exception occurred
+            # Flush buffered logs to console and file(s), even if an exception occurred
             if self.config.output_format == "npz":
                 # For npz, flush to each channel's log file with channel filtering
                 for channel, log_path in log_paths.items():
-                    self.logging_manager.flush_buffer_to_file(log_path, channel=channel)
-                    self.logging_manager.clear_buffer(channel=channel)
+                    buffer_handler.flush_to_console_and_file(log_path, channel=channel)
             elif self.config.output_format in ["edf", "hdf5"] and log_paths:
                 # For edf/hdf5, flush all channels' logs to single file
                 first_log_path = next(iter(log_paths.values()))
-                self.logging_manager.flush_buffer_to_file(first_log_path)
-            
-            # Stop buffering for next file
-            self.logging_manager.stop_buffering(self.logger)
+                buffer_handler.flush_to_console_and_file(first_log_path)
 
     def _process_channel(
         self,
+        logger,
         file_data,
         channel,
     ):
         """Process a single channel from a single file."""
 
-        self.logger.info(f"Signal file: {Path(file_data['psg_fname']).relative_to(self.config.data_dir)}")
+        logger.info(f"Signal file: {Path(file_data['psg_fname']).relative_to(self.config.data_dir)}")
         if self.config.use_annot:
-            self.logger.info(f"Annotation file: {Path(file_data['ann_fname']).relative_to(self.config.ann_dir)}")
+            logger.info(f"Annotation file: {Path(file_data['ann_fname']).relative_to(self.config.ann_dir)}")
 
         file_data["ch_name_orig"] = channel
-        self.logger.info(f"Channel selected: {file_data['ch_name_orig']}")
+        logger.info(f"Channel selected: {file_data['ch_name_orig']}")
 
         # Extract data from psg file and add to file_data dictionary
-        psg_data = self.dataset.get_signal_data(self.logger, file_data["psg_fname"], file_data["ch_name_orig"])
+        psg_data = self.dataset.get_signal_data(logger, file_data["psg_fname"], file_data["ch_name_orig"])
         file_data.update(psg_data)
         del psg_data  # free memory
 
-        self.logger.info(f"Select channel samples: {len(file_data["signal"])}")
-        self.logger.info(f"File duration: {file_data['file_duration']} sec, {file_data['file_duration']/3600:.2f} h")
-        self.logger.info(f"Start datetime: {file_data['start_datetime']}")
+        logger.info(f"Select channel samples: {len(file_data['signal'])}")
+        logger.info(f"File duration: {file_data['file_duration']} sec, {file_data['file_duration']/3600:.2f} h")
+        logger.info(f"Start datetime: {file_data['start_datetime']}")
 
         # Process the signal (resample, filter, clean)
         signal = file_data["signal"].astype(np.float64)
@@ -252,7 +258,7 @@ class DatasetProcessor:
         fs = file_data["sampling_rate"]
 
         if self.config.resample is not None or self.config.filter:
-            signal_processor = SignalProcessor(self.logger, signal, file_data["ch_name_orig"], self.config.filter_freq, self.dataset.channel_types)
+            signal_processor = SignalProcessor(logger, signal, file_data["ch_name_orig"], self.config.filter_freq, self.dataset.channel_types)
 
             if self.config.resample is not None:
                 # Resample signal
@@ -274,7 +280,7 @@ class DatasetProcessor:
 
         if self.config.use_annot:
             # Check if annotations and signal start at the same timestamp and pad/crop if necessary and configured
-            signal, labels = self._handle_start_datetime(signal, labels, fs, file_data["ann_start_datetime"], file_data["start_datetime"])
+            signal, labels = self._handle_start_datetime(logger,signal, labels, fs, file_data["ann_start_datetime"], file_data["start_datetime"])
 
         # Reshape into epochs
         n_epoch_samples = self.config.epoch_duration * fs
@@ -288,12 +294,12 @@ class DatasetProcessor:
         # Check signal length (at least one epoch required)
         n_epochs, remainder = divmod(len(signal), n_epoch_samples)
         if n_epochs < 1:
-            self.logger.warning(
+            logger.warning(
                 f"Channel does not hold at least one epoch, only {len(signal)} samples"
             )
             return
 
-        self.logger.info(f"Seconds in unfilled (cropped) epoch: {remainder / fs:.2f} sec")
+        logger.info(f"Seconds in unfilled (cropped) epoch: {remainder / fs:.2f} sec")
 
         signal_epoched = signal[: n_epochs * n_epoch_samples].reshape(n_epochs, -1)
 
@@ -301,7 +307,7 @@ class DatasetProcessor:
             if len(signal_epoched) != len(labels):
                 # Align end of signal and labels (some datasets have different length of signal and annotation data)
                 signal_epoched, labels = self.dataset.align_end(
-                    self.logger,
+                    logger,
                     self.config.alignment,
                     self.config.pad_values,
                     file_data["psg_fname"],
@@ -314,20 +320,20 @@ class DatasetProcessor:
             f"Length mismatch: signal ({os.path.basename(file_data['psg_fname'])})={len(signal_epoched)}, labels({os.path.basename(file_data['ann_fname'])})={len(labels)} TODO: adapt alignment function"
 
             # Clean signal data based on annotations (e.g. remove movement/unknown epochs, select sleep periods)
-            signal_epoched, labels = self._clean_signal(signal_epoched, labels)
+            signal_epoched, labels = self._clean_signal(logger, signal_epoched, labels)
 
         # update signal, labels and sampling_rate after the processing
         file_data.update({"signal": signal_epoched, "labels": labels, "sampling_rate": fs})
 
-        self.logger.info("=" * 40)
+        logger.info("=" * 40)
 
         return file_data
 
-    def _harmonize_channel_name(self, channel):
+    def _harmonize_channel_name(self, logger, channel):
         """Harmonize channel name based on dataset-specific mapping."""
         if self.config.map_channel_names:
             channel_harm = self.dataset.map_channel(channel)
-            self.logger.info(f"Mapped channel name {channel} to {channel_harm}")
+            logger.info(f"Mapped channel name {channel} to {channel_harm}")
             return channel_harm
         else:
             return channel
@@ -375,7 +381,7 @@ class DatasetProcessor:
 
         return file_output_path, log_file_path
 
-    def _handle_start_datetime(self, signal, labels, fs, ann_start_datetime, signal_start_datetime):
+    def _handle_start_datetime(self, logger,signal, labels, fs, ann_start_datetime, signal_start_datetime):
         # If annotation holds a start datetime, check if alignment is needed
         if ann_start_datetime != None:
             delay = 0
@@ -399,7 +405,7 @@ class DatasetProcessor:
                 )
                 # Align the start of signals and labels based on configuration
                 signal, labels = self.dataset.align_front(
-                    self.logger,
+                    logger,
                     self.config.alignment,
                     self.config.pad_values,
                     self.config.epoch_duration,
@@ -410,7 +416,7 @@ class DatasetProcessor:
                 )
         return signal, labels
 
-    def _clean_signal(self, signal_epoched, labels):
+    def _clean_signal(self, logger, signal_epoched, labels):
         """
         Clean signal by removing movement/unknown epochs and selecting sleep periods.
 
@@ -421,7 +427,7 @@ class DatasetProcessor:
         Returns:
             Tuple of (cleaned_signals, cleaned_labels) or (None, None) if no sleep detected
         """
-        self.logger.info(
+        logger.info(
             f"Starting signal cleaning - Input shape: signal_epoched={signal_epoched.shape}, labels={labels.shape}"
         )
 
@@ -431,14 +437,14 @@ class DatasetProcessor:
         else:
             move_idx = []
         if len(move_idx) > 0:
-            self.logger.info(f"  Removing Movement epochs: {len(move_idx)}")
+            logger.info(f"  Removing Movement epochs: {len(move_idx)}")
 
         if self.config.rm_unk:
             unk_idx = np.where(labels == self.STAGE_DICT["UNK"])[0]
         else:
             unk_idx = []
         if len(unk_idx) > 0:
-            self.logger.info(f"  Removing Unknown epochs: {len(unk_idx)}")
+            logger.info(f"  Removing Unknown epochs: {len(unk_idx)}")
 
         remove_idx = np.union1d(move_idx, unk_idx)
 
@@ -458,20 +464,20 @@ class DatasetProcessor:
             end_idx = min(len(labels) - 1, sleep_idx[-1] + n_wake_epochs)
 
             if start_idx + (len(signal_epoched) - end_idx) - 1 > 0:
-                self.logger.info(
+                logger.info(
                     f"  Outside {int(self.config.n_wake_epochs)/2}min wake epochs: {start_idx + (len(signal_epoched)-end_idx)-1}"
                 )
 
         select_idx = np.setdiff1d(np.arange(start_idx, end_idx + 1), remove_idx)
 
-        self.logger.info(
+        logger.info(
             f"  Total epochs to remove: {len(signal_epoched) - len(select_idx)}"
         )
 
         signal_epoched = signal_epoched[select_idx]
         labels = labels[select_idx]
 
-        self.logger.info(f"Data after cleaning: {signal_epoched.shape}, {labels.shape}")
+        logger.info(f"Data after cleaning: {signal_epoched.shape}, {labels.shape}")
 
         return signal_epoched, labels
 
@@ -614,5 +620,3 @@ class DatasetProcessor:
                         h5f.create_dataset("y", data=labels[:, 0], compression="gzip")
                         h5f.create_dataset("y2", data=labels[:, 1], compression="gzip")
 
-        
-        self.logger.info(f"Successfully saved: {file_output_path}")
