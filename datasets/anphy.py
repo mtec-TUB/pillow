@@ -157,9 +157,12 @@ class ANPHY(BaseDataset):
             'ann_ext': '**/*.txt'
         }
 
-    def get_file_identifier(self, psg_fname, ann_fname):
-        psg_id = Path(psg_fname).parent
-        ann_id = Path(ann_fname).parent
+    def get_file_identifier(self, psg_fname=None, ann_fname=None):
+        psg_id, ann_id = None, None
+        if psg_fname:
+            psg_id = Path(psg_fname).parent
+        if ann_fname:
+            ann_id = Path(ann_fname).parent
         return psg_id, ann_id
         
     

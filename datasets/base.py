@@ -1,5 +1,4 @@
 import os
-import sys
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple
 import logging
@@ -12,25 +11,23 @@ from psg_processing.utils import Alignment
 from .file_handlers import EDFHandler
 
 class BaseDataset(ABC):
-    """
-    Abstract base class for datasets.
+    """Abstract base class for datasets.
+    Holds all dataset-specific information and methods for loading PSG files, parsing annotations, and harmonizing channel names.
     Each dataset should inherit from this class and implement the required methods.
     """
 
     def __init__(self, dset_name: str, dataset_name_long: str, keep_folder_structure=True):
         self.dset_name = dset_name
         self.dataset_name = dataset_name_long
-        self.keep_folder_structure = keep_folder_structure  # save files in the same subfolder structure as they were found recursively
-        self.data_dir = None
-        self.ann_dir = None
+        self.keep_folder_structure = keep_folder_structure  # save files in the same subfolder structure as they were found
 
-        # Dataset-specific configurations - to be set by subclasses
+        # Dataset-specific configurations - to be set by subclasses (in _setup_dataset_config)
         self.ann2label = {}
         self.intra_dataset_mapping = {}
+        self.inter_dataset_mapping = {}
         self.channel_names = []
         self.channel_types = {}
         self.channel_groups = {}
-        self.inter_dataset_mapping = {}
         self.file_extensions = {}
 
         # Call setup method that subclasses must implement
@@ -40,7 +37,7 @@ class BaseDataset(ABC):
         self._file_handler = EDFHandler()
 
 
-    # Delegate file handler methods to the dataset
+    # Delegate file handler methods to the dataset or use dataset-specific functions here
     def get_channels(self, logger, filepath):
         """Extract channel information from PSG file."""
         return self._file_handler.get_channels(logger, filepath)
@@ -56,8 +53,7 @@ class BaseDataset(ABC):
 
     @abstractmethod
     def _setup_dataset_config(self):
-        """
-        Configure dataset-specific settings.
+        """Configure dataset-specific settings.
         Subclasses must implement this to set:
         - self.ann2label: Dict[str, int]
         - self.channel_names: List[str]
@@ -69,22 +65,31 @@ class BaseDataset(ABC):
         """
         pass
 
-    def get_file_identifier(self, psg_fname, ann_fname):
-        psg_ext = self.file_extensions['psg_ext'].split('*')[-1]
-        ann_ext = self.file_extensions['ann_ext'].split('*')[-1]
-        return psg_fname.split(psg_ext)[0], ann_fname.split(ann_ext)[0]
+    def get_file_identifier(self, psg_fname=None, ann_fname=None):
+        """Used to find corresponding PSG and annotation files based on filename patterns
+        By default, it removes the file extensions and returns the base name
+        Datasets with more complex naming conventions can override this method
+        """
+        psg_id, ann_id = None, None
+        if psg_fname:
+            psg_ext = self.file_extensions['psg_ext'].split('*')[-1]
+            psg_id = psg_fname.split(psg_ext)[0]
+        if ann_fname:
+            ann_ext = self.file_extensions['ann_ext'].split('*')[-1]
+            ann_id = ann_fname.split(ann_ext)[0]
+        return psg_id, ann_id
 
     def dataset_paths(self) -> List[str]:
-        """
-        The folder paths where this dataset is stored.
+        """Paths where PSG and Annotations are stored.
+        Are used to construct full paths if no specific dataset location is given in config.
+        Default: NSRR structure
         """
         data_dir = os.path.join(self.dataset_name, "polysomnography", "edfs")
         ann_dir = os.path.join(self.dataset_name, "polysomnography", "annotations-events-nsrr")
         return data_dir, ann_dir
     
     def map_channel(self, channel):
-        """
-        Harmonize channel name using intra- and inter-dataset mappings.
+        """Harmonize channel name using intra- and inter-dataset mappings.
         Intra-dataset mapping maps channel names within the same dataset to a common name (e.g., 'ECG R' and 'ECGR' both map to 'ECGR').
         Inter-dataset mapping maps common names to a harmonized naming convention across datasets.
         """
@@ -371,7 +376,6 @@ class BaseDataset(ABC):
                     logger.info(f"Partial epoch detected at start, signal will be shortened at the front to match")
                     signal = signal[int((delay_sec % epoch_duration)*fs):]
         return signal, labels
-
 
     def align_end(
         self,

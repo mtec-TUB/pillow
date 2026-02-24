@@ -68,9 +68,12 @@ class EESM19(BaseDataset):
             self.dataset_name
         ]
     
-    def get_file_identifier(self, psg_fname, ann_fname):
-        psg_id = Path(psg_fname).parent
-        ann_id = Path(ann_fname).parent
+    def get_file_identifier(self, psg_fname=None, ann_fname=None):
+        psg_id, ann_id = None, None
+        if psg_fname:
+            psg_id = Path(psg_fname).parent
+        if ann_fname:
+            ann_id = Path(ann_fname).parent
         return psg_id, ann_id
     
     def ann_parse(self, ann_fname):

@@ -55,12 +55,15 @@ class SleepEDF2018(BaseDataset):
             'psg_ext': '**/*0-PSG.edf',
             'ann_ext': '**/*-Hypnogram.edf'
         }
-    def get_file_identifier(self, psg_fname, ann_fname):
-        psg_ext = self.file_extensions['psg_ext'].split('*')[-1]
-        psg_id = psg_fname.split(psg_ext)[0]
-
-        ann_ext = self.file_extensions['ann_ext'].split('*')[-1]
-        ann_id = ann_fname.split(ann_ext)[0][:-1]
+        
+    def get_file_identifier(self, psg_fname=None, ann_fname=None):
+        psg_id, ann_id = None, None
+        if psg_fname:
+            psg_ext = self.file_extensions['psg_ext'].split('*')[-1]
+            psg_id = psg_fname.split(psg_ext)[0]
+        if ann_fname:
+            ann_ext = self.file_extensions['ann_ext'].split('*')[-1]
+            ann_id = ann_fname.split(ann_ext)[0][:-1]
         return psg_id, ann_id
     
     def dataset_paths(self) -> Tuple[str, str]:
