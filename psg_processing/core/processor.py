@@ -525,7 +525,7 @@ class DatasetProcessor:
                         "dimension": (
                             file_data["unit"] if "unit" in file_data else "a.u."
                         ),
-                        "sample_frequency": file_data["sampling_rate"],
+                        "sample_frequency": float(file_data["sampling_rate"]),
                         "physical_min": phys_min,
                         "physical_max": phys_max,
                         "digital_min": -32768,
