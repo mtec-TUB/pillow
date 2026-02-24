@@ -1,4 +1,5 @@
 import h5py
+from datetime import datetime
 
 class DOD_H5Handler:
     """Handler for DOD dataset files
@@ -46,11 +47,14 @@ class DOD_H5Handler:
                 sampling_rate = dataset.parent.attrs.get("fs")
                 file_duration = len(signal) / sampling_rate
 
+
+                start_datetime = datetime.fromtimestamp(f.attrs.get("start_time"))
+
                 return {
                     "signal": signal,
                     "sampling_rate": sampling_rate,
                     "unit": unit,
-                    "start_datetime": None,     # no starttime stored in DOD files
+                    "start_datetime": start_datetime,
                     "file_duration": file_duration,
                 }
         except Exception as e:
