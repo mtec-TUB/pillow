@@ -60,6 +60,18 @@ The codebase is organized into three main components:
 
 ---
 
+## **Supported Datasets**
+- ANPHY (https://osf.io/r26fh/)
+- ABC,  APOE, APPLES, BESTAIR, CFS, FDCSR, HOMEPAP, MESA, MNC, MROS, MSP, NCHSDB, SHHS, SOF, STAGES, WSC (https://sleepdata.org/)
+- CAP, CPS, DREAMT, HMC,  MIT-BIH, PHYSIO2018,  SLEEPBRL, SLEEP-EDF, UCDDB (https://physionet.org/)
+- DCSM (https://erda.ku.dk/public/archives/db553715ecbe1f3ac66c1dc569826eef/published-archive.html)
+- DOD-H, DOD-O (https://zenodo.org/records/15900394)
+- EESM17, EESM19, EESM23 (https://openneuro.org/)
+- ISRUC (https://sleeptight.isr.uc.pt/)
+- MWT (https://zenodo.org/records/3251716)
+
+---
+
 ## **Processing steps**
 
 The steps that are performed during processing depend heavily on your [config.yaml](/config.yaml). If you keep it as the default, the following will be applied (see [process_dataset.py](/process_dataset.py) and [processor.py](/psg_processing/core/processor.py)):
