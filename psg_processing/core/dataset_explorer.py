@@ -135,6 +135,9 @@ class Dataset_Explorer:
             channels = self.dataset.get_channels(self.logger, psg_fname)
             # for label, freq in zip(channels, freqs):
             #     self.ch_names.add((label, float(freq)))
+            if not channels:
+                self.logger.warning(f"Skipping file with no readable channels: {os.path.basename(psg_fname)}")
+                continue
             self.ch_names.update(channels)
 
         self.logger.info(
