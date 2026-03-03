@@ -8,6 +8,7 @@ A comprehensive toolkit for processing and storing polysomnography (PSG) dataset
 ## **Table of Contents**
 - [Architecture](#architecture)
 - [Quickstart](#quickstart)
+- [Supported Datasets](#supported-datasets)
 - [Processing steps](#processing-steps)
 - [Output](#output)
 - [Adding New Datasets](#adding-new-datasets)
