@@ -14,6 +14,7 @@ import glob
 from pathlib import Path
 from decimal import Decimal
 import numpy as np
+from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from ..utils import LoggingManager
@@ -65,16 +66,14 @@ class DatasetProcessor:
             if self.config.use_annot and ann_fnames is not None:
                 annotation_map = self._build_annot_lookup(psg_fnames, ann_fnames)
 
-            # Process each file in parallel
-            tasks = []
+            # Process psg files in parallel
             with ProcessPoolExecutor(max_workers=self.config.num_workers) as executor:
-            
+                tasks = []
                 
-                for psg_idx, psg_fname in enumerate(psg_fnames):
-                    self.pipeline_logger.info(f"---------- Processing file {psg_idx+1}/{len(psg_fnames)} ----------")
+                for psg_fname in psg_fnames:
 
                     # Find matching annotation file
-                    if self.config.use_annot:
+                    if self.config.use_annot and ann_fnames is not None:
                         ann_fname = annotation_map.get(psg_fname, None)
                         if ann_fname is None:
                             self.pipeline_logger.warning(
@@ -85,26 +84,22 @@ class DatasetProcessor:
                     else:
                         ann_fname = None
 
-                    tasks.append(
-                        executor.submit(
-                            self._process_file(
-                                psg_fname, ann_fname if ann_fnames is not None else None
-                            )
-                        )
-                    )
+                    future = executor.submit(self._process_file, psg_fname, ann_fname)
+                    tasks.append(future)
                 
-                # for future in as_completed(tasks):
-                #     try:
-                #         pass
-                #         #future.result()
-                #     except Exception as e:
-                #         self.pipeline_logger.error(f"Worker failed: {e}")
+                for future in tqdm(as_completed(tasks), total=len(tasks), desc="Processing files"):
+                    try:
+                        future.result()
+                    except Exception as e:
+                        self.pipeline_logger.error(f"Processing failed: {e}")
+                        executor.shutdown(cancel_futures=True)
+                        raise
                     
-
             # Finalize processing
             self.pipeline_logger.info("=" * 60)
             self.pipeline_logger.info("DATASET PREPARATION COMPLETED")
         except KeyboardInterrupt:
+            self.pipeline_logger.info("=" * 60)
             self.pipeline_logger.info("Stopped processing")
 
     def _build_annot_lookup(self, psg_fnames, ann_fnames):
@@ -125,27 +120,10 @@ class DatasetProcessor:
 
         return annotation_map
 
-    # def _find_matching_annotation(self, psg_fname, ann_fnames, start_idx):
-    #     """
-    #     Scan annotation files from start_idx forward and return the first match.
-    #     Return (ann_fname, new_index).
-    #     Only works if annotation files are ordered in the same way as PSG files.
-    #     """
-    #     psg_base = str(Path(psg_fname).relative_to(self.config.data_dir))
-
-    #     for i in range(start_idx, len(ann_fnames)):
-    #         ann_base = str(Path(ann_fnames[i]).relative_to(self.config.ann_dir))
-    #         psg_id, ann_id = self.dataset.get_file_identifier(
-    #             psg_base, ann_base
-    #         )
-
-    #         if psg_id == ann_id:
-    #             return ann_fnames[i], i + 1  # move annotation pointer past this match
-
-    #     return None, start_idx  # no match found
-
     def _process_file(self, psg_fname, ann_fname):
         """Process a single PSG file for all specified channels."""
+        if "sub-001" in psg_fname:
+            raise Exception("debug exception")
 
         # Initialize signal data dictionary which holds all necessary info for processing and saving
         file_data = {}
@@ -242,6 +220,8 @@ class DatasetProcessor:
                     elif self.config.output_format in ["edf", "hdf5"]:
                         # edf or h5 output
                         all_file_data.append(proc_file_data)
+                
+                file_logger.info("=" * 40)
 
 
             # Save multi-channel data if edf or hdf5 output specified (npz already saved per channel)
@@ -361,7 +341,7 @@ class DatasetProcessor:
         # update signal, labels and sampling_rate after the processing
         file_data.update({"signal": signal_epoched, "labels": labels, "sampling_rate": fs})
 
-        logger.info("=" * 40)
+
 
         return file_data
 
@@ -436,8 +416,8 @@ class DatasetProcessor:
                 delay = ann_start_datetime
 
             if delay != 0:
-                print(
-                    f"Start of signal: {signal_start_datetime} \nStart of labels: {ann_start_datetime}"
+                logger.info(
+                    f"Start of signal: {signal_start_datetime}, Start of labels: {ann_start_datetime}"
                 )
                 # Align the start of signals and labels based on configuration
                 signal, labels = self.dataset.align_front(

@@ -118,10 +118,10 @@ class ProcessorConfig:
         return value
     
     def _validate_workers(self, value):
-        if not isinstance(value, int):
-            raise ConfigError(f"Number of workers has to be an integer")
-        if value < -1 or value==0:
-            raise ConfigError(f"Number of workers has to be positiv or -1")
+        if value is None:
+            return None
+        if not isinstance(value, int) or value <= 0:
+            raise ConfigError(f"Number of workers has to be a positive integer or None")
         return value
 
     def _validate_bool(self, value):
