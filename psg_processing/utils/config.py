@@ -70,6 +70,8 @@ class ProcessorConfig:
             "action"
         )
 
+        self.num_workers = self._validate_workers(kwargs.get("num_workers"))
+
         self.alignment: str = self._validate_enum(
             kwargs.get("alignment"),
             self.VALID_ALIGNMENT,
@@ -113,6 +115,13 @@ class ProcessorConfig:
             raise ConfigError(
                 f"{name} must be one of {valid_set}, got {value}"
             )
+        return value
+    
+    def _validate_workers(self, value):
+        if not isinstance(value, int):
+            raise ConfigError(f"Number of workers has to be an integer")
+        if value < -1 or value==0:
+            raise ConfigError(f"Number of workers has to be positiv or -1")
         return value
 
     def _validate_bool(self, value):
