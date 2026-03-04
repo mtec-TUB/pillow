@@ -44,7 +44,7 @@ class Dataset_Explorer:
         # Setup logger with StreamHandler (console only)
         if not logger:
             logging_manager = LoggingManager(level=log_level)
-            self.logger = logging_manager.setup_logger()
+            self.logger = logging_manager.create_pipeline_logger()
         else:
             self.logger = logger
 
