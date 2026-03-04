@@ -61,16 +61,16 @@ class DatasetProcessor:
                 log_level=self.config.logging_level,
             ).get_files()
 
+            if self.config.use_annot and ann_fnames is not None:
+                annotation_map = self._build_annot_lookup(psg_fnames, ann_fnames)
+            
             # Process each file
-            ann_idx = 0
             for psg_idx, psg_fname in enumerate(psg_fnames):
                 self.pipeline_logger.info(f"---------- Processing file {psg_idx+1}/{len(psg_fnames)} ----------")
 
                 # Find matching annotation file
-                if self.config.use_annot and ann_fnames is not None:
-                    ann_fname, ann_idx = self._find_matching_annotation(
-                        psg_fname, ann_fnames, ann_idx
-                    )
+                if self.config.use_annot:
+                    ann_fname = annotation_map.get(psg_fname, None)
                     if ann_fname is None:
                         self.pipeline_logger.warning(
                             f"No matching annotation file found for PSG: "
@@ -78,7 +78,8 @@ class DatasetProcessor:
                         )
                         continue
                 else:
-                    ann_fnames = None
+                    ann_fname = None
+            
                 self._process_file(
                     psg_fname, ann_fname if ann_fnames is not None else None
                 )
@@ -89,24 +90,42 @@ class DatasetProcessor:
         except KeyboardInterrupt:
             self.pipeline_logger.info("Stopped processing")
 
-    def _find_matching_annotation(self, psg_fname, ann_fnames, start_idx):
-        """
-        Scan annotation files from start_idx forward and return the first match.
-        Return (ann_fname, new_index).
-        Only works if annotation files are ordered in the same way as PSG files.
-        """
-        psg_base = str(Path(psg_fname).relative_to(self.config.data_dir))
+    def _build_annot_lookup(self, psg_fnames, ann_fnames):
+        annotation_map = {}
 
-        for i in range(start_idx, len(ann_fnames)):
-            ann_base = str(Path(ann_fnames[i]).relative_to(self.config.ann_dir))
-            psg_id, ann_id = self.dataset.get_file_identifier(
-                psg_base, ann_base
-            )
+        # Build lookup dict by identifier
+        ann_lookup = {}
 
-            if psg_id == ann_id:
-                return ann_fnames[i], i + 1  # move annotation pointer past this match
+        for ann_fname in ann_fnames:
+            ann_base = str(Path(ann_fname).relative_to(self.config.ann_dir))
+            ann_id = self.dataset.get_file_identifier(None, ann_base)[1]
+            ann_lookup[ann_id] = ann_fname
 
-        return None, start_idx  # no match found
+        for psg_fname in psg_fnames:
+            psg_base = str(Path(psg_fname).relative_to(self.config.data_dir))
+            psg_id = self.dataset.get_file_identifier(psg_base, None)[0]
+            annotation_map[psg_fname] = ann_lookup.get(psg_id, None)
+
+        return annotation_map
+
+    # def _find_matching_annotation(self, psg_fname, ann_fnames, start_idx):
+    #     """
+    #     Scan annotation files from start_idx forward and return the first match.
+    #     Return (ann_fname, new_index).
+    #     Only works if annotation files are ordered in the same way as PSG files.
+    #     """
+    #     psg_base = str(Path(psg_fname).relative_to(self.config.data_dir))
+
+    #     for i in range(start_idx, len(ann_fnames)):
+    #         ann_base = str(Path(ann_fnames[i]).relative_to(self.config.ann_dir))
+    #         psg_id, ann_id = self.dataset.get_file_identifier(
+    #             psg_base, ann_base
+    #         )
+
+    #         if psg_id == ann_id:
+    #             return ann_fnames[i], i + 1  # move annotation pointer past this match
+
+    #     return None, start_idx  # no match found
 
     def _process_file(self, psg_fname, ann_fname):
         """Process a single PSG file for all specified channels."""
