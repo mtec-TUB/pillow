@@ -46,7 +46,7 @@ class EDFHandler:
                 logger.error(
                     "Maybe the repair_edfs.py script or EDF Browser header repairer can help."
                 )
-                raise
+                return []
 
     def read_signal(self, logger, filepath, channel):
         """Read signal from file for specific channel."""

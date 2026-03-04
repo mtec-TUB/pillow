@@ -8,6 +8,7 @@ A comprehensive toolkit for processing and storing polysomnography (PSG) dataset
 ## **Table of Contents**
 - [Architecture](#architecture)
 - [Quickstart](#quickstart)
+- [Supported Datasets](#supported-datasets)
 - [Processing steps](#processing-steps)
 - [Output](#output)
 - [Adding New Datasets](#adding-new-datasets)
@@ -57,6 +58,18 @@ The codebase is organized into three main components:
     ```bash
    python process_dataset.py --config /path/to/your/config.yaml
    ```
+
+---
+
+## **Supported Datasets**
+- ANPHY (https://osf.io/r26fh/)
+- ABC,  APOE, APPLES, BESTAIR, CFS, FDCSR, HOMEPAP, MESA, MNC, MROS, MSP, NCHSDB, SHHS, SOF, STAGES, WSC (https://sleepdata.org/)
+- CAP, CPS, DREAMT, HMC,  MIT-BIH, PHYSIO2018,  SLEEPBRL, SLEEP-EDF, UCDDB (https://physionet.org/)
+- DCSM (https://erda.ku.dk/public/archives/db553715ecbe1f3ac66c1dc569826eef/published-archive.html)
+- DOD-H, DOD-O (https://zenodo.org/records/15900394)
+- EESM17, EESM19, EESM23 (https://openneuro.org/)
+- ISRUC (https://sleeptight.isr.uc.pt/)
+- MWT (https://zenodo.org/records/3251716)
 
 ---
 
