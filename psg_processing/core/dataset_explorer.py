@@ -69,7 +69,7 @@ class Dataset_Explorer:
         self.psg_fnames = glob.glob(
             os.path.join(self.data_dir, psg_ext), recursive=True
         )
-        self.psg_fnames = natsorted(self.psg_fnames)
+        # self.psg_fnames = natsorted(self.psg_fnames)
         self.logger.info(f"Found {len(self.psg_fnames)} signal files")
 
         # Discover annotation files
@@ -100,18 +100,18 @@ class Dataset_Explorer:
             self.ann_fnames.extend(ann_fnames2)
             self.logger.info(f"Found {len(ann_fnames2)} additional annotation files")
 
-        self.ann_fnames = natsorted(self.ann_fnames)
+        # self.ann_fnames = natsorted(self.ann_fnames)
         self.logger.info(f"Total annotation files: {len(self.ann_fnames)}")
 
         # Convert to numpy arrays for consistency
         self.psg_fnames = np.asarray(self.psg_fnames)
         self.ann_fnames = np.asarray(self.ann_fnames)
 
-        # Validate that we have matching numbers of files
-        if ann_ext != "" and len(self.ann_fnames) != len(self.psg_fnames):
-            self.logger.warning(
-                f"Number of PSG files and Annotation files do not match: ({len(self.psg_fnames)}/{len(self.ann_fnames)})"
-            )
+        # # Validate that we have matching numbers of files
+        # if ann_ext != "" and len(self.ann_fnames) != len(self.psg_fnames):
+        #     self.logger.warning(
+        #         f"Number of PSG files and Annotation files do not match: ({len(self.psg_fnames)}/{len(self.ann_fnames)})"
+        #     )
 
         return self.psg_fnames, self.ann_fnames
 
