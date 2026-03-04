@@ -14,6 +14,7 @@ import glob
 from pathlib import Path
 from decimal import Decimal
 import numpy as np
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from ..utils import LoggingManager
 from .dataset_explorer import Dataset_Explorer
@@ -63,26 +64,42 @@ class DatasetProcessor:
 
             if self.config.use_annot and ann_fnames is not None:
                 annotation_map = self._build_annot_lookup(psg_fnames, ann_fnames)
-            
-            # Process each file
-            for psg_idx, psg_fname in enumerate(psg_fnames):
-                self.pipeline_logger.info(f"---------- Processing file {psg_idx+1}/{len(psg_fnames)} ----------")
 
-                # Find matching annotation file
-                if self.config.use_annot:
-                    ann_fname = annotation_map.get(psg_fname, None)
-                    if ann_fname is None:
-                        self.pipeline_logger.warning(
-                            f"No matching annotation file found for PSG: "
-                            f"{Path(psg_fname).relative_to(self.config.data_dir)}. Skipping file."
-                        )
-                        continue
-                else:
-                    ann_fname = None
+            # Process each file in parallel
+            tasks = []
+            with ProcessPoolExecutor(max_workers=self.config.num_workers) as executor:
             
-                self._process_file(
-                    psg_fname, ann_fname if ann_fnames is not None else None
-                )
+                
+                for psg_idx, psg_fname in enumerate(psg_fnames):
+                    self.pipeline_logger.info(f"---------- Processing file {psg_idx+1}/{len(psg_fnames)} ----------")
+
+                    # Find matching annotation file
+                    if self.config.use_annot:
+                        ann_fname = annotation_map.get(psg_fname, None)
+                        if ann_fname is None:
+                            self.pipeline_logger.warning(
+                                f"No matching annotation file found for PSG: "
+                                f"{Path(psg_fname).relative_to(self.config.data_dir)}. Skipping file."
+                            )
+                            continue
+                    else:
+                        ann_fname = None
+
+                    tasks.append(
+                        executor.submit(
+                            self._process_file(
+                                psg_fname, ann_fname if ann_fnames is not None else None
+                            )
+                        )
+                    )
+                
+                # for future in as_completed(tasks):
+                #     try:
+                #         pass
+                #         #future.result()
+                #     except Exception as e:
+                #         self.pipeline_logger.error(f"Worker failed: {e}")
+                    
 
             # Finalize processing
             self.pipeline_logger.info("=" * 60)
