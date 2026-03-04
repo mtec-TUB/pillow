@@ -65,7 +65,8 @@ class DatasetProcessor:
 
             if self.config.use_annot:
                 annotation_map = self._build_annot_lookup(psg_fnames, ann_fnames)
-                self.pipeline_logger.info(f"{len(psg_fnames)-len(annotation_map)}/{len(psg_fnames)} PSG files have no matching annotation file and will be skipped.")
+                if len(annotation_map) < len(psg_fnames):
+                    self.pipeline_logger.info(f"{len(psg_fnames)-len(annotation_map)}/{len(psg_fnames)} PSG files have no matching annotation file and will be skipped.")
                 n_files_to_process = len(annotation_map)
             else:
                 n_files_to_process = len(psg_fnames)
@@ -123,6 +124,9 @@ class DatasetProcessor:
             self.pipeline_logger.info("=" * 60)
             self.pipeline_logger.info("DATASET PROCESSING COMPLETED")
         except KeyboardInterrupt:
+            for task in tasks:
+                task.cancel()
+            executor.shutdown(cancel_futures=True)
             self.pipeline_logger.info("=" * 60)
             self.pipeline_logger.info("Stopped processing")
 
