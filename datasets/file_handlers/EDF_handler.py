@@ -16,6 +16,9 @@ class EDFHandler:
                 # freqs = psg_f.getSampleFrequencies()
                 # return labels, freqs
                 return labels
+        except KeyboardInterrupt:
+            # Always re-raise KeyboardInterrupt
+            raise
         except:
             # fall back to mne because it handles edfs more robustly
             try:
@@ -41,6 +44,9 @@ class EDFHandler:
                     else:
                         labels = raw.ch_names
                 return labels
+            except KeyboardInterrupt:
+                # Always re-raise KeyboardInterrupt
+                raise
             except Exception as e:
                 logger.error(f"Error during channel extraction from {filepath}: {e}")
                 logger.error(
@@ -56,6 +62,9 @@ class EDFHandler:
                 if channel in ch_names_file:
                     ch_idx = ch_names_file.index(channel)
                     return psg_f.readSignal(ch_idx)
+        except KeyboardInterrupt:
+            # Always re-raise KeyboardInterrupt
+            raise
         except:
             # fall back to mne because it handles edfs more robustly
             try:
@@ -69,6 +78,9 @@ class EDFHandler:
                 if channel in raw.ch_names:
                     signal = raw.get_data()
                     return signal
+            except KeyboardInterrupt:
+                # Always re-raise KeyboardInterrupt
+                raise
             except Exception as e:
                 logger.error(f"Error during signal extraction from {filepath}: {e}")
                 logger.error(
@@ -94,6 +106,9 @@ class EDFHandler:
                 signal = psg_f.readSignal(select_ch_idx)
 
                 unit = psg_f.getPhysicalDimension(select_ch_idx)
+        except KeyboardInterrupt:
+            # Always re-raise KeyboardInterrupt
+            raise
         except:
             try:
                 with catch_warnings(record=True) as w:
@@ -111,6 +126,9 @@ class EDFHandler:
                 unit = raw.info['chs'][0]['unit']
                 unit = mne._fiff.meas_info._unit2human[unit]
 
+            except KeyboardInterrupt:
+                # Always re-raise KeyboardInterrupt
+                raise
             except Exception as e:
                 logger.error(f"Error during data retrieval {filepath}: {e}")
                 logger.error(
