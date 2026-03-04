@@ -137,7 +137,8 @@ class SignalProcessor:
             up=output_rate,
             down=input_rate,
             method="polyphase",
-            n_jobs=-1,
+            n_jobs=1,
+            verbose="WARNING",
         )
 
         return signal_resampled
@@ -185,7 +186,7 @@ class SignalProcessor:
                 low,
                 high,
                 method="fir",
-                n_jobs="cuda" if has_cuda() else -1,
+                n_jobs=1,
                 verbose="WARNING",
             )
 
