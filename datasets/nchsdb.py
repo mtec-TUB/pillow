@@ -189,9 +189,9 @@ class NCHSDB(BaseDataset):
     def align_front(self, logger, alignment, pad_values, epoch_duration,delay_sec,signal: np.ndarray, labels, fs
                   ) -> Tuple[np.ndarray, np.ndarray]:
 
-        if not (float(delay_sec*Decimal(str(fs)))).is_integer():
-            print(fs)
-            print(delay_sec%(1/Decimal(str(fs))))
-            raise Exception("Annotations start at timestamp outside of sample rate")
+        # if not (float(delay_sec*Decimal(str(fs)))).is_integer():
+        #     print(fs)
+        #     print(delay_sec%(1/Decimal(str(fs))))
+        #     raise Exception("Annotations start at timestamp outside of sample rate")
 
         return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)

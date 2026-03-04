@@ -97,9 +97,7 @@ class EESM23(BaseDataset):
         return ann_stage_events, float(start_time_label)
     
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
-        if not (delay_sec*fs).is_integer():
-            raise Exception("Annotations start at timestamp outside of sample rate")
-
+        
         return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs) 
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
