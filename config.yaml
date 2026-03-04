@@ -38,6 +38,9 @@ logging_level: "INFO"
 # Options: "process", "get_channel_names", "get_channel_types"
 action: "process"
 
+# Number of workers in parallel processing (default: -1, take all kernels)
+num_workers: -1
+
 # Resample frequency in Hz (null = keep original sampling rate)
 resample: null
 
