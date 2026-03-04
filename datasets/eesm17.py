@@ -71,9 +71,9 @@ class EESM19(BaseDataset):
     def get_file_identifier(self, psg_fname=None, ann_fname=None):
         psg_id, ann_id = None, None
         if psg_fname:
-            psg_id = Path(psg_fname).parent
+            psg_id = os.path.basename(psg_fname).split('_eeg.set')[0]
         if ann_fname:
-            ann_id = Path(ann_fname).parent
+            ann_id =  os.path.basename(ann_fname).split('_acq-scoring_events.tsv')[0]
         return psg_id, ann_id
     
     def ann_parse(self, ann_fname):
