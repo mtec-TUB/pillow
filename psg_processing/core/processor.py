@@ -15,7 +15,7 @@ from pathlib import Path
 from decimal import Decimal
 import numpy as np
 from tqdm import tqdm
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
 
 from ..utils import LoggingManager
 from .dataset_explorer import Dataset_Explorer
@@ -52,7 +52,7 @@ class DatasetProcessor:
 
             self.pipeline_logger = self.logging_manager.create_pipeline_logger()
 
-            self.pipeline_logger.info("Starting dataset preparation")
+            self.pipeline_logger.info("Starting dataset processing")
 
             # Get all PSG and Annot files names
             psg_fnames, ann_fnames  = Dataset_Explorer(
@@ -63,41 +63,65 @@ class DatasetProcessor:
                 log_level=self.config.logging_level,
             ).get_files()
 
-            if self.config.use_annot and ann_fnames is not None:
+            if self.config.use_annot:
                 annotation_map = self._build_annot_lookup(psg_fnames, ann_fnames)
+                self.pipeline_logger.info(f"{len(psg_fnames)-len(annotation_map)}/{len(psg_fnames)} PSG files have no matching annotation file and will be skipped.")
+                n_files_to_process = len(annotation_map)
+            else:
+                n_files_to_process = len(psg_fnames)
 
             # Process psg files in parallel
-            with ProcessPoolExecutor(max_workers=self.config.num_workers) as executor:
+            max_workers = self.config.num_workers or os.cpu_count() or 1
+            with ProcessPoolExecutor(max_workers=max_workers) as executor:
                 tasks = []
-                
-                for psg_fname in psg_fnames:
+                psg_iter = iter(psg_fnames)
 
-                    # Find matching annotation file
-                    if self.config.use_annot and ann_fnames is not None:
-                        ann_fname = annotation_map.get(psg_fname, None)
-                        if ann_fname is None:
-                            self.pipeline_logger.warning(
-                                f"No matching annotation file found for PSG: "
-                                f"{Path(psg_fname).relative_to(self.config.data_dir)}. Skipping file."
-                            )
-                            continue
-                    else:
-                        ann_fname = None
+                # Progress Bar
+                with tqdm(total=n_files_to_process, desc="Processing files") as pbar:
+                    more_files_to_process = True
+                    while True:
+                        if not more_files_to_process and not tasks:
+                           break
+                        
+                        # Fill up worker tasks until max_workers is reached or no more files to process
+                        # Do not enqueue all files at once to handle Errors and stop processing immediatly
+                        while len(tasks) < max_workers:
+                            try:
+                                psg_fname = next(psg_iter)
+                            except StopIteration:
+                                more_files_to_process = False
+                                break
 
-                    future = executor.submit(self._process_file, psg_fname, ann_fname)
-                    tasks.append(future)
-                
-                for future in tqdm(as_completed(tasks), total=len(tasks), desc="Processing files"):
-                    try:
-                        future.result()
-                    except Exception as e:
-                        self.pipeline_logger.error(f"Processing failed: {e}")
-                        executor.shutdown(cancel_futures=True)
-                        raise
+                            # Find matching annotation file
+                            if self.config.use_annot:
+                                ann_fname = annotation_map.get(psg_fname, None)
+                                if ann_fname is None:
+                                    continue # No matching annotation file found, skip this PSG file
+                            else:
+                                ann_fname = None
+
+                            future = executor.submit(self._process_file, psg_fname, ann_fname)
+                            tasks.append(future)
+                            
+                        # Get notified when at least one file is finished and resume this one
+                        # Filling with new file will happen in the next loop iteration -> handle errors before enqueuing new files
+                        # Maximal "n_worker" files will still get finished before stopping pipeline if an error occurs
+                        # Ensures that capacity of workers is used as good as possible, even if some files take much longer to process than others
+                        done,_ = wait(tasks, return_when=FIRST_COMPLETED)   
+
+                        for future in done:
+                            try:
+                                future.result()  # Check for exceptions
+                                pbar.update(1)
+                            except Exception as e:
+                                self.pipeline_logger.error(f"Processing failed: {e}")
+                                executor.shutdown(cancel_futures=True)
+                                raise
+                            tasks.remove(future)
                     
             # Finalize processing
             self.pipeline_logger.info("=" * 60)
-            self.pipeline_logger.info("DATASET PREPARATION COMPLETED")
+            self.pipeline_logger.info("DATASET PROCESSING COMPLETED")
         except KeyboardInterrupt:
             self.pipeline_logger.info("=" * 60)
             self.pipeline_logger.info("Stopped processing")
@@ -116,14 +140,18 @@ class DatasetProcessor:
         for psg_fname in psg_fnames:
             psg_base = str(Path(psg_fname).relative_to(self.config.data_dir))
             psg_id = self.dataset.get_file_identifier(psg_base, None)[0]
-            annotation_map[psg_fname] = ann_lookup.get(psg_id, None)
-
+            match_ann_id = ann_lookup.get(psg_id, None)
+            if match_ann_id:
+                annotation_map[psg_fname] = match_ann_id
+            # else:
+            #     self.pipeline_logger.warning(
+            #         f"No matching annotation file found for PSG: "
+            #         f"{Path(psg_fname).relative_to(self.config.data_dir)}. Skipping file."
+            #     )
         return annotation_map
 
     def _process_file(self, psg_fname, ann_fname):
         """Process a single PSG file for all specified channels."""
-        if "sub-001" in psg_fname:
-            raise Exception("debug exception")
 
         # Initialize signal data dictionary which holds all necessary info for processing and saving
         file_data = {}
