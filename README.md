@@ -74,7 +74,7 @@ We do not provide any data. Please request the data from the original authors an
 | BESTAIR     | 0.6.1 (Oct 11, 2022)     | https://doi.org/10.25822/f656-yg39 |
 | CAP         | 1.0.0             | https://doi.org/10.13026/C2VC79    |
 | CCSHS       | 0.8.0 (Nov 14, 2023) | https://doi.org/10.25822/cg2n-4y91      |
-| CFS         | Jun 12, 2020      | https://doi.org/10.25822/jmyx-mz90      |
+| CFS         | 0.7.0 (Mar 1, 2022)  | https://doi.org/10.25822/jmyx-mz90      |
 | CHAT        | 0.14.0 (Nov 30, 2023) | https://doi.org/10.25822/d68d-8g03      |
 | CPS         | 1.0.0             | https://doi.org/10.13026/sxs0-h317      |
 | DCSM        | Mar 15, 2021      | https://doi.org/10.17894/ucph.282d3c1e-9b98-4c1e-886e-704afdfa9179 |
