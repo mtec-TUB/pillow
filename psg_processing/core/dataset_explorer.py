@@ -43,7 +43,7 @@ class Dataset_Explorer:
 
         # Setup logger with StreamHandler (console only)
         if not logger:
-            logging_manager = LoggingManager(level=log_level)
+            logging_manager = LoggingManager(console_level=log_level)
             self.logger = logging_manager.create_pipeline_logger()
         else:
             self.logger = logger
@@ -126,7 +126,6 @@ class Dataset_Explorer:
         self.logger.info("Getting all available channel names ...")
 
         self.get_files()
-        self.logger.info(f"Found {len(self.psg_fnames)} files to process")
 
         self.ch_names = set()
 

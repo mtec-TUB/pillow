@@ -30,9 +30,9 @@ output_format: "edf"
 # if false, files that exist already in the output directory will be skipped
 overwrite: false
 
-# Logging level
+# Logging level for console output (file logs will always include INFO level)
 # Options: 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'
-logging_level: "INFO"
+logging_level: "WARNING"
 
 # Action to perform
 # Options: "process", "get_channel_names", "get_channel_types"

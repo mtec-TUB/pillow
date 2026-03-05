@@ -34,7 +34,7 @@ class DatasetProcessor:
 
     def __init__(self, dataset, config):
 
-        self.logging_manager = LoggingManager(level=config.logging_level)
+        self.logging_manager = LoggingManager(console_level=config.logging_level)
         self.dataset = dataset
         self.config = config
 
