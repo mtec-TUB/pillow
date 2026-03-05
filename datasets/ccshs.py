@@ -17,7 +17,6 @@ class CCSHS(BaseDataset):
             "Stage 3 sleep": 3,
             "REM sleep": 4,
             "Movement": 5,
-            "Unscored": 6,
         }
 
         self.intra_dataset_mapping = {
