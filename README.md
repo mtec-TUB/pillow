@@ -69,7 +69,7 @@ We do not provide any data. Please request the data from the original authors an
 | :---        | :----             | :---                               |
 | ABC         | Jun 12, 2020      | https://doi.org/10.25822/nx52-bc11 |
 | ANPHY       | Mar 19, 2025      | https://osf.io/r26fh/              |
-| APOE        | Mar, 2024         | https://doi.org/10.25822/6ssj-2157 |
+| APOE        | 0.2.1 (Mar 1, 2024)| https://doi.org/10.25822/6ssj-2157 |
 | APPLES      | Feb, 2023         | https://doi.org/10.25822/63pr-a591 |
 | BESTAIR     | Jun 12, 2020      | https://doi.org/10.25822/f656-yg39 |
 | CAP         | 1.0.0             | https://doi.org/10.13026/C2VC79    |
