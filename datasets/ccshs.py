@@ -15,6 +15,7 @@ class CCSHS(BaseDataset):
             "Stage 1 sleep": 1,
             "Stage 2 sleep": 2,
             "Stage 3 sleep": 3,
+            "Stage 4 sleep": 3, # according to AASM
             "REM sleep": 4,
             "Movement": 5,
         }
