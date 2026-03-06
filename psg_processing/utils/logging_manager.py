@@ -58,13 +58,13 @@ class LoggingManager:
 
     def create_pipeline_logger(self, name="psg.pipeline"):
         logger = logging.getLogger(name)
+        logger.setLevel(logging.INFO)   # Always show pipeline logs in console
         logger.propagate = False
         logger.handlers.clear()
 
         formatter = logging.Formatter(self.format, self.date_format)
         console = logging.StreamHandler()
         console.setFormatter(formatter)
-        console.setLevel(logging.INFO)  # Always show pipeline logs in console
 
         logger.addHandler(console)
         return logger
