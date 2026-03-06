@@ -117,7 +117,7 @@ class EDFHandler:
                         if w[0].message.args[0].startswith("Channel names are not unique"):
                             channel = raw.ch_names[0]    # take only the first of the duplicate channels
                         else:
-                            logger.warning(str(w.message))
+                            logger.warning(str(w[0].message))
                 
                 signal = raw.get_data(picks=channel)[0]
                 start_datetime = raw.info['meas_date']
