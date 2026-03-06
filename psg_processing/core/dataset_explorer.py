@@ -143,7 +143,7 @@ class Dataset_Explorer:
             f"Discovery complete! Found {len(self.ch_names)} unique channels across all files."
         )
 
-        return self.ch_names
+        return sorted(self.ch_names)
 
     def get_channel_type(self):
         """
