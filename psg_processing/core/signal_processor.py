@@ -191,8 +191,8 @@ class SignalProcessor:
             )
 
         elif not (low is None and high is None) and self.ch_type == "digital":
-            self.logger.error("Digital channels cannot be filtered.")
-            raise Exception("Digital channels cannot be filtered.")
+            self.logger.error(f"Digital channels ({self.select_ch}) cannot be filtered.")
+            raise Exception(f"Digital channels ({self.select_ch}) cannot be filtered.")
 
         return
     
