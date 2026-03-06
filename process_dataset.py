@@ -1,3 +1,4 @@
+import logging
 import os
 import argparse
 import sys
@@ -115,14 +116,14 @@ def main(config):
 
     elif config.action == "get_channel_names":
         explorer = Dataset_Explorer(
-            None, dataset, config.data_dir, config.ann_dir, log_level=config.logging_level
+            None, dataset, config.data_dir, config.ann_dir, log_level=logging.INFO
         )
         channels = list(explorer.get_all_channels())
         print(f"Available channels in {dataset.dset_name}: {(channels)}")
 
     elif config.action == "get_channel_types":
         explorer = Dataset_Explorer(
-            None, dataset, config.data_dir, config.ann_dir,log_level=config.logging_level
+            None, dataset, config.data_dir, config.ann_dir,log_level=logging.INFO
         )
         explorer.get_all_channels()
         channel_types = explorer.get_channel_type()
