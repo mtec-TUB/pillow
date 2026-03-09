@@ -10,7 +10,7 @@ from datasets.file_handlers import EEGLABHandler
 
 
 @register_dataset("EESM17")
-class EESM19(BaseDataset):
+class EESM17(BaseDataset):
     """Ear-EEG Sleep Monitoring 2017 (EESM17) dataset"""
     
     def __init__(self):
