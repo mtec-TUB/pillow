@@ -1,4 +1,5 @@
 import os
+import pathlib
 import numpy as np
 import pandas as pd
 import shutil
@@ -238,7 +239,7 @@ class ISRUCFileOrganizer:
             files = glob.glob(subgroup_folder+"/*/**/*.*", recursive=True)
             
             for file in files:
-                new_filename = os.path.basename(subgroup_folder)+'_'+os.path.basename(file).replace('/','_')
+                new_filename = os.path.basename(subgroup_folder)+'_'+str(Path(file).relative_to(Path(subgroup_folder))).replace('/','_')
                 print(f"Copy file {file} to {subgroup_folder+'/'+new_filename}")
                 shutil.copy(file,subgroup_folder+'/'+new_filename)
                 
