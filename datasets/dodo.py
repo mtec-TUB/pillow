@@ -60,7 +60,7 @@ class DODO(BaseDataset):
         
         
         self.channel_names = [
-            'eeg/O1_M1', 'eeg/C4_M1', 'eeg/F3_O1', 'eeg/O1_M2',
+            'eeg/C4_M1', 'eeg/F3_O1', 'eeg/O1_M2',
             'eeg/F4_O2', 'eeg/F3_F4', 'eeg/C3_M2', 'eeg/F3_M2',
             'eeg/O2_M1',
             'eog/EOG1', 'eog/EOG2',
@@ -73,14 +73,14 @@ class DODO(BaseDataset):
             'analog': [
                 'eeg/O2_M1', 'emg/ECG', 'emg/EMG', 'eeg/C4_M1', 
                 'eeg/F3_O1', 'eeg/O1_M2', 'eog/EOG1', 'eeg/F4_O2', 
-                'eeg/F3_F4', 'eog/EOG2', 'eeg/C3_M2', 'eeg/F3_M2'
+                'eeg/F3_F4', 'eog/EOG2', 'eeg/C3_M2', 'eeg/F3_M2',
             ],
             'digital': []
         }
     
         
         self.channel_groups = {
-            'eeg_eog': ['eeg/O1_M1', 'eeg/C4_M1', 'eeg/F3_O1', 'eeg/O1_M2', 'eog/EOG1', 'eeg/F4_O2', 'eeg/F3_F4', 'eog/EOG2', 'eeg/C3_M2', 'eeg/F3_M2', 'eeg/O2_M1'],
+            'eeg_eog': ['eeg/C4_M1', 'eeg/F3_O1', 'eeg/O1_M2', 'eog/EOG1', 'eeg/F4_O2', 'eeg/F3_F4', 'eog/EOG2', 'eeg/C3_M2', 'eeg/F3_M2', 'eeg/O2_M1'],
             'emg': ['emg/EMG'],
             'ecg': ['emg/ECG']
         }
