@@ -68,7 +68,7 @@ We do not provide any data. Please request the data from the original authors an
 | Name        | Supported Version     | Source                                                             |
 | :---        | :----                 | :---                                                               |
 | ABC         | 0.4.0 (Feb 11, 2022)  | https://doi.org/10.25822/nx52-bc11                                 |
-| ANPHY       | Mar 19, 2025          | https://osf.io/r26fh/                                              |
+| ANPHY       | Mar 19, 2025          | https://doi.org/10.17605/OSF.IO/R26FH                              |
 | APOE        | 0.2.1 (Mar 1, 2024)   | https://doi.org/10.25822/6ssj-2157                                 |
 | APPLES      | 0.1.0 (Mar 15, 2023)  | https://doi.org/10.25822/63pr-a591                                 |
 | BESTAIR     | 0.6.1 (Oct 11, 2022)  | https://doi.org/10.25822/f656-yg39                                 |
