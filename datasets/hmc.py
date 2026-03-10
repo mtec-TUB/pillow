@@ -57,7 +57,7 @@ class HMC(BaseDataset):
         
         
         self.file_extensions = {
-            'psg_ext': '*.edf',
+            'psg_ext': '*[!sleepscoring].edf',
             'ann_ext': '*_sleepscoring.txt'
         }
     
