@@ -157,111 +157,17 @@ class Dataset_Explorer:
         self.logger.info(
             f"Found {len(self.ch_names)} channels to analyze across {len(self.psg_fnames)} files"
         )
-        self.logger.info(
-            "TIP: Press Ctrl+C during any channel analysis to skip remaining files and classify that channel as DIGITAL immediately.\n"
-        )
 
         channel_types = {"analog": [], "digital": []}
 
-        # Main progress bar for channels
-        channel_progress = tqdm(
-            self.ch_names,
-            desc="Analyzing channels",
-            unit="channel",
-            leave=True,
-            ncols=None,
-        )
+        # Set default to digital and only change to analog if we find evidence of it being analog in any file
+        channel_dict = {self.ch_names[i]: 'digital' for i in range(len(self.ch_names))}
 
-        for channel_idx, channel in enumerate(channel_progress):
-            try:
-                # Update main progress bar description to show current channel
-                channel_progress.set_description(f"Analyzing: {channel[:20]}")
+        channel_dict = self.analyze_channel_types(0, channel_dict)
 
-                # Check multiple files to determine channel type
-                is_analog_found = False
-                files_checked = 0
-
-                # Use nested tqdm for file checking within each channel
-                file_progress = tqdm(
-                    self.psg_fnames,
-                    desc="  Checking files",
-                    unit="file",
-                    leave=False,
-                    ncols=None,
-                )
-
-                for psg_fname in file_progress:
-
-                    # Update file progress description with current file
-                    file_progress.set_postfix_str(
-                        f"{os.path.basename(psg_fname)[:25]}..."
-                    )
-
-                    signal = self.dataset.read_signal(self.logger, psg_fname, channel)
-
-                    if signal is None:
-                        continue  # Channel not found in this file
-
-                    files_checked += 1
-
-                    if not self._is_digital(signal):
-                        # If any file shows analog signal, classify as analog
-                        file_progress.close()
-                        channel_types["analog"].append(channel)
-                        channel_progress.set_postfix_str(
-                            f"ANALOG ({files_checked} files)"
-                        )
-                        is_analog_found = True
-                        break
-
-                # Close file progress bar if not already closed
-                if not file_progress.disable:
-                    file_progress.close()
-
-                # If no analog signals found, classify as digital
-                if not is_analog_found:
-                    channel_types["digital"].append(channel)
-                    channel_progress.set_postfix_str(f"DIGITAL ({files_checked} files)")
-
-            except KeyboardInterrupt:
-                # Handle user interruption gracefully
-                channel_progress.close()
-                self.logger.warning(f"\n\nKeyboard interrupt detected!")
-                self.logger.warning(
-                    f"   Classifying '{channel}' as DIGITAL and continuing..."
-                )
-
-                if channel not in channel_types["analog"]:
-                    channel_types["digital"].append(channel)
-
-                # Ask if user wants to continue or stop completely
-                try:
-                    user_choice = (
-                        input("\nContinue with next channel? (y/N): ").strip().lower()
-                    )
-                    if user_choice not in ["y", "yes"]:
-                        self.logger.info(
-                            "Analysis stopped by user. Returning partial results..."
-                        )
-                        break
-
-                    # Restart the progress bar
-                    remaining_channels = list(self.ch_names)[channel_idx + 1 :]
-                    channel_progress = tqdm(
-                        remaining_channels,
-                        desc="Analyzing channels",
-                        unit="channel",
-                        leave=True,
-                        ncols=None,
-                    )
-                    self.logger.info("Continuing with analysis...\n")
-                except KeyboardInterrupt:
-                    self.logger.info("\nAnalysis stopped completely by user.")
-                    break
-
-        # Close the main progress bar
-        if "channel_progress" in locals():
-            channel_progress.close()
+        # Convert to final lists
+        for channel, ch_type in channel_dict.items():
+            channel_types[ch_type].append(channel)
 
         # Print final summary
         self.logger.info(f"\nAnalysis complete!")
@@ -269,6 +175,41 @@ class Dataset_Explorer:
         self.logger.info(f"Digital channels: {len(channel_types['digital'])}")
 
         return channel_types
+    
+    def analyze_channel_types(self, psg_idx, channel_dict):
+        try:
+            outer_bar = tqdm(self.psg_fnames[psg_idx:], desc="Analyzing files", unit="file")
+            for psg_idx, psg_fname in enumerate(outer_bar):
+                channels = self.dataset.get_channels(self.logger, psg_fname)
+
+                for channel in tqdm(channels, desc=f"Checking channels in {os.path.basename(psg_fname)}", unit="channel", leave=False):
+                    if channel in channel_dict and channel_dict[channel] == 'digital':
+                        signal = self.dataset.read_signal(self.logger, psg_fname, channel)
+                        if signal is not None and not self._is_digital(signal):
+                            channel_dict[channel] = 'analog'
+
+                still_digital = [ch for ch, t in channel_dict.items() if t == "digital"]
+                outer_bar.set_postfix({"n_digital": len(still_digital)})
+
+                if all(ch_type == 'analog' for ch_type in channel_dict.values()):
+                    break  # All channels classified as analog, no need to continue checking
+
+        except KeyboardInterrupt:
+            self.logger.warning(f"\n\nKeyboard interrupt detected during channel analysis!")
+            # Convert to final lists
+            channel_types = {"analog": [], "digital": []}
+            for channel, ch_type in channel_dict.items():
+                channel_types[ch_type].append(channel)
+            print(f"Current status of analysis: {channel_types}")
+            exec = input("Do you want to continue analysing (y) or finalizing the results now (n):")  # Wait for user input before finalizing
+            if str(exec).lower() == "y":
+                self.analyze_channel_types(psg_idx, channel_dict)  # Continue analysis recursively
+            else:
+                self.logger.info(f"Finalizing results with current analysis status...")
+        except Exception as e:
+            self.logger.error(f"Error during channel type analysis: {e}")   
+        finally:  
+            return channel_dict
 
     def _is_digital(self, signal):
         """
