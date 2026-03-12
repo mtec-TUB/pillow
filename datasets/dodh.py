@@ -100,8 +100,8 @@ class DODH(BaseDataset):
     
     def dataset_paths(self) -> Tuple[str, str]:
         return [
-            self.dataset_name,
-            self.dataset_name
+            '',
+            ''
         ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:

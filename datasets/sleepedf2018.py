@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import pyedflib
+import pandas as pd
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 from datasets.base import BaseDataset
@@ -68,9 +69,33 @@ class SleepEDF2018(BaseDataset):
     
     def dataset_paths(self) -> Tuple[str, str]:
         return [
-            os.path.join(self.dataset_name,'1.0.0'),
-            os.path.join(self.dataset_name,'1.0.0')
+            '1.0.0',
+            '1.0.0'
         ]
+    
+    def get_light_times(self, psg_fname):
+
+        psg_fname = os.path.basename(psg_fname)
+        subject_id = int(psg_fname[3:5])
+        subject_night = int(psg_fname[5])
+        # print(subject_id, subject_night)
+        if "SC4" in psg_fname:
+            # Sleep-Cassette
+            subjects = pd.read_excel(os.path.join(self.dset_dir,'1.0.0','SC-subjects.xls'))
+            lights_off = subjects.loc[(subjects['subject'] == subject_id) & (subjects['night'] == subject_night), 'LightsOff'].values[0]
+        elif "ST7" in psg_fname:
+            # Sleep-Telemetry
+            subjects = pd.read_excel(os.path.join(self.dset_dir,'1.0.0','ST-subjects.xls'), skiprows=1,names=["subject","Age", "Gender","Placebo_night_nr","Placebo_lights_off","Temazepam_night_nr","Temazepam_lights_off"])
+            if subjects.loc[(subjects['subject'] == subject_id),"Placebo_night_nr"].values[0] == subject_night:
+                lights_off = subjects.loc[(subjects['subject'] == subject_id), 'Placebo_lights_off'].values[0]
+            elif subjects.loc[(subjects['subject'] == subject_id),"Temazepam_night_nr"].values[0] == subject_night:
+                lights_off = subjects.loc[(subjects['subject'] == subject_id), 'Temazepam_lights_off'].values[0]
+            else:
+                raise Exception
+        else:
+            raise Exception
+        
+        return lights_off, None
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
@@ -82,7 +107,10 @@ class SleepEDF2018(BaseDataset):
         Returns:
             Tuple of (sleep_stage_events, start_datetime)
         """
-        ann_f = pyedflib.EdfReader(ann_fname)
+        try:
+            ann_f = pyedflib.EdfReader(ann_fname)
+        except Exception as e:
+            return [], None,None,None
         ann_onsets, ann_durations, ann_stages = ann_f.readAnnotations()
         ann_startdatetime = ann_f.getStartdatetime()
         start_offset = 0
@@ -122,7 +150,7 @@ class SleepEDF2018(BaseDataset):
             })
         
         ann_f.close()
-        return ann_stage_events, ann_startdatetime
+        return ann_stage_events, ann_startdatetime, None, None
 
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
 

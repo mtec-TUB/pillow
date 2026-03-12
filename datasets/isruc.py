@@ -105,8 +105,8 @@ class ISRUC(BaseDataset):
     
     def dataset_paths(self) -> Tuple[str, str]:
         return [
-            os.path.join(self.dataset_name,'Data'),
-            os.path.join(self.dataset_name,'Data')
+            'Data',
+            'Data'
         ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[List[Dict]], datetime]:

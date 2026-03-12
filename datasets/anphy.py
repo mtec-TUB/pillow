@@ -168,8 +168,8 @@ class ANPHY(BaseDataset):
     
     def dataset_paths(self) -> Tuple[str, str]:
         return [
-            os.path.join(self.dataset_name, "osfstorage-archive"),
-            os.path.join(self.dataset_name, "osfstorage-archive")
+            "osfstorage-archive",
+            "osfstorage-archive"
         ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:

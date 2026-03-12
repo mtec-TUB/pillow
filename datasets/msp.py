@@ -74,8 +74,8 @@ class MSP(BaseDataset):
 
     def dataset_paths(self) -> Tuple[str, str]:
         return [
-            os.path.join(self.dataset_name,'polysomnography'),
-            os.path.join(self.dataset_name,'polysomnography')
+            'polysomnography',
+            'polysomnography'
         ]
         
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:

@@ -69,8 +69,8 @@ class EESM19(BaseDataset):
         
     def dataset_paths(self) -> tuple[str, str]:
         return [
-            self.dataset_name,
-            self.dataset_name
+            '',
+            ''
         ]
     
     def get_file_identifier(self, psg_fname=None, ann_fname=None):

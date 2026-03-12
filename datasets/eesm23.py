@@ -70,8 +70,8 @@ class EESM23(BaseDataset):
     
     def dataset_paths(self) -> tuple[str, str]:
         return [
-            self.dataset_name,
-            self.dataset_name
+            '',
+            ''
         ]
     
     def ann_parse(self, ann_fname):

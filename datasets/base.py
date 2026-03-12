@@ -84,8 +84,8 @@ class BaseDataset(ABC):
         Are used to construct full paths if no specific dataset location is given in config.
         Default: NSRR structure
         """
-        data_dir = os.path.join(self.dataset_name, "polysomnography", "edfs")
-        ann_dir = os.path.join(self.dataset_name, "polysomnography", "annotations-events-nsrr")
+        data_dir = os.path.join("polysomnography", "edfs")
+        ann_dir = os.path.join("polysomnography", "annotations-events-nsrr")
         return data_dir, ann_dir
     
     def map_channel(self, channel):
@@ -235,6 +235,14 @@ class BaseDataset(ABC):
         def __str__(self):
             return self.name
 
+    def get_light_times(self, psg_fname):
+        """Get lights on and lights off time, if available in dataset
+        Used to extract only epochs between these markers
+        """
+        lights_off = None
+        lights_on = None
+        return lights_off, lights_on
+
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
         Generic parse annotation file and extract sleep stage events.
@@ -289,7 +297,7 @@ class BaseDataset(ABC):
                     }
                 )
 
-        return ann_stage_events, ann_startdatetime
+        return ann_stage_events, ann_startdatetime, None, None
 
     def ann_label(
         self,

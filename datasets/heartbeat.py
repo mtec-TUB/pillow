@@ -73,6 +73,6 @@ class HEARTBEAT(BaseDataset):
     def dataset_paths(self) -> Tuple[str, str]:
         """Dataset paths for HEARTBEAT dataset"""
         return [
-            os.path.join(self.dataset_name, "polysomnography", "edfs"),
-            self.dataset_name   # not available for this dataset, just for consistency
+            os.path.join("polysomnography", "edfs"),
+            ''   # not available for this dataset, just for consistency
         ]

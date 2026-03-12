@@ -47,8 +47,8 @@ class DREAMT(BaseDataset):
     
     def dataset_paths(self) -> Tuple[str, str]:
         return [
-            os.path.join(self.dataset_name, "data"),
-            os.path.join(self.dataset_name, "data")
+            'data',
+            'data'
         ]
     
     def get_channels(self, logger, filepath):

@@ -143,8 +143,8 @@ class NCHSDB(BaseDataset):
 
     def dataset_paths(self) -> Tuple[str, str]:
         return [
-            os.path.join(self.dataset_name,'sleep_data'),
-            os.path.join(self.dataset_name,'sleep_data')
+            'sleep_data',
+            'sleep_data'
         ]
         
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:

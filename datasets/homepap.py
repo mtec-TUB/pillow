@@ -184,9 +184,3 @@ class HOMEPAP(BaseDataset):
             'psg_ext': '**/*.edf',
             'ann_ext': '**/*-nsrr.xml'
         }
-    
-    def dataset_paths(self) -> Tuple[str, str]:
-        return [
-            os.path.join(self.dataset_name, "polysomnography", "edfs"),
-            os.path.join(self.dataset_name, "polysomnography", "annotations-events-nsrr")
-        ]

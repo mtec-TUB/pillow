@@ -70,8 +70,8 @@ class DCSM(BaseDataset):
 
     def dataset_paths(self) -> Tuple[str, str]:
         return [
-            os.path.join(self.dataset_name, "edfs"),
-            os.path.join(self.dataset_name, "annot")
+            "edfs",
+            "annot"
         ]
     
 

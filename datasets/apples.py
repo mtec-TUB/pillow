@@ -65,8 +65,8 @@ class APPLES(BaseDataset):
 
     def dataset_paths(self):
         return [
-            os.path.join(self.dataset_name, "polysomnography"),
-            os.path.join(self.dataset_name, "polysomnography")
+            "polysomnography",
+            "polysomnography"
         ]
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:

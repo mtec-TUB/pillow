@@ -47,8 +47,8 @@ class MWT(BaseDataset):
 
     def dataset_paths(self):
         return [
-            self.dataset_name,
-            self.dataset_name
+            '',
+            ''
         ]
     
     def get_channels(self, logger, filepath):

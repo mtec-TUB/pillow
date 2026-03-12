@@ -229,8 +229,8 @@ class STAGES(BaseDataset):
 
     def dataset_paths(self) -> Tuple[str, str]:
         return [
-            os.path.join(self.dataset_name, "original", "STAGES PSGs"),
-            os.path.join(self.dataset_name, "original", "STAGES PSGs")
+            os.path.join("original", "STAGES PSGs"),
+            os.path.join("original", "STAGES PSGs")
         ]
         
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:

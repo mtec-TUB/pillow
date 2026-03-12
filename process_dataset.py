@@ -35,7 +35,6 @@ def resolve_paths(
     dataset,
     base_data_dir: str,
     data_dir: str | None,
-    ann_dir: str | None,
     output_dir: str | None,
     output_format: str,
 ):
@@ -44,24 +43,34 @@ def resolve_paths(
     - If data_dir or ann_dir not provided, use dataset.dataset_paths() and join with base_data_dir.
     - If output_dir not provided, construct under base_data_dir using dataset_name and output format info.
     """
-    # Start from dataset-provided relative paths
+    if data_dir:
+        dset_dir = data_dir
+    elif base_data_dir:
+        dset_dir = os.path.join(base_data_dir, dataset.dataset_name)
+        
     rel_data_dir, rel_ann_dir = dataset.dataset_paths()
 
-    data_dir_resolved = (
-        data_dir if data_dir else os.path.join(base_data_dir, rel_data_dir)
-    )
-    ann_dir_resolved = ann_dir if ann_dir else os.path.join(base_data_dir, rel_ann_dir)
+    if data_dir:
+        psg_dir = os.path.join(data_dir, rel_data_dir)
+        ann_dir = os.path.join(data_dir, rel_ann_dir)
+    elif base_data_dir:
+        psg_dir = os.path.join(base_data_dir, dataset.dataset_name, rel_data_dir)
+        ann_dir = os.path.join(base_data_dir, dataset.dataset_name, rel_ann_dir)
 
     if output_dir:
         output_dir_resolved = os.path.join(
             output_dir, f"{dataset.dset_name}_harmonized", output_format
         )
-    else:
+    elif data_dir:
+        output_dir_resolved = os.path.join(
+            data_dir, f"{dataset.dset_name}_harmonized", output_format
+        )
+    elif base_data_dir:
         output_dir_resolved = os.path.join(
             base_data_dir, dataset.dataset_name, f"{dataset.dset_name}_harmonized", output_format
         )
 
-    return data_dir_resolved, ann_dir_resolved, output_dir_resolved
+    return dset_dir, psg_dir, ann_dir, output_dir_resolved
 
 def load_config_file(config_file_path: str) -> dict:
     """Load configuration from a YAML file."""
@@ -87,21 +96,20 @@ def main(config):
 
     print(f"Processing dataset: {dataset.dset_name}")
 
-    config.data_dir, config.ann_dir, config.output_dir = resolve_paths(
+    dataset.dset_dir, config.psg_dir, config.ann_dir, config.output_dir = resolve_paths(
         dataset,
         config.base_data_dir,
         config.data_dir,
-        config.ann_dir,
         config.output_dir,
         config.output_format
     )
 
-    print(f"Data directory: {config.data_dir}")
+    print(f"PSG directory: {config.psg_dir}")
     print(f"Annotation directory: {config.ann_dir}")
     print(f"Output directory: {config.output_dir}")
 
     # Preprocess file structure if needed (Reordering etc.)
-    ret = dataset.preprocess(config.data_dir, config.ann_dir, config.output_dir)
+    ret = dataset.preprocess(config.psg_dir, config.ann_dir, config.output_dir)
     if ret is False:
         return
 
@@ -116,7 +124,7 @@ def main(config):
 
     elif config.action == "get_channel_names":
         explorer = Dataset_Explorer(
-            None, dataset, config.data_dir, config.ann_dir, log_level=config.logging_level
+            None, dataset, config.psg_dir, config.ann_dir, log_level=config.logging_level
         )
         channels = explorer.get_all_channels()
         print(f"Available channels in {dataset.dset_name}:")
@@ -126,7 +134,7 @@ def main(config):
 
     elif config.action == "get_channel_types":
         explorer = Dataset_Explorer(
-            None, dataset, config.data_dir, config.ann_dir,log_level=logging.INFO
+            None, dataset, config.psg_dir, config.ann_dir,log_level=logging.INFO
         )
         explorer.get_all_channels()
         channel_types = explorer.get_channel_type()

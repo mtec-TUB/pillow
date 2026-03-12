@@ -43,9 +43,9 @@ class ProcessorConfig:
             kwargs.get("data_dir")
         )
 
-        self.ann_dir: Optional[Path] = self._validate_path(
-            kwargs.get("ann_dir")
-        )
+        # self.ann_dir: Optional[Path] = self._validate_path(
+        #     kwargs.get("ann_dir")
+        # )
 
         self.output_dir: Optional[Path] = self._validate_path(
             kwargs.get("output_dir")
@@ -168,10 +168,12 @@ class ProcessorConfig:
     def _validate_n_wake_epochs(self, value):
         if value == "all":
             return value
+        if value == "lights":
+            return value
         if isinstance(value, int) and value >= 0:
             return value
         raise ConfigError(
-            "n_wake_epochs must be non-negative int or 'all'."
+            "n_wake_epochs must be non-negative int or 'all' or 'lights'."
         )
 
     def _validate_filter_freq(self, value):
