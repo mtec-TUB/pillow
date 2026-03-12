@@ -212,7 +212,7 @@ class Dataset_Explorer:
         finally:  
             return channel_dict
 
-    def _is_digital(self, signal):
+    def _is_digital(self,signal):
         """
         Determine if a signal is digital or analog based on the number of unique values.
 
@@ -225,47 +225,14 @@ class Dataset_Explorer:
         Returns:
             bool: True if signal appears to be digital, False if analog
         """
-        # Use the compiled version for performance
-        unique_count = Dataset_Explorer._count_unique_values(signal)
-
-        # Debug output using logger
-        if unique_count <= DIGITAL_SIGNAL_MAX_UNIQUE_VALUES:
-            self.logger.debug(
-                f"Number of unique values in signal: {unique_count} - DIGITAL"
-            )
-        else:
-            self.logger.debug(
-                f"Number of unique values in signal: {unique_count} - ANALOG"
-            )
-
-        return unique_count <= DIGITAL_SIGNAL_MAX_UNIQUE_VALUES
-
-    @staticmethod
-    @njit
-    def _count_unique_values(signal):
-        """
-        Count unique values in a signal efficiently with numba compilation.
-
-        This uses a simple algorithm that works with numba:
-        - Sort the signal
-        - Count consecutive different values
-        """
         if signal.size == 0:
-            return 0
+            return False
 
-        # Quick check: if signal is constant, only 1 unique value
-        if signal.max() == signal.min():
-            return 1
+        unique = set()
 
-        # Create a sorted copy for efficient unique counting
-        sorted_signal = np.sort(signal.flatten())
+        for v in signal.flat:
+            unique.add(v)
+            if len(unique) > DIGITAL_SIGNAL_MAX_UNIQUE_VALUES:
+                return False
 
-        unique_count = 1  # At least one unique value
-        for i in range(1, sorted_signal.size):
-            if sorted_signal[i] != sorted_signal[i - 1]:
-                unique_count += 1
-                # Early exit if we exceed the threshold
-                if unique_count > DIGITAL_SIGNAL_MAX_UNIQUE_VALUES:
-                    return unique_count
-
-        return unique_count
+        return True
