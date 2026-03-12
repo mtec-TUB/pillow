@@ -8,6 +8,7 @@ import numpy as np
 from numba import njit
 from tqdm import tqdm
 from natsort import natsorted
+from collections import Counter
 import logging
 
 from ..utils import LoggingManager
@@ -38,7 +39,7 @@ class Dataset_Explorer:
         self.ann_dir = ann_dir
         self.psg_fnames = []
         self.ann_fnames = []
-        self.ch_names = []
+        self.ch_names = Counter()
         self.get_channel_types = []
 
         # Setup logger with StreamHandler (console only)
@@ -127,7 +128,7 @@ class Dataset_Explorer:
 
         self.get_files()
 
-        self.ch_names = set()
+        self.ch_names = Counter()
 
         # Use tqdm for clean progress bar
         for psg_fname in tqdm(self.psg_fnames, desc="Processing files", unit="file"):
@@ -143,7 +144,7 @@ class Dataset_Explorer:
             f"Discovery complete! Found {len(self.ch_names)} unique channels across all files."
         )
 
-        return sorted(self.ch_names)
+        return self.ch_names
 
     def get_channel_type(self):
         """
