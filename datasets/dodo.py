@@ -6,6 +6,8 @@ from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from datasets.file_handlers import DOD_H5Handler
 
+# Note: There are no consensus annotations for 5d8e93a5-d26a-436d-bc2c-e9527dc92cbf. If those are needed, this recording must be omitted. 
+
 @register_dataset("DOD-O")
 class DODO(BaseDataset):
     """DOD-O (Dreem Open Dataset - Obstructive) dataset."""
