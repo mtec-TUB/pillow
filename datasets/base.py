@@ -358,6 +358,7 @@ class BaseDataset(ABC):
         raise NotImplementedError("Subclass has no front alignment implemented")
 
     def base_align_front(self, logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels, fs):
+        start_time_shift = 0
         if delay_sec < 0:
             advance_sec = -delay_sec
             if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_SIGNAL.value:
@@ -368,14 +369,17 @@ class BaseDataset(ABC):
                     logger.info(f"Partial epoch detected at start, signal ({epoch_duration-advance_sec} sec) and labels (one epoch) will be shortened at the front to match")
                     labels = labels[1:]
                     signal = signal[int((epoch_duration-advance_sec)*fs):]
+                    start_time_shift = epoch_duration - (advance_sec % epoch_duration) 
             elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_ANNOT.value:
                 logger.info(f"Signal started {advance_sec:.2f} sec after label start, signal will be padded with constant value:{np.float64(pad_values["signal"])} at the front to match")
                 n_pad_samples = int(advance_sec*fs)
                 signal = np.hstack((np.full((n_pad_samples,), np.float64(pad_values["signal"])), signal))
+                start_time_shift = delay_sec
         else:
             if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_ANNOT.value:
                 logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, signal will be shortened at the front to match")
                 signal = signal[int(delay_sec*fs):]
+                start_time_shift = delay_sec
             elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_SIGNAL.value:
                 logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, labels will be padded at the front with full epochs of value:{pad_values["label"]} to match")
                 n_pad = int(delay_sec // epoch_duration)
@@ -383,7 +387,8 @@ class BaseDataset(ABC):
                 if delay_sec % epoch_duration != 0:
                     logger.info(f"Partial epoch detected at start, signal will be shortened at the front to match")
                     signal = signal[int((delay_sec % epoch_duration)*fs):]
-        return signal, labels
+                    start_time_shift = delay_sec - n_pad*epoch_duration
+        return start_time_shift, signal, labels
 
     def align_end(
         self,

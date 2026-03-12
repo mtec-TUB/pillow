@@ -7,7 +7,7 @@ import os
 import re
 import copy
 from math import ceil, floor
-from datetime import datetime, date
+from datetime import datetime, date, time, timedelta
 from pyedflib import EdfWriter
 import h5py
 import glob
@@ -58,7 +58,7 @@ class DatasetProcessor:
             psg_fnames, ann_fnames  = Dataset_Explorer(
                 self.pipeline_logger,
                 self.dataset,
-                self.config.data_dir,
+                self.config.psg_dir,
                 self.config.ann_dir,
                 log_level=self.config.logging_level,
             ).get_files()
@@ -142,7 +142,7 @@ class DatasetProcessor:
             ann_lookup[ann_id] = ann_fname
 
         for psg_fname in psg_fnames:
-            psg_base = str(Path(psg_fname).relative_to(self.config.data_dir))
+            psg_base = str(Path(psg_fname).relative_to(self.config.psg_dir))
             psg_id = self.dataset.get_file_identifier(psg_base, None)[0]
             match_ann_id = ann_lookup.get(psg_id, None)
             if match_ann_id:
@@ -150,7 +150,7 @@ class DatasetProcessor:
             # else:
             #     self.pipeline_logger.warning(
             #         f"No matching annotation file found for PSG: "
-            #         f"{Path(psg_fname).relative_to(self.config.data_dir)}. Skipping file."
+            #         f"{Path(psg_fname).relative_to(self.config.psg_dir)}. Skipping file."
             #     )
         return annotation_map
 
@@ -172,8 +172,10 @@ class DatasetProcessor:
         try:
             if self.config.use_annot:
                 # Parse annotations first (is same for all channels)
-                ann_stage_events, ann_Startdatetime = self.dataset.ann_parse(ann_fname)
+                ann_stage_events, ann_Startdatetime, lights_off, lights_on = self.dataset.ann_parse(ann_fname)
                 file_data["ann_start_datetime"] = ann_Startdatetime
+                file_data["lights_off"] = lights_off
+                file_data["lights_on"] = lights_on
 
                 if ann_stage_events == []:
                     file_logger.warning(
@@ -225,6 +227,13 @@ class DatasetProcessor:
                 )
                 log_paths[channel] = log_path
 
+                # all_channel_data["file_output_path"] = file_output_path
+
+                # if os.path.exists(file_output_path):
+                #     raise FileExistsError(f"Output file already exists: {file_output_path}. This should have been handled by the overwrite check before, but to avoid accidental overwriting, processing is stopped. Please set overwrite to True in the config to enable overwriting existing files.")
+                # np.savetxt(file_output_path, [])
+                # continue
+
                 # Skip if file already exists and overwrite is False
                 if not self.config.overwrite and os.path.exists(file_output_path):
                     if self.config.output_format == "npz":
@@ -251,8 +260,9 @@ class DatasetProcessor:
                 file_logger.info("=" * 40)
 
             # Save all channel data (output format handled inside _save_processed_data)
-            self._save_processed_data(all_channel_data)
-            file_logger.info(f"Successfully processed: {psg_fname}")
+            if len(all_channel_data) > 0:
+                self._save_processed_data(all_channel_data)
+                file_logger.info(f"Successfully processed: {psg_fname}")
         
         except Exception as e:
             # Log the exception
@@ -272,34 +282,34 @@ class DatasetProcessor:
     def _process_channel(
         self,
         logger,
-        file_data,
+        channel_data,
         channel,
     ):
         """Process a single channel from a single file."""
 
-        logger.info(f"Signal file: {Path(file_data['psg_fname']).relative_to(self.config.data_dir)}")
+        logger.info(f"Signal file: {Path(channel_data['psg_fname']).relative_to(self.config.psg_dir)}")
         if self.config.use_annot:
-            logger.info(f"Annotation file: {Path(file_data['ann_fname']).relative_to(self.config.ann_dir)}")
+            logger.info(f"Annotation file: {Path(channel_data['ann_fname']).relative_to(self.config.ann_dir)}")
 
-        file_data["ch_name_orig"] = channel
-        logger.info(f"Channel selected: {file_data['ch_name_orig']}")
+        channel_data["ch_name_orig"] = channel
+        logger.info(f"Channel selected: {channel_data['ch_name_orig']}")
 
-        # Extract data from psg file and add to file_data dictionary
-        psg_data = self.dataset.get_signal_data(logger, file_data["psg_fname"], file_data["ch_name_orig"])
-        file_data.update(psg_data)
+        # Extract data from psg file and add to channel_data dictionary
+        psg_data = self.dataset.get_signal_data(logger, channel_data["psg_fname"], channel_data["ch_name_orig"])
+        channel_data.update(psg_data)
         del psg_data  # free memory
 
-        logger.info(f"Select channel samples: {len(file_data['signal'])}")
-        logger.info(f"File duration: {file_data['file_duration']} sec, {file_data['file_duration']/3600:.2f} h")
-        logger.info(f"Start datetime: {file_data['start_datetime']}")
+        logger.info(f"Select channel samples: {len(channel_data['signal'])}")
+        logger.info(f"File duration: {channel_data['file_duration']} sec, {channel_data['file_duration']/3600:.2f} h")
+        logger.info(f"Start datetime: {channel_data['start_datetime']}")
 
         # Process the signal (resample, filter, clean)
-        signal = file_data["signal"].astype(np.float64)
-        labels = file_data["labels"]
-        fs = file_data["sampling_rate"]
+        signal = channel_data["signal"].astype(np.float64)
+        labels = channel_data["labels"]
+        fs = channel_data["sampling_rate"]
 
         if self.config.resample is not None or self.config.filter:
-            signal_processor = SignalProcessor(logger, signal, file_data["ch_name_orig"], self.config.filter_freq, self.dataset.channel_types)
+            signal_processor = SignalProcessor(logger, signal, channel_data["ch_name_orig"], self.config.filter_freq, self.dataset.channel_types)
 
             if self.config.resample is not None:
                 # Resample signal
@@ -321,7 +331,8 @@ class DatasetProcessor:
 
         if self.config.use_annot:
             # Check if annotations and signal start at the same timestamp and pad/crop if necessary and configured
-            signal, labels = self._handle_start_datetime(logger,signal, labels, fs, file_data["ann_start_datetime"], file_data["start_datetime"])
+            new_startdatetime, signal, labels = self._handle_start_datetime(logger,signal, labels, fs, channel_data["ann_start_datetime"], channel_data["start_datetime"])
+            channel_data["start_datetime"] = new_startdatetime
 
         # Reshape into epochs
         n_epoch_samples = self.config.epoch_duration * fs
@@ -340,7 +351,8 @@ class DatasetProcessor:
             )
             return
 
-        logger.info(f"Seconds in unfilled (cropped) epoch: {remainder / fs:.2f} sec")
+        if remainder > 0:
+            logger.info(f"Seconds in unfilled (cropped) epoch: {remainder / fs:.2f} sec")
 
         signal_epoched = signal[: n_epochs * n_epoch_samples].reshape(n_epochs, -1)
 
@@ -351,22 +363,59 @@ class DatasetProcessor:
                     logger,
                     self.config.alignment,
                     self.config.pad_values,
-                    file_data["psg_fname"],
-                    file_data["ann_fname"],
+                    channel_data["psg_fname"],
+                    channel_data["ann_fname"],
                     signal_epoched,
                     labels,
                 )
 
             assert len(signal_epoched) == len(labels), \
-            f"Length mismatch: signal ({os.path.basename(file_data['psg_fname'])})={len(signal_epoched)}, labels({os.path.basename(file_data['ann_fname'])})={len(labels)} TODO: adapt alignment function"
+            f"Length mismatch: signal ({os.path.basename(channel_data['psg_fname'])})={len(signal_epoched)}, labels({os.path.basename(channel_data['ann_fname'])})={len(labels)} TODO: adapt alignment function"
 
             # Clean signal data based on annotations (e.g. remove movement/unknown epochs, select sleep periods)
             signal_epoched, labels = self._clean_signal(logger, signal_epoched, labels)
 
-        # update signal, labels and sampling_rate after the processing
-        file_data.update({"signal": signal_epoched, "labels": labels, "sampling_rate": fs})
+        if self.config.n_wake_epochs == "lights":
+            channel_data["start_datetime"], signal_epoched, labels = self._select_epochs(logger, channel_data, signal_epoched, labels)
 
-        return file_data
+        # update signal, labels and sampling_rate after the processing
+        channel_data.update({"signal": signal_epoched, "labels": labels, "sampling_rate": fs})
+
+        return channel_data
+    
+    def _select_epochs(self, logger, channel_data, signal_epoched, labels):
+        psg_fname = channel_data["psg_fname"]
+        lights_off, lights_on = self.dataset.get_light_times(psg_fname)  # in seconds or sample idx?
+        new_startdatetime = channel_data["start_datetime"]
+        if lights_off is not None:
+            if isinstance(lights_off, time):
+                timedelta_sec = (datetime.combine(channel_data["start_datetime"].date(),lights_off) - channel_data["start_datetime"]).total_seconds()
+                if timedelta_sec == 0:
+                    return new_startdatetime, signal_epoched, labels
+                if timedelta_sec < 0:
+                    if timedelta_sec > -30*60:   # Lights off probably starts before PSG Data
+                        logger.warning(f"Lights off time {lights_off} is before signal start time {channel_data['start_datetime'].time()}. No epoch selection applied.")
+                        # maybe padding with wake epochs until lights off time is reached? For now, just keep all epochs and do not select based on lights off time if it is before signal start time
+                        return new_startdatetime, signal_epoched, labels
+                    else:
+                        timedelta_sec += 24*3600 # add 24h if lights off is after midnight (and signal start before midnight)
+                
+                if timedelta_sec % self.config.epoch_duration != 0:
+                    raise Exception
+                else:
+                    lights_off_epoch = int(timedelta_sec / self.config.epoch_duration)
+                    signal_epoched = signal_epoched[lights_off_epoch:]
+                    if labels is not None:
+                        labels = labels[lights_off_epoch:]
+                    logger.info(f"Selected only epochs after lights off at {lights_off} (epoch {lights_off_epoch})")
+                new_startdatetime = channel_data["start_datetime"] + timedelta(seconds=timedelta_sec)
+
+            elif isinstance(lights_off, (int,float)):
+                raise Exception
+        else:
+            logger.info("Lights on/off times not available, keeping all wake epochs.")
+
+        return new_startdatetime, signal_epoched, labels
 
     def _harmonize_channel_name(self, logger, channel):
         """Harmonize channel name based on dataset-specific mapping."""
@@ -383,7 +432,7 @@ class DatasetProcessor:
         # Create output directory (including subfolders of original data structure if keep_folder_structure is True)
         if self.dataset.keep_folder_structure:
             relative_path = os.path.split(
-                Path(psg_fname).relative_to(self.config.data_dir)
+                Path(psg_fname).relative_to(self.config.psg_dir)
             )[0]
         else:
             relative_path = ""
@@ -422,6 +471,7 @@ class DatasetProcessor:
 
     def _handle_start_datetime(self, logger,signal, labels, fs, ann_start_datetime, signal_start_datetime):
         # If annotation holds a start datetime, check if alignment is needed
+        new_startdatetime = signal_start_datetime
         if ann_start_datetime != None:
             delay = 0
 
@@ -443,7 +493,7 @@ class DatasetProcessor:
                     f"Start of signal: {signal_start_datetime}, Start of labels: {ann_start_datetime}"
                 )
                 # Align the start of signals and labels based on configuration
-                signal, labels = self.dataset.align_front(
+                start_time_shift, signal, labels = self.dataset.align_front(
                     logger,
                     self.config.alignment,
                     self.config.pad_values,
@@ -453,7 +503,10 @@ class DatasetProcessor:
                     labels,
                     fs,
                 )
-        return signal, labels
+                if isinstance(signal_start_datetime, datetime):
+                    new_startdatetime = signal_start_datetime + timedelta(seconds=start_time_shift)
+                    logger.info(f"Adjusted start datetime after alignment: {new_startdatetime}")
+        return new_startdatetime, signal, labels
 
     def _clean_signal(self, logger, signal_epoched, labels):
         """
@@ -464,7 +517,7 @@ class DatasetProcessor:
             labels: Stage labels array
 
         Returns:
-            Tuple of (cleaned_signals, cleaned_labels) or (None, None) if no sleep detected
+            Tuple of (cleaned_signals, cleaned_labels)
         """
         logger.info(
             f"Starting signal cleaning - Input shape: signal_epoched={signal_epoched.shape}, labels={labels.shape}"
@@ -493,7 +546,7 @@ class DatasetProcessor:
             & (labels != self.STAGE_DICT["UNK"])
         )[0]
 
-        if self.config.n_wake_epochs == "all":
+        if self.config.n_wake_epochs == "all" or self.config.n_wake_epochs == "lights":
             start_idx = 0
             end_idx = len(labels) - 1
         else:
@@ -553,18 +606,20 @@ class DatasetProcessor:
         elif output_format == "edf":
             file_output_path = channel_dicts[0]["file_output_path"]
             with EdfWriter(file_output_path, n_channels=len(channel_dicts)) as edf_writer:
-                for i, file_data in enumerate(channel_dicts):
-                    signal = file_data["signal"].flatten()
+                for i, channel_data in enumerate(channel_dicts):
+                    signal = channel_data["signal"].flatten()
                     scale = 10**3  # to get 3 decimals for physical min and max
+                    if len(signal) == 0:
+                        print("here")
                     phys_min = floor(np.nanmin(signal) * scale) / scale
                     phys_max = ceil(np.nanmax(signal) * scale) / scale
                     if phys_min == phys_max:
                         phys_min -= 1.0
                         phys_max += 1.0
                     channel_info = {
-                        "label": file_data["ch_name"],
-                        "dimension": file_data.get("unit", "a.u."),
-                        "sample_frequency": float(file_data["sampling_rate"]),
+                        "label": channel_data["ch_name"],
+                        "dimension": channel_data.get("unit", "a.u."),
+                        "sample_frequency": float(channel_data["sampling_rate"]),
                         "physical_min": phys_min,
                         "physical_max": phys_max,
                         "digital_min": -32768,

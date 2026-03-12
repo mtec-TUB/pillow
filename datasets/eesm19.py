@@ -176,14 +176,14 @@ class EESM19(BaseDataset):
     
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
         logger.info("Alignment of scorer 1")
-        signal1, labels1 = self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels[:,0],fs) 
+        start_time_shift, signal1, labels1 = self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels[:,0],fs) 
         logger.info("Alignment of scorer 2")
-        signal2, labels2 = self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels[:,1],fs)
+        start_time_shift, signal2, labels2 = self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels[:,1],fs)
 
         assert len(signal1) == len(signal2), f"Length mismatch after front alignment: signal1={len(signal1)}, signal2={len(signal2)}"
         assert len(labels1) == len(labels2), f"Length mismatch after front alignment: labels1={len(labels1)}, labels2={len(labels2)}"
         
-        return signal1, np.array([labels1, labels2]).T  # Return (signal, (n_epochs, n_scorers))
+        return start_time_shift, signal1, np.array([labels1, labels2]).T  # Return (signal, (n_epochs, n_scorers))
     
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
