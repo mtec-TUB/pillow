@@ -116,10 +116,13 @@ def main(config):
 
     elif config.action == "get_channel_names":
         explorer = Dataset_Explorer(
-            None, dataset, config.data_dir, config.ann_dir, log_level=logging.INFO
+            None, dataset, config.data_dir, config.ann_dir, log_level=config.logging_level
         )
-        channels = list(explorer.get_all_channels())
-        print(f"Available channels in {dataset.dset_name}: {(channels)}")
+        channels = explorer.get_all_channels()
+        print(f"Available channels in {dataset.dset_name}:")
+        n_files = len(explorer.psg_fnames)
+        for ch, count in channels.most_common():
+            print(f"  {count:>4}/{n_files} ({100*count/n_files:>5.1f}%)  {ch}")
 
     elif config.action == "get_channel_types":
         explorer = Dataset_Explorer(
