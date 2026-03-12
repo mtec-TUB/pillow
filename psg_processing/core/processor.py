@@ -213,15 +213,12 @@ class DatasetProcessor:
                 file_logger.info("No selected channels found in this file. Skipping.")
                 return 
 
-            # Process each channel
-            all_file_data = []
-            for channel in channels:
+            # Process each channel, then save after all channels are processed
+            all_channel_data = {}
+            for channel in sorted(channels):
                 # Set current channel for logging
                 buffer_handler.set_channel(channel)
-
-                channel_harm = self._harmonize_channel_name(file_logger,channel)
-                file_data["ch_name"] = channel_harm
-                
+                channel_harm = self._harmonize_channel_name(file_logger, channel)
                 file_output_path, log_path = self._setup_output(
                     channel_harm,
                     file_data["psg_fname"],
@@ -238,28 +235,24 @@ class DatasetProcessor:
                         # other channels are ignored as well because all channels in one file (that already exists)
                         break
 
-                proc_file_data = self._process_channel(
+                proc_channel_data = self._process_channel(
                     file_logger,
                     copy.deepcopy(file_data),
                     channel,
                 )
 
-                # Save processed data if output is npz, else save it together with all other channels to save after
-                if proc_file_data is not None:
-                    if self.config.output_format == "npz":
-                        self._save_processed_data(proc_file_data, file_output_path)
-                        file_logger.info(f"Successfully saved: {file_output_path}")
-                    elif self.config.output_format in ["edf", "hdf5"]:
-                        # edf or h5 output
-                        all_file_data.append(proc_file_data)
-                
+                if proc_channel_data is not None:
+                    # Store all relevant info for saving
+                    all_channel_data[channel] = {
+                        **proc_channel_data,
+                        "ch_name": channel_harm,
+                        "file_output_path": file_output_path,
+                    }
                 file_logger.info("=" * 40)
 
-
-            # Save multi-channel data if edf or hdf5 output specified (npz already saved per channel)
-            if all_file_data and self.config.output_format in ["edf", "hdf5"]:
-                self._save_processed_data(all_file_data, file_output_path)
-                file_logger.info(f"Successfully saved: {file_output_path}")
+            # Save all channel data (output format handled inside _save_processed_data)
+            self._save_processed_data(all_channel_data)
+            file_logger.info(f"Successfully processed: {psg_fname}")
         
         except Exception as e:
             # Log the exception
@@ -372,8 +365,6 @@ class DatasetProcessor:
 
         # update signal, labels and sampling_rate after the processing
         file_data.update({"signal": signal_epoched, "labels": labels, "sampling_rate": fs})
-
-
 
         return file_data
 
@@ -529,44 +520,40 @@ class DatasetProcessor:
 
         return signal_epoched, labels
 
-    def _save_processed_data(self, file_data, file_output_path):
-        """Save processed data to file."""
+    def _save_processed_data(self, all_channel_data):
+        """Save processed data to file for npz, edf, hdf5 formats."""
+        output_format = self.config.output_format
+        channels_sorted = sorted(all_channel_data.keys())
+        channel_dicts = [all_channel_data[ch] for ch in channels_sorted]
 
-        if self.config.output_format == "npz":
-            save_dict = {
-                "x": file_data["signal"],
-                "fs": file_data["sampling_rate"],
-                "ch_label": file_data["ch_name"],
-                "ch_label_orig": file_data["ch_name_orig"],
-                "file_duration": len(file_data["signal"])
-                * self.config.epoch_duration,
-                "epoch_duration": self.config.epoch_duration,
-                "n_epochs": len(file_data["signal"]),  # after cleaning
-            }
+        if output_format == "npz":
+            for channel_data in channel_dicts:
+                save_dict = {
+                    "x": channel_data["signal"],
+                    "fs": channel_data["sampling_rate"],
+                    "ch_label": channel_data["ch_name"],
+                    "ch_label_orig": channel_data["ch_name_orig"],
+                    "file_duration": len(channel_data["signal"]) * self.config.epoch_duration,
+                    "epoch_duration": self.config.epoch_duration,
+                    "n_epochs": len(channel_data["signal"]),  # after cleaning
+                }
 
-            # Write Annotations
-            if self.config.use_annot:
-                # Handle multiple scorers
-                labels = file_data["labels"]
-                if labels.ndim == 1:
-                    save_dict["y"] = labels
-                elif labels.ndim == 2:
-                    save_dict["y"] = labels[:, 0]
-                    save_dict["y2"] = labels[:, 1]
+                # Write Annotations
+                if self.config.use_annot:
+                    # Handle multiple scorers
+                    labels = channel_data["labels"]
+                    if labels.ndim == 1:
+                        save_dict["y"] = labels
+                    elif labels.ndim == 2:
+                        save_dict["y"] = labels[:, 0]
+                        save_dict["y2"] = labels[:, 1]
+                save_dict["unit"] = channel_data.get("unit", "a.u.")
+                np.savez(channel_data["file_output_path"], **save_dict)
 
-            # Write unit
-            save_dict["unit"] = file_data["unit"] if "unit" in file_data else "a.u."
-
-            np.savez(file_output_path, **save_dict)
-
-        elif self.config.output_format == "edf":
-            all_file_data = file_data
-
-            with EdfWriter(
-                file_output_path, n_channels=len(all_file_data)
-            ) as edf_writer:
-                # Set signal headers
-                for i, file_data in enumerate(all_file_data):
+        elif output_format == "edf":
+            file_output_path = channel_dicts[0]["file_output_path"]
+            with EdfWriter(file_output_path, n_channels=len(channel_dicts)) as edf_writer:
+                for i, file_data in enumerate(channel_dicts):
                     signal = file_data["signal"].flatten()
                     scale = 10**3  # to get 3 decimals for physical min and max
                     phys_min = floor(np.nanmin(signal) * scale) / scale
@@ -576,9 +563,7 @@ class DatasetProcessor:
                         phys_max += 1.0
                     channel_info = {
                         "label": file_data["ch_name"],
-                        "dimension": (
-                            file_data["unit"] if "unit" in file_data else "a.u."
-                        ),
+                        "dimension": file_data.get("unit", "a.u."),
                         "sample_frequency": float(file_data["sampling_rate"]),
                         "physical_min": phys_min,
                         "physical_max": phys_max,
@@ -588,80 +573,56 @@ class DatasetProcessor:
                         "prefilter": "",
                     }
                     edf_writer.setSignalHeader(i, channel_info)
-
-                # Set start datetime (take first channel's datetime)
-                if isinstance(all_file_data[0]["start_datetime"], datetime):
-                    if all_file_data[0]["start_datetime"].date() > date(1985, 1, 1):
-                        Startdatetime = all_file_data[0]["start_datetime"]
+                if isinstance(channel_dicts[0]["start_datetime"], datetime):
+                    if channel_dicts[0]["start_datetime"].date() > date(1985, 1, 1):
+                        Startdatetime = channel_dicts[0]["start_datetime"]
                     else:
-                        Startdatetime = datetime.combine(
-                            date(1985, 1, 1),
-                            all_file_data[0]["start_datetime"].time(),
-                        )
+                        Startdatetime = datetime.combine(date(1985, 1, 1), channel_dicts[0]["start_datetime"].time())
                 else:
                     Startdatetime = datetime(1985, 1, 1, 0, 0, 0)
 
+                # Write samples
                 edf_writer.setStartdatetime(Startdatetime)
-
-                # Write signal samples
-                all_signals = [
-                    file_data["signal"].flatten() for file_data in all_file_data
-                ]
+                all_signals = [channel_data["signal"].flatten() for channel_data in channel_dicts]
                 edf_writer.writeSamples(all_signals)
 
                 # Write annotations
                 if self.config.use_annot:
-                    all_labels = np.array(
-                        [file_data["labels"] for file_data in all_file_data]
-                    )  # to check if they all have the same dimension
+                    all_labels = np.array([channel_data["labels"] for channel_data in channel_dicts])
                     duration = self.config.epoch_duration
-                    for epoch_idx, label in enumerate(
-                        all_labels[0]
-                    ):  # annotations are the same for all channels, take first one
+                    for epoch_idx, label in enumerate(all_labels[0]):
                         edf_writer.writeAnnotation(
                             onset_in_seconds=epoch_idx * duration,
                             duration_in_seconds=duration,
                             description=str(label),
                         )
 
-        elif self.config.output_format == "hdf5":
-            all_file_data = file_data
-
+        elif output_format == "hdf5":
+            file_output_path = channel_dicts[0]["file_output_path"]
             with h5py.File(file_output_path, "w") as h5f:
                 # Metadata
                 h5f.attrs["epoch_duration"] = self.config.epoch_duration
-                h5f.attrs["file_duration"] = (
-                    len(file_data[0]["signal"]) * self.config.epoch_duration
-                )
-                h5f.attrs["n_epochs"] = len(file_data[0]["signal"])  # after cleaning
-
-                # Signals
+                h5f.attrs["file_duration"] = len(channel_dicts[0]["signal"]) * self.config.epoch_duration
+                h5f.attrs["n_epochs"] = len(channel_dicts[0]["signal"])
                 grp_signals = h5f.create_group("signals")
-
-                for file_data in all_file_data:
-                    signal = file_data["signal"].flatten()
+                for channel_data in channel_dicts:
+                    signal = channel_data["signal"].flatten()
 
                     # if channel_name came from h5 originally, keep only the last part after slash
-                    if "h5" in self.dataset.file_extensions["psg_ext"] and "/" in file_data["ch_name"]:
-                        group_name = file_data["ch_name"].split("/")[-1]
+                    if "h5" in self.dataset.file_extensions["psg_ext"] and "/" in channel_data["ch_name"]:
+                        group_name = channel_data["ch_name"].split("/")[-1]
                     else:
-                        group_name = file_data["ch_name"]
+                        group_name = channel_data["ch_name"]
                     ch_grp = grp_signals.create_group(group_name)
-
-                    ch_grp.create_dataset(
-                        "data", data=signal, compression="gzip", shuffle=True
-                    )
-                    # Channel metadata
-                    ch_grp.attrs["ch_label"] = file_data["ch_name"]
-                    ch_grp.attrs["ch_label_orig"] = file_data["ch_name_orig"]
-                    ch_grp.attrs["unit"] = file_data.get("unit", "a.u.")
-                    ch_grp.attrs["sampling_rate"] = file_data["sampling_rate"]
+                    ch_grp.create_dataset("data", data=signal, compression="gzip", shuffle=True)
+                    ch_grp.attrs["ch_label"] = channel_data["ch_name"]
+                    ch_grp.attrs["ch_label_orig"] = channel_data["ch_name_orig"]
+                    ch_grp.attrs["unit"] = channel_data.get("unit", "a.u.")
+                    ch_grp.attrs["sampling_rate"] = channel_data["sampling_rate"]
 
                 # Annotations
                 if self.config.use_annot:
-                    labels = np.asarray(
-                        all_file_data[0]["labels"]
-                    )  # annotations are the same for all channels, take first one
+                    labels = np.asarray(channel_dicts[0]["labels"])
                     if labels.ndim == 1:
                         h5f.create_dataset("y", data=labels, compression="gzip")
                     elif labels.ndim == 2:
