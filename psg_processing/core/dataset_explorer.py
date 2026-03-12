@@ -161,7 +161,8 @@ class Dataset_Explorer:
         channel_types = {"analog": [], "digital": []}
 
         # Set default to digital and only change to analog if we find evidence of it being analog in any file
-        channel_dict = {self.ch_names[i]: 'digital' for i in range(len(self.ch_names))}
+        channel_names = self.ch_names.keys()  # Get just the channel names without frequencies
+        channel_dict = {channel: 'digital' for channel in channel_names}
 
         channel_dict = self.analyze_channel_types(0, channel_dict)
 
