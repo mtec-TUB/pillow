@@ -1,5 +1,6 @@
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+import numpy as np
 
 
 @register_dataset("ABC")
@@ -66,4 +67,28 @@ class ABC(BaseDataset):
         
         self.file_extensions = {'psg_ext': '**/*.edf',
                                 'ann_ext': '**/*-nsrr.xml'}
+    
+    def get_light_times(self, logger, psg_fname):
+        light_data = self._file_handler.get_signal_data(logger, psg_fname, "Light")
+        light_signal = light_data["signal"]
+        if light_signal is not None:
+            skip_samples = 5*light_data["sampling_rate"]  # Skip first 5 seconds to skip initial Lights-Off period
+
+            # First occurrence of light off (0) after skipping initial samples
+            light_off_indices = np.flatnonzero(light_signal[int(skip_samples):] == 0)
+
+            if light_off_indices.size > 0:
+                light_off_idx = light_off_indices[0] + skip_samples
+                lights_off_sec = light_off_idx / light_data["sampling_rate"]
+            else:
+                lights_off_sec = None
+
+            # Last occurrence of light off (0) after skipping initial samples
+            if light_off_indices.size > 0:
+                light_on_idx = light_off_indices[-1] + 1 + skip_samples
+                lights_on_sec = light_on_idx / light_data["sampling_rate"]
+            else:
+                lights_on_sec = None
+
+        return lights_off_sec, lights_on_sec
     
