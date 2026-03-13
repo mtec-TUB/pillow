@@ -231,6 +231,7 @@ class BaseDataset(ABC):
         CPAP = auto()
         SNORE = auto()
         POSITION = auto()
+        HR = auto() # Heart Rate
         
         def __str__(self):
             return self.name

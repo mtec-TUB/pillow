@@ -45,7 +45,9 @@ class EESM17(BaseDataset):
             "A2": self.Mapping(self.TTRef.RPA, None),
             "LOC": self.Mapping(self.TTRef.EL, None),
             "ROC": self.Mapping(self.TTRef.ER, None),
+            "OSAT": self.Mapping(self.TTRef.SPO2, None),
             "CHIN12": self.Mapping(self.TTRef.EMG_LCHIN, self.TTRef.EMG_RCHIN),
+            "PR": self.Mapping(self.TTRef.HR, None),
         }
         
         self.channel_types = {'analog': ['C4', 'ELG', 'DC3', 'ERI', 'DC2', 'F4', 'ELK', 'O2', 'ERA', 'ELB', 'ERB', 'O1', 'A1', 'C3', 'ELA', 'ROC', 'DC1', 
