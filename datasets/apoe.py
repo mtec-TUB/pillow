@@ -2,6 +2,8 @@ import os
 from typing import Dict, List, Tuple
 from datetime import datetime
 import csv
+from pathlib import Path
+import pandas as pd
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -136,6 +138,28 @@ class APOE(BaseDataset):
             "original/PSG",
             "original/PSG"
         ]
+    
+    def get_light_times(self, logger, psg_fname):
+        basename = Path(psg_fname).stem
+        file = Path(psg_fname).parent / f"{basename}.EVTS"
+
+        if not file.exists():
+            logger.warning(f"Event file not found for {psg_fname}. Expected at {file}. Cannot determine light times.")
+            return None, None
+        
+        events = pd.read_csv(file, sep=',', header=0, skiprows=1)
+        lights_off_sec = events.loc[events["Event"] == "Lights Off", "Start Time"].values
+        if lights_off_sec.size > 0:
+            lights_off = datetime.strptime(lights_off_sec[0], "%H:%M:%S.%f").time()
+        else:
+            lights_off = None
+        lights_on_sec = events.loc[events["Event"] == "Lights On", "Start Time"].values
+        if lights_on_sec.size > 0:
+            lights_on = datetime.strptime(lights_on_sec[0], "%H:%M:%S.%f").time()
+        else:
+            lights_on = None
+
+        return lights_off, lights_on
 
     def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
         """
@@ -165,7 +189,7 @@ class APOE(BaseDataset):
                         'Duration': epoch_duration
                     })
             
-        return ann_stage_events, None  # APOE doesn't provide start datetime in STA files
+        return ann_stage_events, None, None, None  # APOE doesn't provide start datetime in STA files
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
