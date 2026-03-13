@@ -181,6 +181,10 @@ class ANPHY(BaseDataset):
         ann_stage_events = []
         start_time_label = None
 
+        sleep_indices = annot.loc[annot['Event'] != 'L', 'Start Time'].index
+        lights_off_sec = float(annot.iloc[sleep_indices[0]]['Start Time'])
+        lights_on_sec = float(annot.iloc[sleep_indices[-1]]['Start Time'])
+
         for i, row in annot.iterrows():
             start = row['Start Time']
 
@@ -193,7 +197,7 @@ class ANPHY(BaseDataset):
                                         'Start': start - start_time_label,
                                         'Duration': duration})
 
-        return ann_stage_events, start_time_label
+        return ann_stage_events, start_time_label, lights_off_sec, lights_on_sec
 
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs) -> Tuple[bool, float]:
         """ Align front part of signals and labels, in some datasets annotations start after signal recording"""
