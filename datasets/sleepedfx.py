@@ -110,7 +110,7 @@ class SleepEDFX(BaseDataset):
         try:
             ann_f = pyedflib.EdfReader(ann_fname)
         except Exception as e:
-            return [], None,None,None
+            return [], None, None, None
         ann_onsets, ann_durations, ann_stages = ann_f.readAnnotations()
         ann_startdatetime = ann_f.getStartdatetime()
         start_offset = 0
