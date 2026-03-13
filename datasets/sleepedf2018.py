@@ -73,7 +73,7 @@ class SleepEDF2018(BaseDataset):
             '1.0.0'
         ]
     
-    def get_light_times(self, psg_fname):
+    def get_light_times(self, logger, psg_fname):
 
         psg_fname = os.path.basename(psg_fname)
         subject_id = int(psg_fname[3:5])
