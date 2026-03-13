@@ -7,12 +7,12 @@ from datetime import datetime, timedelta
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
-@register_dataset("SLEEP-EDF")
-class SleepEDF2018(BaseDataset):
-    """Sleep-EDF-2018 dataset."""
+@register_dataset("SLEEP-EDFX")
+class SleepEDFX(BaseDataset):
+    """Sleep-EDFX dataset."""
     
     def __init__(self):
-        super().__init__("SLEEP-EDF","Sleep-EDFX - Sleep-EDF Expanded")
+        super().__init__("SLEEP-EDFX","Sleep-EDFX - Sleep-EDF Expanded")
         
     def _setup_dataset_config(self):
         self.ann2label = {
