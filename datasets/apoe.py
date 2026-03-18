@@ -115,8 +115,10 @@ class APOE(BaseDataset):
         
         
         self.channel_groups = {
-            'eeg_eog': ['Chest', 'CHEST #1', 'Arms', 'LAT-U', 'Chin EMG', 'Chin2 EMG', 'ARM', 'RAT-L', 'RAT-U', 'Chin-R', 'L/RAT', 'Arm', 'Chin-L', 'LAT-L', 'Chin-Ctr'],
-            'emg': ['Chest', 'CHEST #1', 'Arms', 'LAT-U', 'Chin EMG', 'Chin2 EMG', 'ARM', 'RAT-L', 'RAT-U', 'Chin-R', 'L/RAT', 'Arm', 'Chin-L', 'LAT-L', 'Chin-Ctr'],
+            'eeg_eog': ['LOC','T3','ROC/A1','ROC','ROC-A1','R-EOG','LOC/A2','L-EOG','C4/A1','F4/A1','C4-A1','Fp2-C4', 'C3-O1',
+                        'F1-A2', 'C4-A2','T4-O2','F2-C4', 'F3-A2', 'C3-A1', 'F3/A2', '01-A2','F4-A1', 'F2-T4','FP1-T3', 'T3-O1','Fz-A2', 'C3-A2', 'FP1-C3', 'C3/A2',
+                        'LOC-A2','Fz-A1', 'O1/A2','FP2-C4', 'O2/A1','Fp1-C3', 'O1-x','O2-x'],
+            'emg': ['Arms', 'LAT-U', 'Chin EMG', 'Chin2 EMG', 'ARM', 'RAT-L', 'RAT-U', 'Chin-R', 'L/RAT', 'Arm', 'Chin-L', 'LAT-L', 'Chin-Ctr'],
             'ecg': ['EKG'],
             'thoraco_abdo_resp': ['ABDOM', 'Abdmn', 'Abdominal', 'Abdomen','Airflow', 'Oral Thermistor','CHEST #1', 'Chest', 'THOR', 'RIC-U', 'RIC-L'],
             'nasal_pressure': ['Nasal Pressure'],
