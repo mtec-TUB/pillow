@@ -215,7 +215,7 @@ class STAGES(BaseDataset):
                                         'Arms-R', 'R-Arm2',   'R-LEG2',  'R-LEG_2','R-Leg2', 'RAT', 'RAT1-RAT2', 'RLEG', 'RLeg5', 'RLeg6','R-LEG1','R-LEG_1', 'R-Leg1','Mass-L', 
                                         'Mass-R', 'Massater_1',  'Masseter_1', 'Massater_2', 'Masseter_2','Left_Masseter_1', 'Left_Masseter_2','Right-Masseter1','Right_Masseter_1', 'Right_Masseter_2',],
                                 'ecg': ['ECG', 'ECG1', 'ECG2', 'ECG_2', 'ECG_I', 'ECG_I2', 'ECG_II', 'ECG_II2', 'ECG_IIHF', 'EKG', 'EKG1', 'EKG2', 'EKG_#1', 'EKG_#2',],
-                                'thoraco_abdo_resp': ['THOR','ABD', 'ABDM', 'ABDOMEN', 'Abd', 'AbdDC', 'Abdomen','Chest', 'ChestDC','CHEST','Effort_ABD', 'Effort_THO',],
+                                'thoraco_abdo_resp': ['THOR','ABD', 'ABDM', 'ABDOMEN', 'Abd', 'AbdDC', 'Abdomen','Chest', 'ChestDC','CHEST','Effort_ABD', 'Effort_THO','RIC'],
                                 'snoring': ['Snore', 'Snore2','SNOR', 'SNORE','Pressure_Snore', 'P-Snore',],
                                 'nasal_pressure': ['NASAL_PRESSURE','Nasal_Pressure',],
                                 }
