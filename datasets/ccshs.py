@@ -1,5 +1,6 @@
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+import numpy as np
 
 
 @register_dataset("CCSHS")
@@ -70,3 +71,25 @@ class CCSHS(BaseDataset):
             'psg_ext': '*.edf',
             'ann_ext': '*-nsrr.xml'
         }
+
+    def get_light_times(self, logger, psg_fname):
+        light_data = self._file_handler.get_signal_data(logger, psg_fname, "Light")
+        light_signal = light_data["signal"]
+        if light_signal is not None:
+            
+            # Lights Off when light signal is 1
+            light_off_indices = np.flatnonzero(light_signal == 1)
+
+            if light_off_indices.size > 0:
+                # First occurrence of light off (1)
+                light_off_idx = light_off_indices[0]
+                lights_off_sec = light_off_idx / light_data["sampling_rate"]
+
+                # Last occurrence of light off (1) 
+                light_on_idx = light_off_indices[-1] + 1
+                lights_on_sec = light_on_idx / light_data["sampling_rate"]
+            else:
+                lights_off_sec = None
+                lights_on_sec = None
+
+        return lights_off_sec, lights_on_sec
