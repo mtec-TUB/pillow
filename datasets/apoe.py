@@ -149,13 +149,31 @@ class APOE(BaseDataset):
         
         events = pd.read_csv(file, sep=',', header=0, skiprows=1)
         lights_off_sec = events.loc[events["Event"] == "Lights Off", "Start Time"].values
-        if lights_off_sec.size > 0:
+        if lights_off_sec.size == 1:
             lights_off = datetime.strptime(lights_off_sec[0], "%H:%M:%S.%f").time()
+        elif lights_off_sec.size > 1:
+            if "APOE_0447" in psg_fname or "APOE_0700" in psg_fname or "APOE_0691" in psg_fname:
+                logger.warning(f"Two Lights Off events found in {os.path.basename(file)}, using first occurrence as Lights Off and second occurence as Lights On.")
+                lights_off = datetime.strptime(lights_off_sec[0], "%H:%M:%S.%f").time()
+            elif "APOE_0260" in psg_fname:
+                logger.warning(f"Two Lights Off events found in {os.path.basename(file)}, using first occurrence as Lights Off.")
+                lights_off = datetime.strptime(lights_off_sec[0], "%H:%M:%S.%f").time()
+            else:
+                raise Exception(f"Multiple Lights Off events found in {file}. Cannot determine unique light off time.")
         else:
             lights_off = None
+
         lights_on_sec = events.loc[events["Event"] == "Lights On", "Start Time"].values
-        if lights_on_sec.size > 0:
+        if lights_on_sec.size == 1:
             lights_on = datetime.strptime(lights_on_sec[0], "%H:%M:%S.%f").time()
+        elif lights_on_sec.size > 1:
+            if "APOE_0392" in psg_fname or "APOE_0084" in psg_fname or "APOE_0930" in psg_fname:
+                logger.warning(f"Two Lights On events found in {os.path.basename(file)}, using first occurrence as Lights On.")
+                lights_on = datetime.strptime(lights_on_sec[0], "%H:%M:%S.%f").time()
+            else:
+                raise Exception(f"Multiple Lights On events found in {file}. Cannot determine unique light on time.")
+        elif "APOE_0447" in psg_fname or "APOE_0700" in psg_fname or "APOE_0691" in psg_fname:
+            lights_on = datetime.strptime(lights_off_sec[1], "%H:%M:%S.%f").time()
         else:
             lights_on = None
 
