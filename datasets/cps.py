@@ -144,8 +144,22 @@ class CPS(BaseDataset):
                 'Duration': epoch_duration
             })
 
+        marker_file = ann_fname.replace("Schlafprofil.txt", "Marker.txt")
+        lights_off, lights_on = None, None
+        if os.path.exists(marker_file):
+            marker_df = pd.read_csv(marker_file, sep=";", names=['Timestamp', 'Event'], skipinitialspace=True,skip_blank_lines=True)
+            lights_off = marker_df.loc[marker_df['Event'] == "Licht aus", "Timestamp"]
+            if len(lights_off) >= 1:
+                # take first of available lights off markers (in some recorings, two markers occur, reason unknown)
+                lights_off = datetime.combine(date(1970,1,1),datetime.strptime(lights_off.iloc[0], '%H:%M:%S,%f').time()).time()
+            
+            lights_on = marker_df.loc[marker_df['Event'] == "Licht an", "Timestamp"]
+            if len(lights_on) == 1:
+                lights_on = datetime.combine(date(1970,1,1),datetime.strptime(lights_on.iloc[0], '%H:%M:%S,%f').time()).time()
+        else:
+            raise Exception(f"Marker file not found: {marker_file}")    # should not occur
         
-        return ann_stage_events, ann_startdatetime
+        return ann_stage_events, ann_startdatetime, lights_off, lights_on
     
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
 
