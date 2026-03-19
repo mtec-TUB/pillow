@@ -82,8 +82,8 @@ class APPLES(BaseDataset):
         ann_df = pd.read_csv(ann_fname,header = 0, sep='\t')
         ann_df = ann_df[ann_df['class'].isin(self.ann2label.keys())].reset_index(drop=True)
 
-        lights_off = datetime.strptime(ann_df.loc[ann_df['class'] != 'L','start'].values[0], '%H:%M:%S').time()
-        lights_on = datetime.strptime(ann_df.loc[ann_df['class'] != 'L','stop'].values[-1], '%H:%M:%S').time()
+        lights_off = datetime.strptime(ann_df.loc[ann_df['class'] != 'L','start'].values[0], '%H:%M:%S').time() # first non-L event is lights off
+        lights_on = datetime.strptime(ann_df.loc[ann_df['class'] != 'L','stop'].values[-1], '%H:%M:%S').time()  # last non-L event is lights on
             
         ann_startdatetime = None
 

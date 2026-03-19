@@ -182,8 +182,8 @@ class ANPHY(BaseDataset):
         start_time_label = None
 
         sleep_indices = annot.loc[annot['Event'] != 'L', 'Start Time'].index
-        lights_off_sec = float(annot.iloc[sleep_indices[0]]['Start Time'])
-        lights_on_sec = float(annot.iloc[sleep_indices[-1]]['Start Time'])
+        lights_off_sec = float(annot.iloc[sleep_indices[0]]['Start Time'])      # first non-L event is lights off
+        lights_on_sec = float(annot.iloc[sleep_indices[-1]]['Start Time'])      # last non-L event is lights on
 
         for i, row in annot.iterrows():
             start = row['Start Time']
