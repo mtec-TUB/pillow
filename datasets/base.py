@@ -298,7 +298,9 @@ class BaseDataset(ABC):
                     }
                 )
 
-        return ann_stage_events, ann_startdatetime, None, None
+        lights_off, lights_on = None, None
+
+        return ann_stage_events, ann_startdatetime, lights_off, lights_on
 
     def ann_label(
         self,

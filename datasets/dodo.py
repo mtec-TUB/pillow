@@ -120,4 +120,4 @@ class DODO(BaseDataset):
                 }
                 ann_stage_events.append(ann)
 
-        return ann_stage_events, None
+        return ann_stage_events, None, None, None

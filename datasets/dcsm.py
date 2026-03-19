@@ -105,8 +105,8 @@ class DCSM(BaseDataset):
             })
         
         # DCSM .ids files don't contain start datetime information
-        # Return None for start_datetime
-        return ann_stage_events, None
+        # Return None for start_datetime, lights_off and lights_on
+        return ann_stage_events, None, None, None
     
     def preprocess(self, data_dir, ann_dir, output_dir):
         print("\n DCSM files originally are stored in an unsupported way and therefor need to be preprocessed/resorted ... \n \

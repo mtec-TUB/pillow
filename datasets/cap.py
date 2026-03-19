@@ -194,7 +194,8 @@ class CAP(BaseDataset):
             ann_stage_events[i]['Duration'] = ann_stage_events[i+1]['Start'] - event['Start']
 
         ann_start_datetime = datetime.combine(ann_start_datetime.date(), start_time_label.time())
-        return ann_stage_events, ann_start_datetime
+
+        return ann_stage_events, ann_start_datetime, None, None
     
         
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal: np.ndarray, labels, fs
