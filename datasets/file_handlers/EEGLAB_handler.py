@@ -62,6 +62,10 @@ class EEGLABHandler:
             raw_data = mne.io.read_raw_eeglab(filepath, verbose='WARNING', preload=True)
 
             signal = raw_data.get_data(picks=channel)[0]
+            if np.all(np.isnan(signal)):
+                logger.warning(f"Signal for channel {channel} in file {filepath} contains only NaN values.")
+                return {}
+
             samples = len(signal)
             info = raw_data.info
 
@@ -82,7 +86,9 @@ class EEGLABHandler:
             signal = epoched_data.flatten()
             samples = len(signal)
             info = raw_epoched_data.info
-        
+        except RuntimeError as e:
+            logger.error(f"Runtime error during data retrieval from {filepath}: {e}")
+            return {}  # probably because the file is empty or corrupted, return empty dict to skip this channel
         except Exception as e:
             logger.error(f"Error during data retrieval {filepath}: {e}")
             raise

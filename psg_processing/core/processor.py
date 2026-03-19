@@ -298,6 +298,8 @@ class DatasetProcessor:
 
         # Extract data from psg file and add to channel_data dictionary
         psg_data = self.dataset.get_signal_data(logger, channel_data["psg_fname"], channel_data["ch_name_orig"])
+        if psg_data == {}:
+            return
         channel_data.update(psg_data)
         del psg_data  # free memory
 
@@ -476,7 +478,8 @@ class DatasetProcessor:
 
                 if lights_on_epoch > len(signal_epoched):
                     logger.warning(f"Lights On time {lights_on_sec} is after signal ends. No epoch selection applied.")
-                    raise Exception
+                    # Maybe padding ?
+                    # raise Exception
                 elif lights_on_epoch == len(signal_epoched):
                     logger.info("Lights On time is at the end of the signal, no need of epoch selection based on lights On time.")
                 else:
