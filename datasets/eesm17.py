@@ -61,22 +61,11 @@ class EESM17(BaseDataset):
                                 }
                 
         
-        self.file_extensions = {'psg_ext': '**/*.set',
-                                'ann_ext': '**/*scoring_events.tsv'} 
+        self.file_extensions = {'psg_ext': '**/*_eeg.set',
+                                'ann_ext': '**/*_acq-scoring_events.tsv'} 
         
     def dataset_paths(self) -> tuple[str, str]:
-        return [
-            self.dataset_name,
-            self.dataset_name
-        ]
-    
-    def get_file_identifier(self, psg_fname=None, ann_fname=None):
-        psg_id, ann_id = None, None
-        if psg_fname:
-            psg_id = os.path.basename(psg_fname).split('_eeg.set')[0]
-        if ann_fname:
-            ann_id =  os.path.basename(ann_fname).split('_acq-scoring_events.tsv')[0]
-        return psg_id, ann_id
+        return ['', '']
     
     def ann_parse(self, ann_fname):
         annot = pd.read_csv(ann_fname,sep='\t', header=0)
@@ -105,7 +94,22 @@ class EESM17(BaseDataset):
         for i, event in enumerate(ann_stage_events[:-1]):
             ann_stage_events[i]['Duration'] = ann_stage_events[i+1]['Start'] - event['Start']
 
-        return ann_stage_events, start_time
+        events_file = ann_fname.replace("acq-scoring_events", "events")
+        events = pd.read_csv(events_file,sep='\t', header=0)
+
+        lights_off = events.loc[events['trial_type'] == 'Lights Off', 'onset']
+        if len(lights_off) == 1:
+            lights_off = lights_off.iloc[0]
+        else:
+            raise Exception(f"Expected exactly one 'Lights Off' event in {events_file}, but found {len(lights_off)}.")
+        
+        lights_on = events.loc[events['trial_type'] == 'Lights On', 'onset']
+        if len(lights_on) == 1:
+            lights_on = lights_on.iloc[0]
+        else:
+            raise Exception(f"Expected exactly one 'Lights On' event in {events_file}, but found {len(lights_on)}.")
+
+        return ann_stage_events, start_time, lights_off, lights_on
     
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
 
