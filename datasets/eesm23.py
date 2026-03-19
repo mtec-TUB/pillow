@@ -93,8 +93,9 @@ class EESM23(BaseDataset):
                                         'Start': float(Decimal(str(start)) - start_time_label),
                                         'Duration': duration})
             
+        lights_off = float(start_time_label)        # see EESM23/code/dataset_preparation/BIDS_unittests_EESM23.py
 
-        return ann_stage_events, float(start_time_label)
+        return ann_stage_events, float(start_time_label), lights_off, None
     
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
         
