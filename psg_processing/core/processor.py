@@ -420,7 +420,8 @@ class DatasetProcessor:
                         lights_off_epoch = int(lights_off_sec / self.config.epoch_duration)
                         selection_mask[0:lights_off_epoch] = False
                         logger.info(f"Selected only epochs after lights Off at {(channel_data["start_datetime"] + timedelta(seconds=lights_off_sec)).time()} (epoch {lights_off_epoch})")
-                        new_startdatetime = channel_data["start_datetime"] + timedelta(seconds=lights_off_sec)
+                        if new_startdatetime:
+                            new_startdatetime = channel_data["start_datetime"] + timedelta(seconds=lights_off_sec)
                 else:
                     logger.info("Lights Off time is at the start of the signal, no need of epoch selection based on lights Off time.")
 
@@ -445,8 +446,9 @@ class DatasetProcessor:
                         
                         lights_off_epoch = int(lights_off_sec / self.config.epoch_duration)
                         selection_mask[0:lights_off_epoch] = False
-                        logger.info(f"Selected only epochs after lights Off at {lights_off_sec} (epoch {lights_off_epoch})")
-                        new_startdatetime = channel_data["start_datetime"] + timedelta(seconds=lights_off_sec)
+                        logger.info(f"Selected only epochs after lights Off at {lights_off_sec}sec (epoch {lights_off_epoch})")
+                        if new_startdatetime:
+                            new_startdatetime = channel_data["start_datetime"] + timedelta(seconds=lights_off_sec)
                 else:
                     logger.info("Lights Off time is at the start of the signal, no need of epoch selection based on lights Off time.")
             else:
@@ -501,7 +503,7 @@ class DatasetProcessor:
 
                     lights_on_epoch = int(lights_on_sec / self.config.epoch_duration)
                     selection_mask[lights_on_epoch:] = False
-                    logger.info(f"Selected only epochs before lights On at {lights_on_sec} (epoch {lights_on_epoch})")
+                    logger.info(f"Selected only epochs before lights On at {lights_on_sec}sec (epoch {lights_on_epoch})")
             else:
                 raise Exception(f"Lights On time has unsupported format: {lights_on}.")
         else:
@@ -613,7 +615,8 @@ class DatasetProcessor:
                     fs,
                 )
                 if self.start_time_shift:
-                    raise Exception
+                    logger.info(f"Applied start time shift of {self.start_time_shift} seconds to align signal with annotation start time.")
+                    # raise Exception
                 if isinstance(signal_start_datetime, datetime):
                     new_startdatetime = signal_start_datetime + timedelta(seconds=self.start_time_shift)
                     logger.info(f"Adjusted start datetime after alignment: {new_startdatetime}")
