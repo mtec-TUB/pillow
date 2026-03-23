@@ -30,7 +30,6 @@ class CAP(BaseDataset):
             "Cannula": [ 'Canula', 'cannula',],
             "C3-A2": ['C3-A2','C3A2',],
             "C4-A1": ['C4-A1','C4A1',],
-            "O2-A1": ['O2-A1', 'O2A1'],
             "DX1-DX2": ['DX1-DX2','Dx1-DX2',],
             "Fp2-F4": ['FP2-F4','Fp2-F4',],
             "ECG": ['ECG','EKG','ekg',],
@@ -46,7 +45,6 @@ class CAP(BaseDataset):
             "Thorax": ['Torace','toracico', 'thorax','TORACE',],
             "Tib_sx": ['Tib sx','TIB Sx','tib sin'],
             "Tib_dx": ['TIB Dx','Tib dx','tib dx',],
-            "LOC-ROC": ['LOC-ROC','ROC-LOC',],
             }
         
         self.inter_dataset_mapping = {
@@ -80,7 +78,6 @@ class CAP(BaseDataset):
             "P3-O1": self.Mapping(self.TTRef.P3, self.TTRef.O1),
             "P4": self.Mapping(self.TTRef.P4, None),
             "P4-O2": self.Mapping(self.TTRef.P4, self.TTRef.O2),
-            "O2A1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
             "ECG": self.Mapping(self.TTRef.ECG, None),
             "flow": self.Mapping(self.TTRef.AIRFLOW, None),
             "LOC": self.Mapping(self.TTRef.EL, self.TTRef.LPA),
@@ -99,6 +96,8 @@ class CAP(BaseDataset):
             "Tib_dx": self.Mapping(self.TTRef.EMG_RLEG, None),
             "EMG1-EMG2": self.Mapping(self.TTRef.EMG_CHIN, None),   # is the chin EMG channel that appears most frequently
             "LOC-ROC": self.Mapping(self.TTRef.EL, self.TTRef.ER),
+            "ROC-LOC": self.Mapping(self.TTRef.ER, self.TTRef.EL),
+
         }
         
         self.channel_names = ['A1', 'A2', 'ADDDOME', 'ADDOME', 'Abdo', 'C3', 'C3-A2', 'C3-P3', 'C3A2', 'C4', 'C4-A1',
