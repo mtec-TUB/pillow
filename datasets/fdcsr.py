@@ -231,42 +231,41 @@ class FDCSRSleepScoreSplitter:
         if output_filepath.exists():
             return
 
-        print(f"\nProcessing: {edf_filename}")
-        print(f"  EDF: {edf_filepath}")
-        print(f"  Score source: {score_filepath}")
+        print(f"Processing: {edf_filename}") #, EDF: {edf_filepath}, Score: {score_filepath}")
 
-        self._extract_matching_scores(edf_info, score_filepath, output_filepath)
+        self._extract_matching_scores(edf_info, score_filepath, output_filepath, edf_filepath)
 
 
-    def _extract_matching_scores(self, edf_info, score_filepath, output_filepath):
+    def _extract_matching_scores(self, edf_info, score_filepath, output_filepath, edf_filepath):
         """Extract sleep scores matching the EDF file timing."""
 
-
         found_time_mismatch = False
+
+        hours = timedelta(hours=((edf_info["start labtime"]/24) - (edf_info["start labtime"]//24))*24) # remove full days
+        start_lab_time = timedelta(seconds=round(hours.total_seconds()))
         
-        if not pd.isna(edf_info["start time"]):
-            start_time = datetime.strptime(edf_info["start time"],"%H:%M:%S")
-            start_time_as_delta = timedelta(hours=start_time.hour, minutes=start_time.minute,seconds=start_time.second)
+        psg_f = pyedflib.EdfReader(str(edf_filepath))
+        start_time_edf = psg_f.getStartdatetime()
+        duration_edf = timedelta(seconds=psg_f.getFileDuration())
 
-            hours = timedelta(hours=((edf_info["start labtime"]/24) - int((edf_info["start labtime"]/24)))*24) # remove full days
-            start_lab_time = timedelta(seconds=round(hours.total_seconds()))
+        duration = timedelta(hours=edf_info["last labtime"] - edf_info["start labtime"])
 
-            if start_time_as_delta != start_lab_time:
+        if start_time_edf.time() != (datetime.min + start_lab_time).time():
+            duration_epoched = timedelta(seconds=np.floor(duration_edf.total_seconds()/30)*30)  # round to full epochs (like in psg file)
+            if (duration_epoched - duration).total_seconds() <= 90:
                 found_time_mismatch = True
-                print(start_time_as_delta)
-                print(start_lab_time)
-                print('found start time mismatch')
+                print(start_time_edf.time(), (datetime.min + start_lab_time).time(), 'found start time mismatch')
             else:
-                print(start_time_as_delta)
-                print(start_lab_time)
-                print('start time is matching')
+                raise Exception(edf_filepath,(duration_epoched - duration).total_seconds() )
+        else:
+            print(start_time_edf.time(), (datetime.min + start_lab_time).time(), 'start time is matching')
 
         # Get timing information
         start_labtime = round(edf_info["start labtime"], 6)
         last_line_time = round(edf_info["last labtime"], 6)
         n_lines = int(edf_info["last line"]) - 1
 
-        print(f"  Time range: {start_labtime} to {last_line_time} ({n_lines} lines)")
+        # print(f"  Time range: {start_labtime} to {last_line_time} ({n_lines} lines)")
 
         # Load sleep scores (handle special case for 3339gx)
         edf_folder_name = edf_info["filename"].split("_")[0]
@@ -294,70 +293,14 @@ class FDCSRSleepScoreSplitter:
         idx_start = (sleep_scores_df["labtime"] == start_labtime).idxmax()
         idx_stop = (sleep_scores_df["labtime"] == last_line_time).argmax()
 
-        print(f"  Score indices: {idx_start} to {idx_stop}")
+        # print(f"  Score indices: {idx_start} to {idx_stop}")
 
         # Validate the extraction
         assert sleep_scores_df.iloc[idx_stop]["labtime"] == sleep_scores_df.iloc[idx_start + n_lines]["labtime"], f"Time mismatch: expected {sleep_scores_df.iloc[idx_start + n_lines]['labtime']}, got {sleep_scores_df.iloc[idx_stop]['labtime']}"
 
         # Extract and save matching scores
         matching_scores = sleep_scores_df.loc[idx_start:idx_stop].copy()
-        if found_time_mismatch or any(subfolder in edf_folder_name for subfolder in ['3441gx', '3450gx', '3525gx', '3531gx', '3540gx']):
-            matching_scores["labtime"] = matching_scores["labtime"] + 1
+        if found_time_mismatch:
+            matching_scores["labtime"] = matching_scores["labtime"] + 1 # add 1 hour to labtime to match the EDF timing
 
         matching_scores.to_csv(output_filepath, index=False)
-        print(f"  SUCCESS: Saved {len(matching_scores)} score records")
-
-
-class FDCSRFileOrganizer:
-    """Handles moving unscored FDCSR files to a separate directory."""
-
-    @staticmethod
-    def move_unscored_files(source_root_folder: str, destination_folder: str, filenames_to_move: List[str]):
-        """
-        Move specific files from subfolders to a destination directory.
-
-        Args:
-            source_root_folder: Root folder to search for files
-            destination_folder: Destination folder for moved files
-            filenames_to_move: List of filenames to move
-        """
-        source_root_path = Path(source_root_folder)
-        destination_path = Path(destination_folder)
-
-        # Create destination folder
-        destination_path.mkdir(parents=True, exist_ok=True)
-        print(f"Destination folder: {destination_path}")
-
-        stats = {"moved": 0, "not_found": 0, "errors": 0}
-
-        for filename in filenames_to_move:
-            try:
-                # Find file in subfolders
-                found_files = list(source_root_path.glob(f"*/{filename}"))
-
-                if len(found_files) == 1:
-                    source_file = found_files[0]
-                    target_file = destination_path / filename
-
-                    # Move the file
-                    shutil.move(source_file, target_file)
-                    print(f"✓ Moved: {filename}")
-                    stats["moved"] += 1
-
-                elif len(found_files) == 0:
-                    print(f"✗ Not found: {filename}")
-                    stats["not_found"] += 1
-
-                else:
-                    print(f"✗ Multiple matches for: {filename}")
-                    stats["errors"] += 1
-
-            except Exception as e:
-                print(f"✗ Error moving {filename}: {e}")
-                stats["errors"] += 1
-
-        # Print summary
-        print("\n--- Move Operation Summary ---")
-        print(f"Files moved: {stats['moved']}")
-        print(f"Files not found: {stats['not_found']}")
-        print(f"Errors: {stats['errors']}")
