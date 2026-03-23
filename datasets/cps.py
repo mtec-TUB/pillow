@@ -156,6 +156,8 @@ class CPS(BaseDataset):
             lights_on = marker_df.loc[marker_df['Event'] == "Licht an", "Timestamp"]
             if len(lights_on) == 1:
                 lights_on = datetime.combine(date(1970,1,1),datetime.strptime(lights_on.iloc[0], '%H:%M:%S,%f').time()).time()
+            else:
+                lights_on = None
         else:
             raise Exception(f"Marker file not found: {marker_file}")    # should not occur
         
