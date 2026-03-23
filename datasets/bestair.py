@@ -9,6 +9,8 @@ class BESTAIR(BaseDataset):
     def __init__(self):
         super().__init__("BESTAIR","BESTAIR - Best Apnea Interventions in Research")
 
+    # Note: BESTAIR has limited recordings with EEG. Most of the recordings are done using a home sleep test (HST).
+    # Sleep staging is using HST was done using 0: wake, 2: sleep.
     def _setup_dataset_config(self):
         self.ann2label = {
             "Wake": 0,
