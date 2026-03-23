@@ -115,10 +115,14 @@ class DatasetProcessor:
                                 future.result()  # Check for exceptions
                                 pbar.update(1)
                             except Exception as e:
-                                self.pipeline_logger.error(f"Processing failed: {e}")
+                                # self.pipeline_logger.error(f"Processing failed: {e}")
                                 executor.shutdown(cancel_futures=True)
-                                raise
-                            tasks.remove(future)
+                                break
+                            finally:
+                                tasks.remove(future)
+                        else:
+                            continue
+                        break  # Break outer loop if an exception occurred in the inner loop
                     
             # Finalize processing
             self.pipeline_logger.info("=" * 60)
