@@ -19,6 +19,7 @@ class CAP(BaseDataset):
                             "S1":1,
                             "S2":2,
                             "S3":3,
+                            "1S3":3,    # occurs in file n12.txt
                             "S4":3,
                             "REM":4,
                             "R":4,
