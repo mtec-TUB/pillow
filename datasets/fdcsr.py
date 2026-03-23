@@ -24,7 +24,7 @@ class FDCSR(BaseDataset):
             4: 3,  # Follow AASM Manual
             6: 4,  # REM sleep
             0: 6,  # Unknown
-            7: 6,  # Movement
+            7: 5,  # Movement
             8: 6,  # Lights Out
             9: 6,  # Lights On
         }
