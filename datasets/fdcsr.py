@@ -172,8 +172,7 @@ class FDCSR(BaseDataset):
             unscored_files = splitter.process_sleep_scores()
             if unscored_files:
                 dest_folder = os.path.join(os.path.split(output_dir)[0], "unscored_files")
-                print(f"{len(unscored_files)} unscored files were found. They will be moved to {dest_folder}")
-                FDCSRFileOrganizer.move_unscored_files(data_dir, dest_folder, unscored_files)
+                print(f"{len(unscored_files)} unscored files were found.")
                 print("Successfully ended preprocessing")
                 
                 if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
