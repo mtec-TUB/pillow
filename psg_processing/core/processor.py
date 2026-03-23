@@ -589,10 +589,11 @@ class DatasetProcessor:
 
             # If annotation start datetime is given as a datetime object, compare with signal start datetime and calculate start delay
             if isinstance(ann_start_datetime, datetime) and signal_start_datetime is not None:
-                if ann_start_datetime.time() != signal_start_datetime.time():
-                    delay = (
-                        ann_start_datetime - signal_start_datetime
-                    ).total_seconds()
+                # Strip timezone info before comparison/subtraction
+                ann_dt = ann_start_datetime.replace(tzinfo=None)
+                sig_dt = signal_start_datetime.replace(tzinfo=None)
+                if ann_dt.time() != sig_dt.time():
+                    delay = (ann_dt - sig_dt).total_seconds()
                     
             # If annotation start datetime is given as a numeric value, it indicates a delay in seconds or samples (depending on dataset)
             elif isinstance(
