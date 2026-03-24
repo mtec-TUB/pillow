@@ -131,12 +131,11 @@ class CPS(BaseDataset):
 
         for i, row in data.iterrows():
             stage = row['Stage']
+            # use 1970 instead of actual date because edf stores 1970-01-01 for all files (easier comparison)
             start = datetime.combine(date(1970,1,1),datetime.strptime(row['Timestamp'], '%H:%M:%S,%f').time())
 
-            if ann_startdatetime == None:# and stage != "A":
+            if ann_startdatetime == None:
                 ann_startdatetime = start
-            # elif ann_startdatetime == None and stage == "A":
-            #     continue
 
             ann_stage_events.append({
                 'Stage': stage,
@@ -151,11 +150,11 @@ class CPS(BaseDataset):
             lights_off = marker_df.loc[marker_df['Event'] == "Licht aus", "Timestamp"]
             if len(lights_off) >= 1:
                 # take first of available lights off markers (in some recorings, two markers occur, reason unknown)
-                lights_off = datetime.combine(date(1970,1,1),datetime.strptime(lights_off.iloc[0], '%H:%M:%S,%f').time()).time()
+                lights_off = datetime.strptime(lights_off.iloc[0], '%H:%M:%S,%f').time()
             
             lights_on = marker_df.loc[marker_df['Event'] == "Licht an", "Timestamp"]
             if len(lights_on) == 1:
-                lights_on = datetime.combine(date(1970,1,1),datetime.strptime(lights_on.iloc[0], '%H:%M:%S,%f').time()).time()
+                lights_on = datetime.strptime(lights_on.iloc[0], '%H:%M:%S,%f').time()
             else:
                 lights_on = None
         else:
