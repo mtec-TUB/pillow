@@ -48,7 +48,12 @@ class DOD_H5Handler:
                 file_duration = len(signal) / sampling_rate
 
 
-                start_datetime = datetime.fromtimestamp(f.attrs.get("start_time"))
+                start_time = f.attrs.get("start_time")
+                if start_time is None:
+                    logger.warning(f"No start_time attribute found in {filepath}, defaulting to datetime(1970, 1, 1)")
+                    start_datetime = datetime(1970, 1, 1)
+                else:
+                    start_datetime = datetime.fromtimestamp(start_time)
 
                 return {
                     "signal": signal,
