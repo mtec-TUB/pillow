@@ -18,6 +18,7 @@ debugpy==1.8.15
 decorator==5.2.1
 edfio==0.4.9
 eeglabio==0.1.2
+et_xmlfile==2.0.0
 executing==2.2.0
 fastrlock==0.8.3
 fonttools==4.58.5
@@ -45,6 +46,7 @@ natsort==8.4.0
 nest-asyncio==1.6.0
 numba==0.61.0
 numpy==2.1.3
+openpyxl==3.1.5
 packaging==25.0
 pandas==2.3.1
 parso==0.8.4
@@ -68,6 +70,7 @@ python-dateutil==2.9.0.post0
 pytokens==0.2.0
 pytz==2025.2
 pyxdg==0.28
+PyYAML==6.0.3
 pyzmq==27.0.0
 requests==2.32.4
 scikit-learn==1.7.1
@@ -86,6 +89,6 @@ urllib3==2.5.0
 wcwidth==0.2.13
 wfdb==4.3.0
 wurlitzer==3.1.1
+xlrd==2.0.2
 xmltodict==1.0.2
 yarl==1.20.1
-PyYAML==6.0.3
