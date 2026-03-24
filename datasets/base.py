@@ -384,8 +384,8 @@ class BaseDataset(ABC):
                 signal = signal[int(delay_sec*fs):]
                 start_time_shift = delay_sec
             elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_SIGNAL.value:
-                logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, labels will be padded at the front with full epochs of value:{pad_values["label"]} to match")
                 n_pad = int(delay_sec // epoch_duration)
+                logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, labels will be padded at the front with {n_pad} epochs of value:{pad_values["label"]} to match")
                 labels = np.hstack((np.full((n_pad,), pad_values["label"]), labels))
                 if delay_sec % epoch_duration != 0:
                     logger.info(f"Partial epoch detected at start, signal will be shortened at the front to match")
