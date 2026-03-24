@@ -99,7 +99,7 @@ class Physio2018(BaseDataset):
         for i, event in enumerate(ann_stage_events[:-1]):
             ann_stage_events[i]['Duration'] = ann_stage_events[i+1]['Start'] - event['Start']
 
-        return ann_stage_events, float(start_time_label)
+        return ann_stage_events, float(start_time_label), None, None
     
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_samples, signal, labels, fs):
     
