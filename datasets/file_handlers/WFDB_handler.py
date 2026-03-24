@@ -44,7 +44,10 @@ class WFDBHandler:
             if psg_date == None:
                 psg_date = date(1985, 1, 1)
             psg_time = record.base_time
-            start_datetime = datetime.combine(psg_date, psg_time)
+            if psg_time == None:
+                start_datetime = None
+            else:
+                start_datetime = datetime.combine(psg_date, psg_time)
 
             sampling_rate = record.fs
             signal = record.p_signal[:,0]
