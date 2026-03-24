@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -94,7 +94,11 @@ class HMC(BaseDataset):
         ann_Startdatetime = datetime.strptime(first_row['Date'] + ' ' + first_row['Time'],'%d.%m.%y %H.%M.%S')
         
         for i, row in annot.iterrows():
-            if row['Annotation'] not in ['Lights off','Lights on']:
+            if row['Annotation'] == 'Lights off':
+                lights_off = ann_Startdatetime + timedelta(seconds=row['Recording onset'])
+            elif row['Annotation'] == 'Lights on':
+                lights_on = ann_Startdatetime + timedelta(seconds=row['Recording onset'])
+            else:
                 start = row['Recording onset']
                 duration = row['Duration']
                 stage = row['Annotation']
@@ -102,7 +106,7 @@ class HMC(BaseDataset):
                                             'Start': start,
                                             'Duration': duration})
 
-        return ann_stage_events, ann_Startdatetime
+        return ann_stage_events, ann_Startdatetime, lights_off, lights_on
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
         print("Aligning signals and labels for HMC dataset...")
