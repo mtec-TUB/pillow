@@ -4,6 +4,7 @@ import pandas as pd
 import shutil
 from pathlib import Path
 from datetime import datetime, timedelta
+import pyedflib
 from typing import Dict, List, Optional, Tuple
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -13,7 +14,7 @@ class FDCSR(BaseDataset):
     """FDCSR (Forced Desynchrony with and without Chronic Sleep Restriction) dataset."""
     
     def __init__(self):
-        super().__init__("FDCSR","FDCSR - Forced Desynchrony with and without Chronic Sleep Restriction", keep_folder_structure = False)
+        super().__init__("FDCSR","FDCSR - Forced Desynchrony with and without Chronic Sleep Restriction ", keep_folder_structure = False)
 
     def _setup_dataset_config(self):
         self.ann2label =  {
@@ -127,7 +128,7 @@ class FDCSR(BaseDataset):
 
         ann_df = pd.read_csv(ann_fname,sep=',',header=0)
     
-        ann_Startdatetime = (study_start_datetime + timedelta(hours=ann_df.iloc[0]['labtime']))
+        ann_Startdatetime = study_start_datetime + timedelta(hours=ann_df.iloc[0]['labtime'])
 
         # round to full seconds (like in psg file)
         new_sec = ann_Startdatetime.second + round(ann_Startdatetime.microsecond/1000000)
@@ -150,9 +151,25 @@ class FDCSR(BaseDataset):
             
             ann_stage_events.append({'Stage': stage,
                                     'Start': start,
-                                    'Duration': duration})        
+                                    'Duration': duration})  
 
-        return ann_stage_events, ann_Startdatetime
+        lights_off = ann_df.loc[ann_df['stage'] == 8, 'labtime'].values
+        if len(lights_off) == 1:
+            lights_off = (study_start_datetime + timedelta(hours=lights_off[0])).time()
+        elif len(lights_off) > 1:
+            raise Exception(f"Expected exactly one 'Lights Off' event, found {len(lights_off)}")
+        else:
+            lights_off = None
+        
+        lights_on = ann_df.loc[ann_df['stage'] == 9, 'labtime'].values
+        if len(lights_on) == 1:
+            lights_on = (study_start_datetime + timedelta(hours=lights_on[0])).time()
+        elif len(lights_on) > 1:
+            raise Exception(f"Expected exactly one 'Lights On' event, found {len(lights_on)}")
+        else:
+            lights_on = None
+
+        return ann_stage_events, ann_Startdatetime, lights_off, lights_on
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
