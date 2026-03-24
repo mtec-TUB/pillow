@@ -21,11 +21,15 @@ class ISRUC(BaseDataset):
         
     def _setup_dataset_config(self):
         self.ann2label =  {
-            0: 0,   # Wake
-            1: 1,   # Stage 1
-            2: 2,   # Stage 2
-            3: 3,   # Stage 3
-            5: 4    # REM (ISRUC uses 5 for REM)
+            "W": 0,   # Wake
+            "w": 0,     # in file "Subgroup 3_9_9_9_1.xlsx"
+            "N": 1,     # in file "Subgroup 1_4_4_4_1.xlsx", compared to "Subgroup 1_4_4_4_1.txt" -> N1
+            "N1": 1,   # Stage 1
+            "N2": 2,   # Stage 2
+            "n2": 2,   # in file "Subgroup 1_2_2_2.xlsx"
+            "N3": 3,   # Stage 3
+            "R": 4,    # REM
+            "U": 6    # Unknown
         }
         
         
@@ -100,7 +104,7 @@ class ISRUC(BaseDataset):
         
         self.file_extensions = {
             'psg_ext': '*/*.rec',
-            'ann_ext': '*/*_1.txt'
+            'ann_ext': '*/*_1.xlsx'
         }
     
     def dataset_paths(self) -> Tuple[str, str]:
@@ -111,37 +115,58 @@ class ISRUC(BaseDataset):
     
     def ann_parse(self, ann_fname: str) -> Tuple[List[List[Dict]], datetime]:
         """Parse ISRUC annotation files (multiple scorers in separate files)"""
-        # ISRUC typically has two annotation files: *1.txt and *2.txt
-        base_fname = ann_fname.replace('1.txt', '')
+        # ISRUC has two annotation files: *1.xlsx and *2.xlsx
+        base_fname = ann_fname.replace('1.xlsx', '')
 
         epoch_duration = 30  # ISRUC uses 30-second epochs
         
-        ann_stage_events_1 = []
-        ann_stage_events_2 = []
+        ann_stage_events = []
+
+        lights_off, lights_on = [], []
+
+        exp_col_names = ['Epoch', 'Stage', 'SpO2', 'HR', 'Events', 'BPOS', 'Txln', 'TxEx', 'Technote']
         
-        # Load first scorer
-        ann_fname_1 = base_fname + '1.txt'
-        if os.path.exists(ann_fname_1):
-            df = pd.read_csv(ann_fname_1, names=['Stage'])
-            for i, row in df.iterrows():
-                ann_stage_events_1.append({
-                    'Start': i * epoch_duration,
-                    'Duration': epoch_duration,
-                    'Stage': row['Stage']
-                })
+        # Load both scorer files
+        for scorer_suffix in ['1.xlsx', '2.xlsx']:
+            ann_fname_scorer = base_fname + scorer_suffix
+            if os.path.exists(ann_fname_scorer):
+                df = pd.read_excel(ann_fname_scorer, usecols=range(9))
+                if 'Stage' not in df.columns:
+                    df = pd.read_excel(ann_fname_scorer, header=None, usecols=range(9), names=exp_col_names)
+                scorer_events = []
+                epoch_col = df.columns[0]  # Assuming the first column is the epoch column (usually named "Epoch" but sometimes "hich")
+                for i, row in df.iterrows():
+                    if pd.isna(row[epoch_col]):
+                        continue  # Skip rows without epoch information
+                    if row.astype(str).str.contains('L Out').any():
+                        lights_off.append(i* epoch_duration)
+                    if row.astype(str).str.contains('L On').any():
+                        lights_on.append((i+1) * epoch_duration)
+
+                    scorer_events.append({
+                        'Start': i * epoch_duration,
+                        'Duration': epoch_duration,
+                        'Stage': row['Stage']
+                    })
+                ann_stage_events.append(scorer_events)
+            else:
+                ann_stage_events.append([])  # No annotation for this scorer        
+
+        if not lights_off:
+            raise Exception("No lights off event found in annotations") # should not occur
+        elif len(lights_off) > 2 or lights_off[0] != lights_off[1]:
+            if "Subgroup 3_7_7_7" in ann_fname:
+                # In this file there are two lights off events (epoch 0 and epoch 17), the second one seems more reasonable (appears in both scorer files)
+                lights_off = [lights_off[1]]
+            else:
+                raise Exception(f"Multiple lights off events found in annotations: {lights_off}")
         
-        # Load second scorer
-        ann_fname_2 = base_fname + '2.txt'
-        if os.path.exists(ann_fname_2):
-            df = pd.read_csv(ann_fname_2, names=['Stage'])
-            for i, row in df.iterrows():
-                ann_stage_events_2.append({
-                    'Start': i * epoch_duration,
-                    'Duration': epoch_duration,
-                    'Stage': row['Stage']
-                })
+        if not lights_on:
+            raise Exception("No lights on event found in annotations")  # should not occur
+        elif len(lights_on) > 2 or lights_on[0] != lights_on[1]:
+            raise Exception(f"Multiple lights on events found in annotations: {lights_on}") # should not occur
         
-        return [ann_stage_events_1, ann_stage_events_2], None
+        return ann_stage_events, None, lights_off[0], lights_on[0]
     
     def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int) -> np.ndarray:
         """
