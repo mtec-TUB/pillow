@@ -91,7 +91,7 @@ class UCDDB(BaseDataset):
                 'Stage': stage
             })
         
-        return ann_stage_events, None
+        return ann_stage_events, None, None, None
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 

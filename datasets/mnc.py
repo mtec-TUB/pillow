@@ -137,4 +137,4 @@ class MNC(BaseDataset):
                 }
             )
 
-        return ann_stage_events, ann_startdatetime
+        return ann_stage_events, ann_startdatetime, None, None
