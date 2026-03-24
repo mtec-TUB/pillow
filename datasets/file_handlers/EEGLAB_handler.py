@@ -22,6 +22,9 @@ class EEGLABHandler:
             except TypeError as e:
                 raw_epoched_data = mne.io.read_epochs_eeglab(filepath, verbose="WARNING")
                 return raw_epoched_data.ch_names
+            except OSError as e:
+                logger.error(f"Skipping corrupt/unreadable file {filepath}: {e}")
+                return []
             except Exception as e:
                 logger.error(f"Error during channel extraction from {filepath}: {e}")
                 raise
