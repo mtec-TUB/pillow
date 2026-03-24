@@ -60,6 +60,16 @@ class HMC(BaseDataset):
             'psg_ext': '*[!sleepscoring].edf',
             'ann_ext': '*_sleepscoring.txt'
         }
+
+    def get_file_identifier(self, psg_fname=None, ann_fname=None):
+        psg_id, ann_id = None, None
+        if psg_fname:
+            psg_ext = ".edf"
+            psg_id = psg_fname.split(psg_ext)[0]
+        if ann_fname:
+            ann_ext = "_sleepscoring.txt"
+            ann_id = ann_fname.split(ann_ext)[0]
+        return psg_id, ann_id
     
     def dataset_paths(self) -> Tuple[str, str]:
         return [
