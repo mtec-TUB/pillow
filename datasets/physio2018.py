@@ -12,7 +12,7 @@ class Physio2018(BaseDataset):
     """Physio2018 (PhysioNet Challenge 2018) dataset."""
     
     def __init__(self):
-        super().__init__("PHYSIO2018","Physio2018 - PysioNet Challenge 2018", keep_folder_structure = True)
+        super().__init__("PHYSIO2018","Physio2018 - PysioNet Challenge 2018", keep_folder_structure = False)
 
         self._file_handler = WFDBHandler()
   
@@ -111,5 +111,7 @@ class Physio2018(BaseDataset):
 
         if len(signals) > len(labels):
             return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)        
+        elif len(labels) == len(signals) + 1:
+            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)   
     
     
