@@ -14,7 +14,7 @@ class FDCSR(BaseDataset):
     """FDCSR (Forced Desynchrony with and without Chronic Sleep Restriction) dataset."""
     
     def __init__(self):
-        super().__init__("FDCSR","FDCSR - Forced Desynchrony with and without Chronic Sleep Restriction ", keep_folder_structure = False)
+        super().__init__("FDCSR","FDCSR - Forced Desynchrony with and without Chronic Sleep Restriction", keep_folder_structure = False)
 
     def _setup_dataset_config(self):
         self.ann2label =  {
