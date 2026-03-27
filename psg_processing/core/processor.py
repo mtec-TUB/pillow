@@ -41,6 +41,7 @@ class DatasetProcessor:
     # Final sleep stage labels mapping (did not yet find a better place for this, maybe in config?)
     # labels will appear like this in output 
     STAGE_DICT = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "MOVE": 5, "UNK": 6}
+    SLEEP_STAGES = [STAGE_DICT["N1"],STAGE_DICT["N2"],STAGE_DICT["N3"],STAGE_DICT["REM"]]
 
     def process_files(self):
 
@@ -190,20 +191,14 @@ class DatasetProcessor:
                     return
                 
                 # Map dataset-labels to standardized labels and check consistency
-                labels = self.dataset.ann_label(
-                    file_logger, ann_stage_events, self.config.epoch_duration
-                )
+                labels = self.dataset.ann_label(file_logger, ann_stage_events, self.config.epoch_duration)
 
-                sleep_idx = np.where(
-                    (labels != self.STAGE_DICT["W"])
-                    & (labels != self.STAGE_DICT["MOVE"])
-                    & (labels != self.STAGE_DICT["UNK"])
-                )[0]
+                # Check how many sleep epochs are in the file
+                sleep_mask = np.isin(labels, self.SLEEP_STAGES)
+                sleep_idx = np.where(sleep_mask)[0]
 
-                if len(sleep_idx) <= self.config.min_sleep_epochs:
-                    file_logger.warning(
-                        "File contains less sleep epochs than required. Skipping"
-                    )
+                if len(sleep_idx) < self.config.min_sleep_epochs:
+                    file_logger.warning("File contains less sleep epochs than required. Skipping")
                     return
                 
                 file_data["labels"] = labels
@@ -385,7 +380,7 @@ class DatasetProcessor:
             # Clean signal data based on annotations (e.g. remove movement/unknown epochs, select sleep periods)
             signal_epoched, labels = self._clean_signal(logger, signal_epoched, labels)
 
-        if self.config.n_wake_epochs == "lights":
+        if self.config.select_epochs == "lights":
             channel_data["start_datetime"], signal_epoched, labels = self._select_epochs(logger, channel_data, signal_epoched, labels)
             if signal_epoched.shape[0] == 0:
                 return None
@@ -522,13 +517,15 @@ class DatasetProcessor:
                 raise Exception(f"Lights On time has unsupported format: {lights_on}.")
         else:
             logger.warning("Lights On time not available.")
-            if self.config.use_annot:
+            if self.config.use_annot and self.config.truncate_non_sleep_end:
                 if labels is not None:
-                    not_wake_epochs = np.where(labels != self.STAGE_DICT["W"])[0]
-                    if len(not_wake_epochs) > 0:
-                        last_not_wake_epoch = not_wake_epochs[-1]
-                        selection_mask[last_not_wake_epoch+1:] = False
-                        logger.info(f"Removed {len(signal_epoched)-last_not_wake_epoch-1} wake epochs at the end of the night based on annotation data.")
+                    sleep_mask = np.isin(labels, self.SLEEP_STAGES)
+                    sleep_idx = np.where(sleep_mask)[0]
+
+                    if len(sleep_idx) > 0:
+                        last_sleep_epoch = sleep_idx[-1]
+                        selection_mask[last_sleep_epoch+1:] = False
+                        logger.info(f"Removed {len(signal_epoched)-last_sleep_epoch-1} non-sleep epochs at the end of the night based on annotation data.")
 
         signal_epoched = signal_epoched[selection_mask]
         if signal_epoched.shape[0] == 0:
@@ -677,18 +674,18 @@ class DatasetProcessor:
             & (labels != self.STAGE_DICT["UNK"])
         )[0]
 
-        if self.config.n_wake_epochs == "all" or self.config.n_wake_epochs == "lights":
+        if self.config.select_epochs == "all" or self.config.select_epochs == "lights":
             start_idx = 0
             end_idx = len(labels) - 1
         else:
             # Remove extensive wake epochs at start and end as given in config
-            n_wake_epochs = self.config.n_wake_epochs
-            start_idx = max(0, sleep_idx[0] - n_wake_epochs)
-            end_idx = min(len(labels) - 1, sleep_idx[-1] + n_wake_epochs)
+            select_epochs = self.config.select_epochs
+            start_idx = max(0, sleep_idx[0] - select_epochs)
+            end_idx = min(len(labels) - 1, sleep_idx[-1] + select_epochs)
 
             if start_idx + (len(signal_epoched) - end_idx) - 1 > 0:
                 logger.info(
-                    f"  Outside {int(self.config.n_wake_epochs)/2}min wake epochs: {start_idx + (len(signal_epoched)-end_idx)-1}"
+                    f"  Outside {int(self.config.select_epochs)/2}min wake epochs: {start_idx + (len(signal_epoched)-end_idx)-1}"
                 )
 
         select_idx = np.setdiff1d(np.arange(start_idx, end_idx + 1), remove_idx)
