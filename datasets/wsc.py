@@ -14,6 +14,7 @@ class WSC(BaseDataset):
         super().__init__("WSC","WSC - Wisconsin Sleep Cohort")
     
     def _setup_dataset_config(self):
+        # see wsc-scoring-annotation-documentation.xlsx
         self.ann2label = {
             # String-based labels
             "STAGE - W": 0,
@@ -23,7 +24,7 @@ class WSC(BaseDataset):
             "STAGE - N4": 3,  # Follow AASM Manual
             "STAGE - R": 4,
             "STAGE - NO STAGE": 6,
-            "STAGE - MVT": 6,
+            "STAGE - MVT": 5,
             # Numeric labels
             0: 0,  # Wake
             1: 1,  # NREM Stage 1
@@ -31,8 +32,8 @@ class WSC(BaseDataset):
             3: 3,  # NREM Stage 3
             4: 3,  # NREM Stage 4 (Follow AASM Manual)
             5: 4,  # REM
-            6: 6,  # Unscored
-            7: 6   # Movement
+            6: 5,   # Movement
+            7: 6,  # Unscored
         }
 
         self.inter_dataset_mapping = {
