@@ -420,7 +420,7 @@ class DatasetProcessor:
                         if lights_off_sec % self.config.epoch_duration != 0:
                             floored_lights_off_sec = floor(lights_off_sec / self.config.epoch_duration) * self.config.epoch_duration
                             new_lights_off_time = (channel_data["start_datetime"] + timedelta(seconds=floored_lights_off_sec)).time()
-                            logger.info(f"Lights Off time {lights_off} is not exactly at the start of an epoch. Keep data from {new_lights_off_time} (epoch {int(floored_lights_off_sec / self.config.epoch_duration)}) on to avoid cutting epochs.")
+                            logger.info(f"Lights Off time {lights_off.time()} is not exactly at the start of an epoch. Keep data from {new_lights_off_time} (epoch {int(floored_lights_off_sec / self.config.epoch_duration)}) on to avoid cutting epochs.")
                             lights_off_sec = floored_lights_off_sec
                         
                         lights_off_epoch = int(lights_off_sec / self.config.epoch_duration)
@@ -476,13 +476,13 @@ class DatasetProcessor:
                 if lights_on_sec % self.config.epoch_duration != 0:
                     ceiled_lights_on_sec = ceil(lights_on_sec / self.config.epoch_duration) * self.config.epoch_duration
                     new_lights_on_time = (channel_data["start_datetime"] + timedelta(seconds=ceiled_lights_on_sec)).time()
-                    logger.info(f"Lights On time {lights_on} is not exactly at the end of an epoch. Keep data until {new_lights_on_time} (epoch {int(ceiled_lights_on_sec / self.config.epoch_duration)}) to avoid cutting epochs.")
+                    logger.info(f"Lights On time {lights_on.time()} is not exactly at the end of an epoch. Keep data until {new_lights_on_time} (epoch {int(ceiled_lights_on_sec / self.config.epoch_duration)}) to avoid cutting epochs.")
                     lights_on_sec = ceiled_lights_on_sec
 
                 lights_on_epoch = int(lights_on_sec / self.config.epoch_duration)
 
                 if lights_on_epoch > len(signal_epoched):
-                    logger.warning(f"Lights On time {lights_on} is after signal ends ({(channel_data["start_datetime"] + timedelta(seconds=signal_epoched.shape[0]*self.config.epoch_duration)).time()}). No epoch selection applied.")
+                    logger.warning(f"Lights On time {lights_on.time()} is after signal ends ({(channel_data["start_datetime"] + timedelta(seconds=signal_epoched.shape[0]*self.config.epoch_duration)).time()}). No epoch selection applied.")
                     # Maybe padding ?
                     # raise Exception
                 elif lights_on_epoch == len(signal_epoched):
