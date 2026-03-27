@@ -169,12 +169,19 @@ class DatasetProcessor:
 
         # Start buffering logs for this file
         file_id = Path(psg_fname).stem
-        file_logger, buffer_handler = self.logging_manager.create_file_logger(
-            file_identifier=file_id,
-        )
-        log_paths = {}  # Store log paths for each channel/file
+        file_logger, buffer_handler = self.logging_manager.create_file_logger(file_identifier=file_id)
 
         try:
+
+            if self.config.output_format in ["hdf5", "edf"]:
+                file_output_path, log_path = self._setup_file_output(file_data["psg_fname"])
+                # Skip if file already exists and overwrite is False
+                if not self.config.overwrite and os.path.exists(file_output_path):
+                    file_logger.info(f"File already exists: {file_output_path}, skipping file and continuing with next file.")
+                    return
+            else:
+                log_paths = {}  # Store log paths for each channel seperately
+
             if self.config.use_annot:
                 # Parse annotations first (is same for all channels)
                 ann_stage_events, ann_Startdatetime, lights_off, lights_on = self.dataset.ann_parse(ann_fname)
@@ -222,38 +229,27 @@ class DatasetProcessor:
                 # Set current channel for logging
                 buffer_handler.set_channel(channel)
                 channel_harm = self._harmonize_channel_name(file_logger, channel)
-                file_output_path, log_path = self._setup_output(
-                    channel_harm,
-                    file_data["psg_fname"],
-                )
-                log_paths[channel] = log_path
+                if self.config.output_format == "npz":
+                    file_output_path, log_path = self._setup_channel_output(channel_harm, file_data["psg_fname"])
+                    log_paths[channel] = log_path
 
                 # all_channel_data["file_output_path"] = file_output_path
 
                 # if os.path.exists(file_output_path):
-                #     raise FileExistsError(f"Output file already exists: {file_output_path}. This should have been handled by the overwrite check before, but to avoid accidental overwriting, processing is stopped. Please set overwrite to True in the config to enable overwriting existing files.")
+                #     raise FileExistsError(f"Output file already exists: {file_output_path}.")
                 # np.savetxt(file_output_path, [])
                 # continue
 
                 # Skip if file already exists and overwrite is False
                 if not self.config.overwrite and os.path.exists(file_output_path):
-                    if self.config.output_format == "npz":
-                        file_logger.info(f"File already exists: {file_output_path}, skipping channel {channel} and continuing with next channel if available.")
-                        continue
-                    else:
-                        file_logger.info(f"File already exists: {file_output_path}, skipping file and continuing with next file.")
-                        # other channels are ignored as well because all channels in one file (that already exists)
-                        break
+                    file_logger.info(f"File already exists: {file_output_path}, skipping channel {channel} and continuing with next channel if available.")
+                    continue 
 
-                proc_channel_data = self._process_channel(
-                    file_logger,
-                    copy.deepcopy(file_data),
-                    channel,
-                )
+                proc_channel_data = self._process_channel(file_logger, copy.deepcopy(file_data), channel)
 
                 if proc_channel_data is not None:
                     # Store all relevant info for saving
-                    all_channel_data[channel] = {
+                    all_channel_data[channel_harm] = {
                         **proc_channel_data,
                         "ch_name": channel_harm,
                         "file_output_path": file_output_path,
@@ -270,15 +266,18 @@ class DatasetProcessor:
             file_logger.error(f"Error processing file {Path(psg_fname).name}: {str(e)}", exc_info=True)
             raise  # Re-raise after logging        
         finally:
+
             # Flush buffered logs to console and file(s), even if an exception occurred
             if self.config.output_format == "npz":
+                if log_paths == {}:
+                    # Error happened before log paths could be set up, flush to console for this case
+                    buffer_handler.flush_to_console()
                 # For npz, flush to each channel's log file with channel filtering
                 for channel, log_path in log_paths.items():
                     buffer_handler.flush_to_console_and_file(log_path, channel=channel)
-            elif self.config.output_format in ["edf", "hdf5"] and log_paths:
+            elif self.config.output_format in ["edf", "hdf5"]:
                 # For edf/hdf5, flush all channels' logs to single file
-                first_log_path = next(iter(log_paths.values()))
-                buffer_handler.flush_to_console_and_file(first_log_path)
+                buffer_handler.flush_to_console_and_file(log_path)
 
     def _process_channel(
         self,
@@ -483,7 +482,7 @@ class DatasetProcessor:
                 lights_on_epoch = int(lights_on_sec / self.config.epoch_duration)
 
                 if lights_on_epoch > len(signal_epoched):
-                    logger.warning(f"Lights On time {lights_on_sec} is after signal ends. No epoch selection applied.")
+                    logger.warning(f"Lights On time {lights_on} is after signal ends ({(channel_data["start_datetime"] + timedelta(seconds=signal_epoched.shape[0]*self.config.epoch_duration)).time()}). No epoch selection applied.")
                     # Maybe padding ?
                     # raise Exception
                 elif lights_on_epoch == len(signal_epoched):
@@ -547,43 +546,53 @@ class DatasetProcessor:
             return channel_harm
         else:
             return channel
-
-    def _setup_output(self, channel, psg_fname):
-        """Setup generic output parts shared across formats."""
-
+        
+    def _setup_file_output(self, psg_fname):
+        """ Setup output for edf and hdf5 output format where all channels of one file are stored together and share the same log file. """
         # Create output directory (including subfolders of original data structure if keep_folder_structure is True)
         if self.dataset.keep_folder_structure:
-            relative_path = os.path.split(
-                Path(psg_fname).relative_to(self.config.psg_dir)
-            )[0]
+            relative_path = os.path.split(Path(psg_fname).relative_to(self.config.psg_dir))[0]
         else:
             relative_path = ""
 
-        if self.config.output_format == "npz":
-            # Output is generated per channel and sorted into channel folders with corresponding log file
-            # replace slash in folder names to avoid nester output structure and colon because it is often not accepted in folder names
-            channel_clean = re.sub(r"[:/]", "_", channel)
-            output_dir = os.path.join(
-                self.config.output_dir,
-                relative_path,
-                channel_clean,
-            )
-            log_dir = output_dir
-            log_filename = channel_clean + ".log"
-
-        elif self.config.output_format in ["edf", "hdf5"]:
-            # Output is generated per PSG file containing all channels, log files are saved per PSG file separately
-            output_dir = os.path.join(
-                self.config.output_dir, relative_path
-            )
-            log_dir = os.path.join(output_dir, "log_files")
-            log_filename = f"{Path(psg_fname).stem}.log"
+        # Output is generated per PSG file containing all channels, log files are saved per PSG file separately
+        output_dir = os.path.join(self.config.output_dir, relative_path)
+        log_dir = os.path.join(output_dir, "log_files")
+        log_filename = f"{Path(psg_fname).stem}.log"
 
         # Generate output file name
         filename = f"{Path(psg_fname).stem}.{self.config.output_format}"
         file_output_path = os.path.join(output_dir, filename)
 
-        # Prepare log file path (will be written later after all channels processed)
+        # Prepare log file path (will be written after each file is processed)
+        log_file_path = os.path.join(log_dir, log_filename)
+
+        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(log_dir, exist_ok=True)
+
+        return file_output_path, log_file_path
+
+    def _setup_channel_output(self, channel, psg_fname):
+        """Setup output for npz output format where each channel is stored separately and has its own log file."""
+
+        # Create output directory (including subfolders of original data structure if keep_folder_structure is True)
+        if self.dataset.keep_folder_structure:
+            relative_path = os.path.split(Path(psg_fname).relative_to(self.config.psg_dir))[0]
+        else:
+            relative_path = ""
+
+        # Output is generated per channel and sorted into channel folders with corresponding log file
+        # replace slash in folder names to avoid nested output structure and colon because it is often not accepted in folder names
+        channel_clean = re.sub(r"[:/]", "_", channel)
+        output_dir = os.path.join(self.config.output_dir, relative_path, channel_clean)
+        log_dir = output_dir
+        log_filename = channel_clean + ".log"
+
+        # Generate output file name
+        filename = f"{Path(psg_fname).stem}.{self.config.output_format}"
+        file_output_path = os.path.join(output_dir, filename)
+
+        # Prepare log file path (will be written after each file is processed)
         log_file_path = os.path.join(log_dir, log_filename)
 
         os.makedirs(output_dir, exist_ok=True)
