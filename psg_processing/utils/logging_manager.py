@@ -39,6 +39,12 @@ class BufferedHandler(logging.Handler):
 
         sys.stdout.flush()
 
+    def flush_to_console(self):
+        for record in self.buffer:
+            if record.levelno >= logging._nameToLevel[self.console_level]:
+                sys.stdout.write(self.format(record) + "\n")
+        sys.stdout.flush()
+
     def clear(self, channel=None):
         if channel is None:
             self.buffer.clear()
