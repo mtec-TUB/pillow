@@ -371,7 +371,7 @@ class BaseDataset(ABC):
                 if advance_sec % epoch_duration != 0:
                     logger.info(f"Partial epoch detected at start, signal ({epoch_duration-advance_sec} sec) and labels (one epoch) will be shortened at the front to match")
                     labels = labels[1:]
-                    signal = signal[int((epoch_duration-advance_sec)*fs):]
+                    signal = signal[int((epoch_duration-(advance_sec-n_crop*epoch_duration))*fs):]
                     start_time_shift = epoch_duration - (advance_sec % epoch_duration) 
             elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_ANNOT.value:
                 logger.info(f"Signal started {advance_sec:.2f} sec after label start, signal will be padded with constant value:{np.float64(pad_values["signal"])} at the front to match")
