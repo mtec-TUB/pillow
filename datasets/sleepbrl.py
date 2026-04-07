@@ -70,6 +70,7 @@ class SLEEPBRL(BaseDataset):
         for i, event in enumerate(ann_stage_events[:-1]):
             ann_stage_events[i]['Duration'] = ann_stage_events[i+1]['Start'] - event['Start']
 
-        return ann_stage_events, None
+        lights_off, lights_on = None, None
+        return ann_stage_events, None, lights_off, lights_on
 
     
