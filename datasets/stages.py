@@ -2,8 +2,8 @@
 STAGES - Stanford Technology Analytics and Genomics in Sleep
 """
 import os
+import re
 import pandas as pd
-import pyedflib
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, date
 from datasets.base import BaseDataset
@@ -240,15 +240,20 @@ class STAGES(BaseDataset):
         """
 
         ann_stage_events = []
-        ann_df = pd.read_csv(ann_fname,header = 0, sep=',',on_bad_lines='skip', index_col=False)
+        ann_df = pd.read_csv(ann_fname,header = 0, sep=',', usecols=[0,1,2],engine="python", index_col=False)
         ann_Startdatetime = None
-
+        lights_off, lights_on = [], []
         ann_stage_events = []
+
         for i,row in ann_df.iterrows():
             if not pd.notna(row['Event']):
                 continue
             event = row['Event'].strip()
-            if event in self.ann2label:
+            if re.search(r'(?:LightsOff|Lights Off|Lights Out|L/O|LO)(?=\s|$)', event):
+                lights_off.append(datetime.combine(date(1985,1,1),datetime.strptime(row['Start Time'],"%H:%M:%S").time()))
+            elif re.search(r'(?:LightsOn|L/On|Lights On|scoring note: moved L/on)(?=\s|$)', event):
+                lights_on.append(datetime.combine(date(1985,1,1),datetime.strptime(row['Start Time'],"%H:%M:%S").time()))
+            elif event in self.ann2label:
                 start = datetime.combine(date(1985,1,1),datetime.strptime(row['Start Time'],"%H:%M:%S").time())
 
                 if ann_Startdatetime == None:
@@ -260,27 +265,79 @@ class STAGES(BaseDataset):
                 # In some subfolder are some epochs with duration of 0 that do not fit into the timeline -> exclude them
                 if any(subfolder in os.path.basename(ann_fname) for subfolder in ['GSLH', 'GSSW', 'MSQW','MSTR']) and len(ann_stage_events) > 0:
                     if duration == 0 and start != (ann_stage_events[-1]['Start'] + ann_stage_events[-1]['Duration']):
-                        print(row)
                         continue
                 
-                # In MSTR some epochs missing -> fill with unknown
-                if 'MSTR' in ann_fname and len(ann_stage_events) > 0:
+                # In MSTR and MSNF some epochs missing -> fill with unknown
+                if ('MSTR' in ann_fname or 'MSNF' in ann_fname) and len(ann_stage_events) > 0:
                     if start != (ann_stage_events[-1]['Start'] + ann_stage_events[-1]['Duration']):
                         ann_stage_events.append({'Stage':'UnknownStage','Start':ann_stage_events[-1]['Start'] + ann_stage_events[-1]['Duration'],'Duration':start - (ann_stage_events[-1]['Start'] + ann_stage_events[-1]['Duration'])})
+
+                if 'STLK' in ann_fname and len(ann_stage_events) > 0:
+                    if start != (ann_stage_events[-1]['Start'] + ann_stage_events[-1]['Duration']):
+                        # this epoch is an event marker and not actual a sleep stage
+                        continue
 
                 ann_stage_events.append({'Stage': event,
                                         'Start': start,
                                         'Duration': duration})
                 
+
         # In some subfolders/files the duration column is empty for all sleep stages -> calc manually
         if any(part in os.path.basename(ann_fname) for part in ['BOGN', 'STNF00191', 'STNF00233','STNF00261']):
             for i, event in enumerate(ann_stage_events[:-1]):
-                # in STNF all REM epochs have a duration of 2592000 -> modify to real duration
+                # in the given STNF files all REM epochs have a duration of 2592000 -> modify to real duration
                 if ann_stage_events[i]['Duration'] == 0 or ann_stage_events[i]['Duration'] == 2592000:
                     ann_stage_events[i]['Duration'] = ann_stage_events[i+1]['Start'] - event['Start']
+        if 'MSQW00039' in ann_fname:
+            # Duration is not matching all epoch start times in the annotation file -> calc manually for all epochs
+            for i, event in enumerate(ann_stage_events[:-1]):
+                ann_stage_events[i]['Duration'] = ann_stage_events[i+1]['Start'] - event['Start']
 
+        # Do not check for Lights off/on if no sleep stages were found
+        if len(ann_stage_events) == 0:
+            return ann_stage_events, ann_Startdatetime, None, None
 
-        return ann_stage_events, ann_Startdatetime
+        if len(lights_off) == 1:
+            lights_off = lights_off[0]    # standard case: exactly one lights Off event in annotation file
+        elif len(lights_off) == 0:
+            if 'MSQW00152' in ann_fname:
+                lights_off = lights_on[0]  # only one lights On event in annotation file but it is actually a lights Off event
+                lights_on = []
+            else:
+                lights_off = None
+        elif len(lights_off) > 1:
+            if len(lights_off) >= 4:    # multiple naps in one file
+                lights_off = lights_off[0]
+            elif lights_off[0] == lights_off[1]:
+                lights_off = lights_off[0]
+            elif any(name in ann_fname for name in ["GSDV00160", "MSQW00075", 'STLK00093','STLK00027','STLK00108','STLK00064']):
+                lights_off = lights_off[0]  # manually checked these files and first lights Off event seems to be the correct one
+            elif any(name in ann_fname for name in ["MSQW00102", "MSQW00024", 'MSQW00071', 'MSTR00163','MSTR00003']):
+                lights_off = lights_off[1]  # manually checked these files and second lights Off event seems to be the correct one
+            elif any(name in ann_fname for name in ['MSMI00059', 'MSQW00092', 'MSQW00057','MSTR00282','MSTR00139','MSTR00160']):
+                lights_on.append(lights_off[1])  # second lights Off event is actually a lights On event
+                lights_off = lights_off[0]
+            else:
+                raise Exception(f"Multiple lights Off events found in annotation file {ann_fname}")
+
+        if len(lights_on) == 1:
+            lights_on = lights_on[0]    # standard case: exactly one lights On event in annotation file
+        elif len(lights_on) == 0:
+            lights_on = None
+        elif len(lights_on) > 1:    
+            if len(lights_on) >= 4:    # multiple naps in one file
+                lights_on = lights_on[-1]
+            elif lights_on[0] == lights_on[1]:
+                lights_on = lights_on[0]
+            elif any(name in ann_fname for name in ['GSDV00173_1', 'GSSW00071_2', 'MSMI00056', 'MSMI00043','MSQW00117']):   
+                lights_off = lights_on[0]    # first lights On event is actually a lights Off event
+                lights_on = lights_on[1]
+            elif any(name in ann_fname for name in ["GSSW00077_3", 'MSTR00022','MSTR00037','MSTR00066','STLK00165','STLK00085','STLK00031','STNF00050_1']):
+                lights_on = lights_on[0]    # manually checked these files and first lights On event seems to be the correct one
+            else:
+                raise Exception(f"Multiple lights On events found in annotation file {ann_fname}")
+
+        return ann_stage_events, ann_Startdatetime, lights_off, lights_on
     
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
 
