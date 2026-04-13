@@ -38,11 +38,6 @@ class DatasetProcessor:
         self.dataset = dataset
         self.config = config
 
-    # Final sleep stage labels mapping (did not yet find a better place for this, maybe in config?)
-    # labels will appear like this in output 
-    STAGE_DICT = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "MOVE": 5, "UNK": 6}
-    SLEEP_STAGES = [STAGE_DICT["N1"],STAGE_DICT["N2"],STAGE_DICT["N3"],STAGE_DICT["REM"]]
-
     def process_files(self):
 
         try:
@@ -102,7 +97,9 @@ class DatasetProcessor:
                             else:
                                 ann_fname = None
 
-                            future = executor.submit(self._process_file, psg_fname, ann_fname)
+                            file_processor = FileProcessor(self.config, self.dataset)
+
+                            future = executor.submit(file_processor._process_file, psg_fname, ann_fname)
                             tasks.append(future)
                             
                         # Get notified when at least one file is finished and resume this one
@@ -158,6 +155,20 @@ class DatasetProcessor:
             #         f"{Path(psg_fname).relative_to(self.config.psg_dir)}. Skipping file."
             #     )
         return annotation_map
+
+
+class FileProcessor:
+    """Class to process a single PSG file with one or multiple channels and save the processed data to file."""
+
+    def __init__(self, config, dataset):
+        self.logging_manager = LoggingManager(console_level=config.logging_level)
+        self.config = config
+        self.dataset = dataset
+
+    # Final sleep stage labels mapping (did not yet find a better place for this, maybe in config?)
+    # labels will appear like this in output 
+    STAGE_DICT = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "MOVE": 5, "UNK": 6}
+    SLEEP_STAGES = [STAGE_DICT["N1"],STAGE_DICT["N2"],STAGE_DICT["N3"],STAGE_DICT["REM"]]
 
     def _process_file(self, psg_fname, ann_fname):
         """Process a single PSG file for all specified channels."""
@@ -234,7 +245,6 @@ class DatasetProcessor:
                     log_paths[channel] = log_path
 
                 # all_channel_data["file_output_path"] = file_output_path
-
                 # if os.path.exists(file_output_path):
                 #     raise FileExistsError(f"Output file already exists: {file_output_path}.")
                 # np.savetxt(file_output_path, [])
@@ -406,9 +416,9 @@ class DatasetProcessor:
             lights_off = channel_data["lights_off"]
             if isinstance(lights_off, (datetime,time)):
                 if isinstance(lights_off, time):
-                    lights_off_sec = (datetime.combine(channel_data["start_datetime"].date(),lights_off) - channel_data["start_datetime"]).total_seconds()
-                else:
-                    lights_off_sec = (lights_off - channel_data["start_datetime"]).total_seconds()
+                    lights_off = datetime.combine(channel_data["start_datetime"].date(),lights_off)
+
+                lights_off_sec = (lights_off - channel_data["start_datetime"]).total_seconds()
 
                 if lights_off_sec != 0:
                     if lights_off_sec < 0 and lights_off_sec > -3600:       # Between -3600 and 0, before signal start but in 1 hour range
@@ -458,10 +468,10 @@ class DatasetProcessor:
             lights_on = channel_data["lights_on"]
             if isinstance(lights_on, (datetime,time)):
                 if isinstance(lights_on, time):
-                    # seconds from recording start until lights On
-                    lights_on_sec = (datetime.combine(channel_data["start_datetime"].date(), lights_on)- channel_data["start_datetime"]).total_seconds()
-                else:
-                    lights_on_sec = (lights_on - channel_data["start_datetime"]).total_seconds()
+                    lights_on = datetime.combine(channel_data["start_datetime"].date(),lights_on)
+                
+                # seconds from recording start until lights On
+                lights_on_sec = (lights_on - channel_data["start_datetime"]).total_seconds()
 
                 if lights_on_sec < 0:
                     # logger.warning(f"Lights On time {lights_on} is before signal start time {channel_data['start_datetime'].time()}. Assuming Lights On is after midnight and adding 24h to lights On time for epoch selection.")
@@ -541,7 +551,6 @@ class DatasetProcessor:
         else:
             round_marker_sec = marker_sec
         return round_marker_sec
-
 
     def _harmonize_channel_name(self, logger, channel):
         """Harmonize channel name based on dataset-specific mapping."""
@@ -825,4 +834,3 @@ class DatasetProcessor:
                     elif labels.ndim == 2:
                         h5f.create_dataset("y", data=labels[:, 0], compression="gzip")
                         h5f.create_dataset("y2", data=labels[:, 1], compression="gzip")
-
