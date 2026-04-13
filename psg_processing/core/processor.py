@@ -220,7 +220,7 @@ class DatasetProcessor:
                 & set(self.dataset.get_channels(file_logger, psg_fname))
             )
             if len(channels)==0:
-                file_logger.info("No selected channels found in this file. Skipping.")
+                file_logger.warning(f"No selected channels found in this file ({os.path.basename(psg_fname)}). Skipping.")
                 return 
 
             # Process each channel, then save after all channels are processed
@@ -345,17 +345,15 @@ class DatasetProcessor:
         # Reshape into epochs
         n_epoch_samples = self.config.epoch_duration * fs
         if not n_epoch_samples.is_integer():
-            raise ValueError(
-                f"Epoch duration {self.config.epoch_duration} sec with sampling rate {fs} Hz "
-                "does not yield an integer number of samples per epoch."
-            )
+            raise ValueError(f"Epoch duration {self.config.epoch_duration} sec with sampling rate {fs} Hz "
+                              "does not yield an integer number of samples per epoch.")
         n_epoch_samples = int(n_epoch_samples)
 
         # Check signal length (at least one epoch required)
         n_epochs, remainder = divmod(len(signal), n_epoch_samples)
         if n_epochs < 1:
             logger.warning(
-                f"Channel does not hold at least one epoch, only {len(signal)} samples"
+                f"{os.path.basename(channel_data['psg_fname'])}: Channel {channel_data['ch_name_orig']} does not hold at least one epoch, only {len(signal)} samples"
             )
             return None
 
@@ -435,12 +433,12 @@ class DatasetProcessor:
                 lights_off_sec = lights_off - channel_data["start_time_shift"]
                 if lights_off_sec != 0:
                     if lights_off_sec < 0 and lights_off_sec > -3600:   # Lights Off probably starts before PSG Data (1 hour range before signal start)
-                        logger.warning(f"Lights Off time {lights_off_sec} is before signal start time {channel_data['start_datetime'].time()}. No epoch selection applied.")
+                        logger.warning(f"{os.path.basename(psg_fname)}: Lights Off time {lights_off_sec} is before signal start time {channel_data['start_datetime'].time()}. No epoch selection applied.")
                         # front_padding = 
                         # maybe padding with wake epochs until lights Off time is reached? For now, just keep all epochs and do not select based on lights Off time if it is before signal start time
                     else:
                         if lights_off_sec < 0:
-                            raise Exception(f"Lights Off time ({lights_off_sec}) is more than 1 hour before signal start ({channel_data['start_datetime'].time()})")
+                            raise Exception(f"{os.path.basename(psg_fname)}: Lights Off time ({lights_off_sec}) is more than 1 hour before signal start ({channel_data['start_datetime'].time()})")
                     
                         lights_off_sec = self._epoch_helper(logger, "lights_off", lights_off_sec, lights_off_sec, self.config.epoch_duration)
                         
@@ -452,9 +450,9 @@ class DatasetProcessor:
                 else:
                     logger.info("Lights Off time is at the start of the signal, no need of epoch selection based on lights Off time.")
             else:
-                raise Exception(f"Lights Off time has unsupported format: {lights_off}.")
+                raise Exception(f"{os.path.basename(psg_fname)}: Lights Off time has unsupported format: {lights_off}.")
         else:
-            logger.warning("Lights Off time not available, keeping all wake epochs at start.")
+            logger.warning(f"{os.path.basename(psg_fname)}: Lights Off time not available, keeping all wake epochs at start.")
 
         if channel_data["lights_on"] is not None:
             lights_on = channel_data["lights_on"]
@@ -469,13 +467,14 @@ class DatasetProcessor:
                     # logger.warning(f"Lights On time {lights_on} is before signal start time {channel_data['start_datetime'].time()}. Assuming Lights On is after midnight and adding 24h to lights On time for epoch selection.")
                     # add 24h if lights On is after midnight (and signal start before midnight)
                     lights_on_sec += 24 * 3600
+                    logger.info(f"Lights On time {lights_on.time()} is before signal start time {channel_data['start_datetime'].time()}. Assuming Lights On is after midnight and adding 24h to lights On time for epoch selection.")
 
                 lights_on_sec = self._epoch_helper(logger, "lights_on", lights_on_sec, lights_on.time(), self.config.epoch_duration)
 
                 lights_on_epoch = int(lights_on_sec / self.config.epoch_duration)
 
-                if lights_on_epoch > len(signal_epoched):
-                    logger.warning(f"Lights On time {lights_on.time()} is after signal ends ({(channel_data["start_datetime"] + timedelta(seconds=signal_epoched.shape[0]*self.config.epoch_duration)).time()}). No epoch selection applied.")
+                if lights_on_epoch > len(signal_epoched) + 1:
+                    logger.warning(f"{os.path.basename(psg_fname)}: Lights On time {lights_on.time()} is after signal ends ({(channel_data["start_datetime"] + timedelta(seconds=signal_epoched.shape[0]*self.config.epoch_duration)).time()}). No epoch selection applied.")
                     # Maybe padding ?
                     # raise Exception
                 elif lights_on_epoch == len(signal_epoched):
@@ -493,7 +492,7 @@ class DatasetProcessor:
                         logger.info("Lights On time is at the end of the signal, no need of epoch selection based on lights On time.")
                         pass
                     else:   # Lights On probably starts after PSG Data ends
-                        logger.warning(f"Lights On time {lights_on_sec} is after signal ends. No epoch selection applied.")
+                        logger.warning(f"{os.path.basename(psg_fname)}: Lights On time {lights_on_sec} is after signal ends. No epoch selection applied.")
                         raise Exception
                         # maybe padding with wake epochs until lights On time is reached? For now, just keep all epochs and do not select based on lights On time if it is after signal end time
                 else:
@@ -503,9 +502,9 @@ class DatasetProcessor:
                     selection_mask[lights_on_epoch:] = False
                     logger.info(f"Selected only epochs before lights On at {lights_on_sec}sec (epoch {lights_on_epoch})")
             else:
-                raise Exception(f"Lights On time has unsupported format: {lights_on}.")
+                raise Exception(f"{os.path.basename(psg_fname)}: Lights On time has unsupported format: {lights_on}.")
         else:
-            logger.warning("Lights On time not available.")
+            logger.warning(f"{os.path.basename(psg_fname)}: Lights On time not available.")
             if self.config.use_annot and self.config.truncate_non_sleep_end:
                 if labels is not None:
                     sleep_mask = np.isin(labels, self.SLEEP_STAGES)
@@ -518,10 +517,10 @@ class DatasetProcessor:
 
         signal_epoched = signal_epoched[selection_mask]
         if signal_epoched.shape[0] == 0:
-            logger.warning(f"No epochs left after selection based on lights Off/On time. \
-                             \n Lights Off: {lights_off}, Lights On: {lights_on}, \
-                             \n Signal Starttime: {channel_data["start_datetime"]}, \
-                             \n Signal Endtime: {channel_data["start_datetime"] + timedelta(seconds=selection_mask.shape[0]*self.config.epoch_duration)}. \
+            logger.warning(f"{os.path.basename(psg_fname)}: No epochs left after selection based on lights Off/On time. \
+                             \n Lights Off: {lights_off.time() if isinstance(lights_off, datetime) else lights_off}, Lights On: {lights_on.time() if isinstance(lights_on, datetime) else lights_on}, \
+                             \n Signal Starttime: {channel_data["start_datetime"].time()}, \
+                             \n Signal Endtime: {(channel_data["start_datetime"] + timedelta(seconds=selection_mask.shape[0]*self.config.epoch_duration)).time()}. \
                             \n Skipping file.")
         if labels is not None:
             labels = labels[selection_mask]
@@ -535,10 +534,10 @@ class DatasetProcessor:
         if marker_sec % epoch_duration != 0:              
             if marker == "lights_off":
                 round_marker_sec = floor(marker_sec / epoch_duration) * epoch_duration
-                logger.info(f"Lights Off time {marker_time} is not exactly at the start of an epoch. Keep data from {round_marker_sec} (epoch {int(round_marker_sec / epoch_duration)}) on to avoid cutting epochs.")
+                logger.info(f"Lights Off time {marker_time} is not exactly at the start of an epoch. Keep data from {round_marker_sec}sec (epoch {int(round_marker_sec / epoch_duration)}) on to avoid cutting epochs.")
             elif marker == "lights_on":
                 round_marker_sec = ceil(marker_sec / epoch_duration) * epoch_duration
-                logger.info(f"Lights On time {marker_time} is not exactly at the end of an epoch. Keep data until {round_marker_sec} (epoch {int(round_marker_sec / epoch_duration)}) to avoid cutting epochs.")
+                logger.info(f"Lights On time {marker_time} is not exactly at the end of an epoch. Keep data until {round_marker_sec}sec (epoch {int(round_marker_sec / epoch_duration)}) to avoid cutting epochs.")
         else:
             round_marker_sec = marker_sec
         return round_marker_sec
@@ -646,9 +645,9 @@ class DatasetProcessor:
                 if start_time_shift:
                     logger.info(f"Applied start time shift of {start_time_shift} seconds to align signal with annotation start time.")
                     # raise Exception
-                if isinstance(signal_start_datetime, datetime):
-                    new_startdatetime = signal_start_datetime + timedelta(seconds=start_time_shift)
-                    logger.info(f"Adjusted start datetime after alignment: {new_startdatetime}")
+                    if isinstance(signal_start_datetime, datetime):
+                        new_startdatetime = signal_start_datetime + timedelta(seconds=start_time_shift)
+                        logger.info(f"Adjusted start datetime after alignment: {new_startdatetime}")
         return new_startdatetime, start_time_shift, signal, labels
 
     def _clean_signal(self, logger, signal_epoched, labels):
