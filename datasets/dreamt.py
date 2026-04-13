@@ -43,7 +43,7 @@ class DREAMT(BaseDataset):
             'ACC_Y': '1/64g',
             'ACC_Z': '1/64g',
             'TEMP': '°C',
-            'EDA': 'uS',
+            'EDA': 'us',
             'HR': 'bpm'
         }
 
@@ -61,6 +61,26 @@ class DREAMT(BaseDataset):
         self.channel_names = ['C4-M1', 'F4-M1', 'O2-M1', 'Fp1-O2', 'T3 - CZ', 'CZ - T4', 'CHIN', 'E1', 'E2', 'ECG', 'LAT', 'RAT', 'SNORE', 'PTAF', 'FLOW', 
                               'THORAX', 'ABDOMEN', 'SAO2', 'BVP', 'ACC_X', 'ACC_Y', 'ACC_Z', 'TEMP', 'EDA', 'HR', 'IBI']
         
+        self.inter_dataset_mapping = {
+            "C4-M1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
+            "F4-M1": self.Mapping(self.TTRef.F4, self.TTRef.LPA),
+            "O2-M1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
+            "Fp1-O2": self.Mapping(self.TTRef.Fp1, self.TTRef.O2),
+            "T3 - CZ": self.Mapping(self.TTRef.T7, self.TTRef.Cz),
+            "CZ - T4": self.Mapping(self.TTRef.Cz, self.TTRef.T8),
+            "CHIN": self.Mapping(self.TTRef.EMG_CHIN, None),
+            "E1": self.Mapping(self.TTRef.EL, None),
+            "E2": self.Mapping(self.TTRef.ER, None),
+            "ECG": self.Mapping(self.TTRef.ECG, None),
+            "LAT": self.Mapping(self.TTRef.EMG_LLEG, None),
+            "RAT": self.Mapping(self.TTRef.EMG_RLEG, None),
+            "SNORE": self.Mapping(self.TTRef.SNORE, None),
+            "THORAX": self.Mapping(self.TTRef.THORACIC, None),
+            "ABDOMEN": self.Mapping(self.TTRef.ABDOMINAL, None),
+            "SAO2": self.Mapping(self.TTRef.SPO2, None),
+            "HR": self.Mapping(self.TTRef.HR, None),
+            "FLOW": self.Mapping(self.TTRef.FLOW, None),
+        }
         
         self.channel_types = {'analog': ['C4-M1', 'F4-M1', 'O2-M1', 'Fp1-O2', 'T3 - CZ', 'CZ - T4', 'CHIN', 'E1', 'E2', 'ECG', 'LAT', 'RAT', 'SNORE', 
                                          'PTAF', 'FLOW', 'THORAX', 'ABDOMEN', 'SAO2', 'BVP', 'ACC_X', 'ACC_Y', 'ACC_Z', 'TEMP', 'EDA', 'HR'], 
