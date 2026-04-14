@@ -58,6 +58,25 @@ class EEGLABHandler:
         except Exception as e:
             logger.error(f"Error reading signal from {filepath}: {e}")
             return None
+        
+    def get_start_datetime(self, logger, filepath):
+        """Get start datetime of file."""
+        try:
+            raw_data = mne.io.read_raw_eeglab(filepath, verbose='WARNING', preload=True)
+            info = raw_data.info
+
+        except TypeError as e:
+            raw_epoched_data = mne.io.read_epochs_eeglab(filepath, verbose="WARNING")
+            info = raw_epoched_data.info
+        except RuntimeError as e:
+            logger.error(f"Runtime error during data retrieval from {filepath}: {e}")
+            return {}  # probably because the file is empty or corrupted, return empty dict to skip this channel
+        except Exception as e:
+            logger.error(f"Error during data retrieval {filepath}: {e}")
+            raise
+
+        start_datetime = info["meas_date"]
+        return start_datetime
 
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for specific channel."""
@@ -99,13 +118,11 @@ class EEGLABHandler:
 
         sampling_rate = info["sfreq"]
         file_duration = samples / sampling_rate
-        start_datetime = info["meas_date"]
         unit = info['chs'][info['ch_names'].index(channel)]['unit']
         unit = mne._fiff.meas_info._unit2human[unit]
         return {
             "signal": signal,
             "sampling_rate": sampling_rate,
             "unit": unit,
-            "start_datetime": start_datetime,
             "file_duration": file_duration,
         }

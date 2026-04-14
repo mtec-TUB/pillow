@@ -46,6 +46,10 @@ class BaseDataset(ABC):
         """Read signal data for a specific channel."""
         return self._file_handler.read_signal(logger, filepath, channel)
     
+    def get_start_datetime(self, logger, filepath):
+        """Get start datetime of file."""
+        return self._file_handler.get_start_datetime(logger, filepath)
+    
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for processing."""
         return self._file_handler.get_signal_data(logger, filepath, channel)

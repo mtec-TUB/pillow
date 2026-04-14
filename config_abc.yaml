@@ -1,0 +1,114 @@
+# Sleep Dataset Processing Configuration
+# This configuration file contains all parameters for the dataset processing pipeline.
+# Edit these values according to your needs.
+
+# Dataset to process (required)
+# Available options: ABC, BESTAIR, CAP, DOD-H, MESA, WSC and many more
+# Execute "python3 process_dataset.py --help" to get a full up-to-date list
+dataset: ABC
+
+# Base directory where your sleep datasets are stored
+base_data_dir:  /media/linda/Elements/sleep_data  #  /run/user/1004/gvfs/smb-share:server=nus.local,share=db/db/physio/sleep/ # 
+
+# Specific data directory (null = use automatic path from dataset definition and base_data_dir)
+data_dir: null #/media/linda/Elements/sleep_data/HEARTBEAT/polysomnography_repaired/edfs
+
+# Specific output directory (null = use automatic path under base_data_dir)
+output_dir: /home/linda/Downloads/Alias_tests
+
+# Output file format
+# Options:
+# - npz: numpy compressed, saves a dictionary per channel per file with keys x, y, fs, ch_label, ch_label_orig, file_duration, epoch_duration, n_epochs
+# - edf: European Data Format, saves signal and annotation in one EDF file per recording with annotations inside the annotation channel
+# - hdf5: Hierarchical Data Format,saves signal, annotations and metadata in one HDF5 file per recording, with datasets for each channel and annotations, and metadata as attributes
+output_format: edf
+
+# Overwrite existing output files
+# if false, files that exist already in the output directory will be skipped
+overwrite: false
+
+# Logging level for console output (file logs will always include INFO level)
+# Options: CRITICAL, ERROR, WARNING, INFO, DEBUG
+logging_level: WARNING
+
+# Action to perform
+# Options: process, get_channel_names, get_channel_types
+action: process
+
+# Number of workers in parallel processing (default: null, take all kernels)
+num_workers: 1
+
+# Resample frequency in Hz (null = keep original sampling rate)
+resample: null
+
+# Apply filtering after resampling
+filter: false
+
+# Filter frequencies to use when 'filter'=true for different signal groups (default: AASM guidelines)
+# Filter format: [low_cutoff, high_cutoff] (null = no cutoff)
+filter_freq:
+  eeg_eog: [0.3, 35]  # EEG and EOG channels: 0.3-35 Hz (band-pass)
+  emg: [10, null]  # EMG channels: 10+ Hz (high-pass)
+  ecg: [0.3, null]  # ECG channels: 0.3+ Hz (high-pass)
+  thoraco_abdo_resp: [0.1, 15]  # Thoraco_abdo_resp signals: 0.1-15 Hz (band-pass)
+  nasal_pressure: [0.03, null]  # Nasal pressure: 0.03+ Hz (high-pass)
+  snoring: [10, null]  # Snoring: 10+ Hz (high-pass)
+  default: [null, null]  # Default for all channels that do not belong to above groups: no filtering
+  
+# List of specific channel names to process (empty list = process all channels)
+# Example: ["C3", "C4", "EOG-L", "EOG-R", "EMG", "ECG"]
+channels: []
+
+# Map channel names to standards names if possible (true = map names, false = use original names)
+map_channel_names: true
+
+# Epoch duration in seconds
+# Options: 1, 2, 3, 5, 6, 10, 15, 30
+epoch_duration: 30
+
+# Use annotations
+# 'false' can be used if only signals are needed, e.g.,for unsupervised tasks -> save storage space
+# if 'true', but dataset contains PSG file without corresponding annotataion file, these PSG files will be skipped
+use_annot: true
+
+# How to align signal and annotation lengths (if 'use_annot' is true)
+# Most datasets already have aligned signals and annotations, these options are for edge cases
+# If labels do not matter for your application and you want to keep the signals as original as possible, use "match_signal" (they will only be cropped to full epochs)
+# Use in combination with parameter pad_values
+# Options: "match_shorter", "match_longer", "match_signal", "match_annot"
+# - match shorter one (crop the longer one at front and/or end), guarantees no padding
+# - match longer one (pad signal with VALUE to match longer annotations, and/or pad annotations with VALUE to match longer signal)
+# - match signal length (crop or pad annotation with VALUE if needed but never change signal)
+# - match annot length (crop or pad signal with VALUE if needed but never change annotation)
+alignment: match_signal
+
+# Padding values for signal and labels when using alignment options that require padding
+# default signal padding 'null' will use np.nan (if you choose EDF as file output, NaN will be converted to the physical minimum)
+# pad value for labels must be an integer (already in use: {0:"Wach", 1:"N1", 2:"N2", 3:"N3", 4:"REM", 5:"MOVE", 6:"Unknown"}), recommended to choose -1 or 6 (Unknown)
+pad_values: 
+  signal: null
+  label: -1
+
+# Remove Movement epochs during processing (only if 'use_annot' is true)
+rm_move: false
+
+# Remove Unknown epochs during processing (only if 'use_annot' is true)
+rm_unk: false
+
+# Selection of epochs based on Annotation (only if 'use_annot' is true)
+# Used to remove extensive wake periods at the start and end of recordings while keeping some wake epochs for context (e.g., for sleep onset detection)
+# Options
+# - all: to keep all available epochs
+# - lights: to keep only epochs in between Lights off and on markers if available in this dataset
+#   - set alignment to "match_longer" for best results
+# - integer number: to determine how many epochs of WAKE to keep at start and end (e.g., 60 to keep 30 minutes with epoch duration of 30s)
+select_epochs: lights
+
+# Truncate Non-Sleep epochs at end of recording if no Lights on marker is available (only if 'use_annot' is true and 'select_epochs' is set to "lights")
+# If true, all epochs after the last sleep epoch will be removed if no 'lights on' marker is available, otherwise these epochs will be kept
+truncate_non_sleep_end: true
+
+# Minimum required sleep epochs (N1, N2, N3, REM) (only if 'use_annot' is true)
+# Recordings with fewer sleep epochs will be discarded
+# Default is 0 to include all files
+min_sleep_epochs: 0

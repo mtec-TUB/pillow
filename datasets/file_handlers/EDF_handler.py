@@ -89,13 +89,35 @@ class EDFHandler:
                 )
         return None     # channel was not found in this file
         
+    def get_start_datetime(self, logger, filepath):
+        """Get start datetime of file."""
+        try:
+            with pyedflib.EdfReader(filepath) as psg_f:
+                start_datetime = psg_f.getStartdatetime()
+
+        except KeyboardInterrupt:
+            # Always re-raise KeyboardInterrupt
+            raise
+        except:
+            try:
+                raw = mne.io.read_raw_edf(filepath, preload=False, verbose='WARNING')                
+                start_datetime = raw.info['meas_date']
+
+            except KeyboardInterrupt:
+                # Always re-raise KeyboardInterrupt
+                raise
+            except Exception as e:
+                logger.error(f"Error during data retrieval {filepath}: {e}")
+                logger.error("Maybe the repair_edfs.py script or EDF Browser header repairer can help.")
+                raise
+
+        return start_datetime
 
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for specific channel."""
         try:
             with pyedflib.EdfReader(filepath) as psg_f:
 
-                start_datetime = psg_f.getStartdatetime()
                 file_duration = psg_f.getFileDuration()
 
                 ch_names = psg_f.getSignalLabels()
@@ -121,7 +143,6 @@ class EDFHandler:
                             logger.warning(str(w[0].message))
                 
                 signal = raw.get_data(picks=channel)[0]
-                start_datetime = raw.info['meas_date']
                 sampling_rate = raw.info['sfreq']
                 file_duration = raw.n_times / sampling_rate
                 unit = raw.info['chs'][0]['unit']
@@ -132,15 +153,12 @@ class EDFHandler:
                 raise
             except Exception as e:
                 logger.error(f"Error during data retrieval {filepath}: {e}")
-                logger.error(
-                    "Maybe the repair_edfs.py script or EDF Browser header repairer can help."
-                )
+                logger.error("Maybe the repair_edfs.py script or EDF Browser header repairer can help.")
                 raise
 
         return {
             "signal": signal,
             "sampling_rate": sampling_rate,
             "unit": unit,
-            "start_datetime": start_datetime,
             "file_duration": file_duration,
         }
