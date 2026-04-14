@@ -1,6 +1,6 @@
 import os
-from typing import Dict, List, Tuple
-from datetime import datetime
+from typing import Dict, List, Optional, Tuple
+from datetime import _Time, datetime
 import pandas as pd
 
 from datasets.base import BaseDataset
@@ -21,7 +21,7 @@ class APPLES(BaseDataset):
                         'N3': 3,
                         'R': 4,
                         '?': 6,
-                        'L': 6,
+                        'L': 6, # treat epochs with L as unknown
                     }
         
         self.inter_dataset_mapping = {
@@ -69,20 +69,24 @@ class APPLES(BaseDataset):
             "polysomnography"
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str)-> tuple[list, datetime, _Time, _Time]:
         """
         Parse APPLES annotation files.
         """
         ann_stage_events = []
         
         # Handle specific problematic file
-        if os.path.basename(ann_fname) == 'apples-170408.annot':
-            return ann_stage_events, None
+        # if os.path.basename(ann_fname) == 'apples-170408.annot':
+        #     return ann_stage_events, None
         
         ann_df = pd.read_csv(ann_fname,header = 0, sep='\t')
+        ann_df = ann_df[ann_df['class'].isin(self.ann2label.keys())].reset_index(drop=True)
+
+        lights_off = datetime.strptime(ann_df.loc[ann_df['class'] != 'L','start'].values[0], '%H:%M:%S').time() # first non-L event is lights off
+        lights_on = datetime.strptime(ann_df.loc[ann_df['class'] != 'L','stop'].values[-1], '%H:%M:%S').time()  # last non-L event is lights on
             
         ann_startdatetime = None
-        
+
         for i, row in ann_df.iterrows():
             event = row['class']
             if event in self.ann2label:
@@ -99,5 +103,7 @@ class APPLES(BaseDataset):
                     'Start': start_sec,
                     'Duration': duration
                 })
+
+        ann_startdatetime = datetime.combine(datetime(1985,1,1), ann_startdatetime.time())
         
-        return ann_stage_events, ann_startdatetime
+        return ann_stage_events, ann_startdatetime, lights_off, lights_on

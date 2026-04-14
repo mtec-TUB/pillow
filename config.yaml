@@ -98,10 +98,18 @@ rm_move: false
 # Remove Unknown epochs during processing (only if 'use_annot' is true)
 rm_unk: false
 
-# Number of wake epochs to keep at start and end (only if 'use_annot' is true)
+# Selection of epochs based on Annotation (only if 'use_annot' is true)
 # Used to remove extensive wake periods at the start and end of recordings while keeping some wake epochs for context (e.g., for sleep onset detection)
-# Can be "all" or an integer number (e.g., 60 to keep 30 minutes with epoch duration of 30s)
-n_wake_epochs: "all"
+# Options
+# - "all" to keep all available epochs
+# - "lights" to keep only epochs in between Lights off and on markers if available in this dataset
+#   - set alignment to "match_longer" for best results
+# - integer number to determine how many epochs of WAKE to keep at start and end (e.g., 60 to keep 30 minutes with epoch duration of 30s)
+select_epochs: "lights"
+
+# Truncate Non-Sleep epochs at end of recording if no Lights on marker is available (only if 'use_annot' is true and 'select_epochs' is set to "lights")
+# If true, all epochs after the last sleep epoch will be removed if no 'lights on' marker is available, otherwise these epochs will be kept
+truncate_non_sleep_end: true
 
 # Minimum required sleep epochs (N1, N2, N3, REM) (only if 'use_annot' is true)
 # Recordings with fewer sleep epochs will be discarded

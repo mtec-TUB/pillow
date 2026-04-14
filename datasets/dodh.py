@@ -98,13 +98,13 @@ class DODH(BaseDataset):
             'ann_ext': '*.h5'  # Annotations are embedded in data H5 files
         }
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             '',
             ''
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         DOD-H doesn't use separate annotation files.
         Annotations are embedded in H5 files.
@@ -125,5 +125,5 @@ class DODH(BaseDataset):
                 }
                 ann_stage_events.append(ann)
 
-        return ann_stage_events, None
+        return ann_stage_events, None, None, None
     

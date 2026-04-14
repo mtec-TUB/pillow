@@ -43,10 +43,6 @@ class ProcessorConfig:
             kwargs.get("data_dir")
         )
 
-        # self.ann_dir: Optional[Path] = self._validate_path(
-        #     kwargs.get("ann_dir")
-        # )
-
         self.output_dir: Optional[Path] = self._validate_path(
             kwargs.get("output_dir")
         )
@@ -97,8 +93,10 @@ class ProcessorConfig:
 
         self.channels: List[str] = self._validate_channels(kwargs.get("channels"))
 
-        self.n_wake_epochs: Union[int, str] = \
-            self._validate_n_wake_epochs(kwargs.get("n_wake_epochs"))
+        self.select_epochs: Union[int, str] = \
+            self._validate_select_epochs(kwargs.get("select_epochs"))
+        
+        self.truncate_non_sleep_end: bool = self._validate_truncate_non_sleep_end(kwargs.get("truncate_non_sleep_end"),self.select_epochs)
 
         self.filter_freq: Dict[str, List[Optional[float]]] = \
             self._validate_filter_freq(kwargs.get("filter_freq"))
@@ -165,7 +163,7 @@ class ProcessorConfig:
             raise ConfigError(f"channels must be list of strings.")
         return value
 
-    def _validate_n_wake_epochs(self, value):
+    def _validate_select_epochs(self, value):
         if value == "all":
             return value
         if value == "lights":
@@ -173,8 +171,17 @@ class ProcessorConfig:
         if isinstance(value, int) and value >= 0:
             return value
         raise ConfigError(
-            "n_wake_epochs must be non-negative int or 'all' or 'lights'."
+            "select_epochs must be non-negative int or 'all' or 'lights'."
         )
+    
+    def _validate_truncate_non_sleep_end(self, value, select_epochs):
+        if not isinstance(value, bool):
+            raise ConfigError(f"truncate_non_sleep_end must be bool.")
+        if value and select_epochs != "lights":
+            raise ConfigError(
+                "truncate_non_sleep_end can only be True if select_epochs is set to 'lights'."
+            )
+        return value
 
     def _validate_filter_freq(self, value):
         if not isinstance(value, dict):

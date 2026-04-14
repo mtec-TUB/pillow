@@ -1,7 +1,9 @@
 import os
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 import csv
+from pathlib import Path
+import pandas as pd
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -132,14 +134,54 @@ class APOE(BaseDataset):
         }
         
 
-    def dataset_paths(self) -> Tuple[str, str, str]:
+    def dataset_paths(self):
         """Dataset paths for APOE dataset"""
         return [
             "original/PSG",
             "original/PSG"
         ]
+    
+    def get_light_times(self, logger, psg_fname):
+        basename = Path(psg_fname).stem
+        file = Path(psg_fname).parent / f"{basename}.EVTS"
 
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+        if not file.exists():
+            logger.warning(f"Event file not found for {psg_fname}. Expected at {file}. Cannot determine light times.")
+            return None, None
+        
+        events = pd.read_csv(file, sep=',', header=0, skiprows=1)
+        lights_off_sec = events.loc[events["Event"] == "Lights Off", "Start Time"].values
+        if lights_off_sec.size == 1:
+            lights_off = datetime.strptime(lights_off_sec[0], "%H:%M:%S.%f").time()
+        elif lights_off_sec.size > 1:
+            if "APOE_0447" in psg_fname or "APOE_0700" in psg_fname or "APOE_0691" in psg_fname:
+                logger.warning(f"Two Lights Off events found in {os.path.basename(file)}, using first occurrence as Lights Off and second occurence as Lights On.")
+                lights_off = datetime.strptime(lights_off_sec[0], "%H:%M:%S.%f").time()
+            elif "APOE_0260" in psg_fname:
+                logger.warning(f"Two Lights Off events found in {os.path.basename(file)}, using first occurrence as Lights Off.")
+                lights_off = datetime.strptime(lights_off_sec[0], "%H:%M:%S.%f").time()
+            else:
+                raise Exception(f"Multiple Lights Off events found in {file}. Cannot determine unique light off time.")
+        else:
+            lights_off = None
+
+        lights_on_sec = events.loc[events["Event"] == "Lights On", "Start Time"].values
+        if lights_on_sec.size == 1:
+            lights_on = datetime.strptime(lights_on_sec[0], "%H:%M:%S.%f").time()
+        elif lights_on_sec.size > 1:
+            if "APOE_0392" in psg_fname or "APOE_0084" in psg_fname or "APOE_0930" in psg_fname:
+                logger.warning(f"Two Lights On events found in {os.path.basename(file)}, using first occurrence as Lights On.")
+                lights_on = datetime.strptime(lights_on_sec[0], "%H:%M:%S.%f").time()
+            else:
+                raise Exception(f"Multiple Lights On events found in {file}. Cannot determine unique light on time.")
+        elif "APOE_0447" in psg_fname or "APOE_0700" in psg_fname or "APOE_0691" in psg_fname:
+            lights_on = datetime.strptime(lights_off_sec[1], "%H:%M:%S.%f").time()
+        else:
+            lights_on = None
+
+        return lights_off, lights_on
+
+    def ann_parse(self, ann_fname: str):
         """
         Parse APOE STA annotation files.
         STA files contain space or tab-separated values with epoch number and sleep stage.
@@ -167,7 +209,7 @@ class APOE(BaseDataset):
                         'Duration': epoch_duration
                     })
             
-        return ann_stage_events, None  # APOE doesn't provide start datetime in STA files
+        return ann_stage_events, None, None, None  # APOE doesn't provide start datetime in STA files
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 

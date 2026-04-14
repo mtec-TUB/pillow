@@ -1,7 +1,7 @@
 import os
 import wfdb
-from typing import Dict, List, Tuple
-from datetime import datetime, date
+from typing import Any, Dict, List, Optional, Tuple
+from datetime import _Time, datetime, date
 import numpy as np
 import pandas as pd
 
@@ -102,14 +102,14 @@ class CPS(BaseDataset):
         return psg_id, ann_id
 
 
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         """Dataset paths for CPS dataset"""
         return [
             os.path.join("1.0.0", "data"),
             os.path.join("1.0.0", "data")
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse CPS annotation files.
         CPS uses semicolon-separated CSV files with German sleep stage names.
@@ -131,12 +131,11 @@ class CPS(BaseDataset):
 
         for i, row in data.iterrows():
             stage = row['Stage']
+            # use 1970 instead of actual date because edf stores 1970-01-01 for all files (easier comparison)
             start = datetime.combine(date(1970,1,1),datetime.strptime(row['Timestamp'], '%H:%M:%S,%f').time())
 
-            if ann_startdatetime == None:# and stage != "A":
+            if ann_startdatetime == None:
                 ann_startdatetime = start
-            # elif ann_startdatetime == None and stage == "A":
-            #     continue
 
             ann_stage_events.append({
                 'Stage': stage,
@@ -144,8 +143,24 @@ class CPS(BaseDataset):
                 'Duration': epoch_duration
             })
 
+        marker_file = ann_fname.replace("Schlafprofil.txt", "Marker.txt")
+        lights_off, lights_on = None, None
+        if os.path.exists(marker_file):
+            marker_df = pd.read_csv(marker_file, sep=";", names=['Timestamp', 'Event'], skipinitialspace=True,skip_blank_lines=True)
+            lights_off = marker_df.loc[marker_df['Event'] == "Licht aus", "Timestamp"]
+            if len(lights_off) >= 1:
+                # take first of available lights off markers (in some recorings, two markers occur, reason unknown)
+                lights_off = datetime.strptime(lights_off.iloc[0], '%H:%M:%S,%f').time()
+            
+            lights_on = marker_df.loc[marker_df['Event'] == "Licht an", "Timestamp"]
+            if len(lights_on) == 1:
+                lights_on = datetime.strptime(lights_on.iloc[0], '%H:%M:%S,%f').time()
+            else:
+                lights_on = None
+        else:
+            raise Exception(f"Marker file not found: {marker_file}")    # should not occur
         
-        return ann_stage_events, ann_startdatetime
+        return ann_stage_events, ann_startdatetime, lights_off, lights_on
     
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
 

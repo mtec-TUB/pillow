@@ -7,12 +7,12 @@ from datetime import datetime, timedelta
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
-@register_dataset("SLEEP-EDF")
-class SleepEDF2018(BaseDataset):
-    """Sleep-EDF-2018 dataset."""
+@register_dataset("SLEEP-EDFX")
+class SleepEDFX(BaseDataset):
+    """Sleep-EDFX dataset."""
     
     def __init__(self):
-        super().__init__("SLEEP-EDF","Sleep-EDFX - Sleep-EDF Expanded")
+        super().__init__("SLEEP-EDFX","Sleep-EDFX - Sleep-EDF Expanded")
         
     def _setup_dataset_config(self):
         self.ann2label = {
@@ -67,13 +67,13 @@ class SleepEDF2018(BaseDataset):
             ann_id = ann_fname.split(ann_ext)[0][:-1]
         return psg_id, ann_id
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             '1.0.0',
             '1.0.0'
         ]
     
-    def get_light_times(self, psg_fname):
+    def get_light_times(self, logger, psg_fname):
 
         psg_fname = os.path.basename(psg_fname)
         subject_id = int(psg_fname[3:5])
@@ -97,7 +97,7 @@ class SleepEDF2018(BaseDataset):
         
         return lights_off, None
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse Sleep-EDF-2018 EDF annotation files using PyEDF.
         
@@ -110,7 +110,7 @@ class SleepEDF2018(BaseDataset):
         try:
             ann_f = pyedflib.EdfReader(ann_fname)
         except Exception as e:
-            return [], None,None,None
+            return [], None, None, None
         ann_onsets, ann_durations, ann_stages = ann_f.readAnnotations()
         ann_startdatetime = ann_f.getStartdatetime()
         start_offset = 0

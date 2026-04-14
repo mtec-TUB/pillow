@@ -40,13 +40,13 @@ class SLEEPBRL(BaseDataset):
         }
 
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             '',
             ''
         ]
 
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse SLEEPBRL .atr annotation files.
         """
@@ -70,6 +70,7 @@ class SLEEPBRL(BaseDataset):
         for i, event in enumerate(ann_stage_events[:-1]):
             ann_stage_events[i]['Duration'] = ann_stage_events[i+1]['Start'] - event['Start']
 
-        return ann_stage_events, None
+        lights_off, lights_on = None, None
+        return ann_stage_events, None, lights_off, lights_on
 
     

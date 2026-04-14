@@ -72,13 +72,13 @@ class MSP(BaseDataset):
                                 }
         
 
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             'polysomnography',
             'polysomnography'
         ]
         
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         function to parse the annotation file of the dataset into sleep stage events with start and duration
 
@@ -86,12 +86,16 @@ class MSP(BaseDataset):
 
         ann_stage_events = []
         ann_df = pd.read_csv(ann_fname,header = 0, sep='\t')
-        ann_Startdatetime = None
+        ann_Startdatetime, lights_off, lights_on = None, None, None
 
         ann_stage_events = []
         for i,row in ann_df.iterrows():
             event = row['class']
-            if event not in ['biocal','lights_off','lights_on','arousal','hypopnea','desat','apnea','snoring','PLM']:
+            if event == 'lights_off':
+                lights_off = datetime.strptime(row['start'],'%H:%M:%S').time()
+            elif event == 'lights_on':
+                lights_on = datetime.strptime(row['start'],'%H:%M:%S').time()
+            elif event not in ['biocal','arousal','hypopnea','desat','apnea','snoring','PLM']:
                 # if event not in self.ann2label:
                 #     print(event)
                 #     raise Exception
@@ -105,7 +109,7 @@ class MSP(BaseDataset):
                                         'Start': start,
                                         'Duration': duration})
 
-        return ann_stage_events, ann_Startdatetime
+        return ann_stage_events, ann_Startdatetime, lights_off, lights_on
         
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 

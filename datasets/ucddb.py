@@ -70,13 +70,13 @@ class UCDDB(BaseDataset):
             'ann_ext': '*_stage.txt'
         }
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             '',
             ''
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """Parse ISRUC annotation files (multiple scorers in separate files)"""
         
         ann_stage_events = []
@@ -91,7 +91,7 @@ class UCDDB(BaseDataset):
                 'Stage': stage
             })
         
-        return ann_stage_events, None
+        return ann_stage_events, None, None, None
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 

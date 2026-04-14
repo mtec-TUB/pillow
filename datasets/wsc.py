@@ -14,6 +14,7 @@ class WSC(BaseDataset):
         super().__init__("WSC","WSC - Wisconsin Sleep Cohort")
     
     def _setup_dataset_config(self):
+        # see wsc-scoring-annotation-documentation.xlsx
         self.ann2label = {
             # String-based labels
             "STAGE - W": 0,
@@ -23,7 +24,7 @@ class WSC(BaseDataset):
             "STAGE - N4": 3,  # Follow AASM Manual
             "STAGE - R": 4,
             "STAGE - NO STAGE": 6,
-            "STAGE - MVT": 6,
+            "STAGE - MVT": 5,
             # Numeric labels
             0: 0,  # Wake
             1: 1,  # NREM Stage 1
@@ -31,8 +32,8 @@ class WSC(BaseDataset):
             3: 3,  # NREM Stage 3
             4: 3,  # NREM Stage 4 (Follow AASM Manual)
             5: 4,  # REM
-            6: 6,  # Unscored
-            7: 6   # Movement
+            6: 5,   # Movement
+            7: 6,  # Unscored
         }
 
         self.inter_dataset_mapping = {
@@ -129,13 +130,13 @@ class WSC(BaseDataset):
         
         return psg_id, ann_id
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             'polysomnography',
             'polysomnography'
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse WSC CSV annotation files.
         
@@ -148,15 +149,21 @@ class WSC(BaseDataset):
         ann_stage_events = []
         
         epoch_duration = 30  # WSC uses 30-second epochs
+        lights_df = None
+
+        ann_Startdatetime = None
 
         if 'stg.txt' in ann_fname:
-            ann_Startdatetime = None
             data = pd.read_csv(ann_fname, sep="\t", header=0, names=['Epoch','Stage', 'CAST_Stage'])
             
             for i,row in data.iterrows():
                 ann_stage_events.append({'Stage': row['Stage'],
                                             'Start': i * epoch_duration,
                                             'Duration': epoch_duration})
+                
+            lights_file = ann_fname.replace('.stg.txt', '.log.txt')
+            if os.path.exists(lights_file):
+                lights_df = pd.read_csv(lights_file, sep="\t", names=['Timestamp', 'Info'], usecols=[1,2], header=None)
             
         elif 'allscore.txt' in ann_fname:
             df = pd.read_csv(ann_fname, sep="\t", names=['Timestamp','Info'], encoding='latin',na_filter=False)
@@ -169,31 +176,68 @@ class WSC(BaseDataset):
             else:
                 start_idx = start_idx[0].astype(int)
                 
-            ann_Startdatetime = datetime.strptime(df.iloc[start_idx]['Timestamp'],'%H:%M:%S.%f')
-            
             df = df.iloc[start_idx:].reset_index()
             
-            
-            df = df[df['Info'].str.contains("STAGE")].reset_index()
+            # Filter for sleep stage events
+            df_scoring = df[df['Info'].str.contains("STAGE")].reset_index()
 
             
-            for i,row in df.iterrows():
+            for i,row in df_scoring.iterrows():
                 stage = row['Info']
-                start = int((datetime.strptime(row['Timestamp'],'%H:%M:%S.%f') - ann_Startdatetime).seconds)
-                if i == 0 and start != 0:
-                    ann_stage_events.append({'Stage': 6,
-                                                    'Start': 0,
-                                                    'Duration': start})
-                if i+1 != len(df):
-                    duration = int((datetime.strptime(df.iloc[i+1]['Timestamp'],'%H:%M:%S.%f') - datetime.strptime(row['Timestamp'],'%H:%M:%S.%f')).seconds)
+                start_time = datetime.strptime(row['Timestamp'],'%H:%M:%S.%f')
+                if ann_Startdatetime == None:
+                    ann_Startdatetime = start_time
+
+                start_sec = int((start_time - ann_Startdatetime).seconds)
+                
+                # for all but the last event, duration is the time until the next event; for the last event, we can set a default duration (e.g., 30s)
+                if i+1 != len(df_scoring):
+                    duration = int((datetime.strptime(df_scoring.iloc[i+1]['Timestamp'],'%H:%M:%S.%f') - start_time).seconds)
                 else:
                     duration = epoch_duration
                 
                 ann_stage_events.append({'Stage': stage,
-                                                'Start': start,
+                                                'Start': start_sec,
                                                 'Duration': duration})
+                
+                lights_df = df
 
-        return ann_stage_events, ann_Startdatetime
+        lights_off, lights_on = None, None
+        if lights_df is not None:
+            lights_off_values = lights_df.loc[lights_df['Info'].str.contains(r'LIGHTS? OUT', case=False, na=False), 'Timestamp'].values
+            if len(lights_off_values) == 1:
+                timestamp = lights_off_values[0]
+            elif len(lights_off_values) > 1:
+                timestamp = lights_off_values[-1]  # take last occurence
+            try:
+                lights_off = datetime.strptime(timestamp.split(' ')[0], '%H:%M:%S').time()
+            except ValueError:
+                try:
+                    lights_off = datetime.strptime(timestamp.split(' ')[0], '%H:%M:%S.%f').time()
+                except ValueError:
+                    pass  # In some cases, the timestamp might be malformed, so we skip parsing it
+
+            
+            lights_on_values = lights_df.loc[lights_df['Info'].str.contains(r'LIGHT?S ON', case=False, na=False), 'Timestamp'].values
+            if len(lights_on_values) == 1:
+                timestamp = lights_on_values[0]
+
+            elif len(lights_on_values) > 1:
+                timestamp = lights_on_values[-1]  # take last occurence
+            try:
+                lights_on = datetime.strptime(timestamp.split(' ')[0], '%H:%M:%S').time()
+            except ValueError:
+                try:
+                    lights_on = datetime.strptime(timestamp.split(' ')[0], '%H:%M:%S.%f').time()
+                except ValueError:
+                    pass  # In some cases, the timestamp might be malformed, so we skip parsing it
+
+        return ann_stage_events, ann_Startdatetime, lights_off, lights_on
+
+    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
+        """ Align front part of signals and labels, in some datasets annotations start after signal recording"""
+
+        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
@@ -203,6 +247,8 @@ class WSC(BaseDataset):
             if len(labels) > len(signals):
                 return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
 
-        if ('stg.txt' in ann_fname) and len(signals) == len(labels) + 1:
-            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)        
-    
+        if ('stg.txt' in ann_fname):
+            if len(signals) == len(labels) + 1:
+                return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
+            elif len(labels) > len(signals):
+                return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)

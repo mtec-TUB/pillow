@@ -5,6 +5,7 @@ import os
 import pandas as pd
 from decimal import Decimal
 import numpy as np
+import re
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 from datasets.base import BaseDataset
@@ -16,6 +17,13 @@ class NCHSDB(BaseDataset):
     
     def __init__(self):
         super().__init__("NCHSDB","NCHSDB - NCH Sleep DataBank")
+
+    def get_signal_data(self, logger, filepath, channel):
+        signal_data = super().get_signal_data(logger, filepath, channel)
+        if '5053_2167.edf' in filepath and not signal_data["sampling_rate"].is_integer():
+            logger.warning(f"Found non-integer sampling rate {signal_data['sampling_rate']} in file {os.path.basename(filepath)}. Rounding to nearest integer.")
+            signal_data["sampling_rate"] = round(signal_data["sampling_rate"])
+        return signal_data
     
     def _setup_dataset_config(self):
         self.ann2label = {
@@ -127,7 +135,7 @@ class NCHSDB(BaseDataset):
                                 'emg': ['EMG CHIN1-CHIN2', 'EMG LLEG+-LLEG-', 'EMG RLEG+-RLEG-', 'EMG Chin1-Chin2', 'EMG LLeg-RLeg','LLeg','EMG LLEG-LLEG2',
                                         'Chin2','Chin1','EMG RAT1-RAT2','EMG LAT1-LAT2', 'EMG Chin3-Chin2', 'EMG Chin2-Chin1','EMG RLEG-RLEG2','Chin3',
                                         'EMG LLEG-RLEG','EMG Chin1-Chin3','RLeg','EMG CHIN1-CHIN3','EEG Chin2', 'EEG RLeg2','EEG Chin1-Chin3','EEG RLeg1',
-                                        'EEG Chin1-Chin2','EEG LLeg1','EEG LLeg2','EEG Chin3','EEG Chin1',],
+                                        'EEG Chin1-Chin2','EEG LLeg1','EEG LLeg2','EEG Chin3','EEG Chin1','EEG Chin3-Chin2'],
                                 'ecg': ['ECG EKG2-EKG','ECG LA-RA','EKG', 'EEG EKG2', 'EKG2', 'ECG ECGL-ECGR','EEG EKG-RLeg','EEG EKG1','EEG EKG2-EKG',],
                                 'thoraco_abdo_resp': ['Resp Abdomen', 'Resp Chest','Resp Flow', 'Resp Airflow','Resp Thoracic', 'Resp Abdominal','Abdominal','Resp PTAF',  'Thoracic', 'Resp Airflow+-Re', 
                                                       'EEG Chest','Resp Airflow','EEG Abd',],
@@ -141,13 +149,13 @@ class NCHSDB(BaseDataset):
                                 }
         
 
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             'sleep_data',
             'sleep_data'
         ]
         
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         function to parse the annotation file of the dataset into sleep stage events with start and duration
 
@@ -156,12 +164,17 @@ class NCHSDB(BaseDataset):
         ann_stage_events = []
         ann_df = pd.read_csv(ann_fname,header = 0, sep='\t')
         start_time_label = None
+        lights_off, lights_on = [], []
 
         epoch_duration = 30  # NCHSDB uses 30-second epochs
 
         for i,row in ann_df.iterrows():
             event = row['description']
-            if 'Sleep stage' in event:
+            if re.search(r'(?i)(?:Lights Off)(?=\s|$)', event):
+                lights_off.append(Decimal(str(row['onset'])))
+            elif re.search(r'(?i)(?:Lights On)(?=\s|$)', event):
+                lights_on.append(Decimal(str(row['onset'])))
+            elif 'Sleep stage' in event:
                 if event not in self.ann2label:
                     print(event)
                     raise Exception
@@ -174,20 +187,46 @@ class NCHSDB(BaseDataset):
                     break
                 
                 start = start - start_time_label
-                if '4480_5926.tsv' in ann_fname:
-                    if start==2250:
-                         ann_stage_events.append({'Stage':'Sleep stage ?','Start':2190,'Duration':60})  
+                if '4480_5926.tsv' in ann_fname and start==2250:
+                    ann_stage_events.append({'Stage':'Sleep stage ?','Start':2190,'Duration':60})  
                 ann_stage_events.append({'Stage': event,
                                         'Start': start,
                                         'Duration': duration})
                 
-        if ann_stage_events[-1]['Duration'] != epoch_duration:
-            ann_stage_events.pop()
+        if len(ann_stage_events) == 0:
+            return ann_stage_events, None, None, None
+                
+        if ann_stage_events[-1]['Duration'] < epoch_duration:
+            ann_stage_events.pop() # drop last epoch as it corresponds to the last unfilled epoch of signal data which is dropped aswell
+        
+        if len(lights_off) == 1:
+            lights_off = float(lights_off[0])
+        elif len(lights_off) == 0:
+            lights_off = None
+        elif any(name in ann_fname for name in ['7681_21013', '17950_18358', '10798_556', '5299_9865']):
+            lights_off = float(lights_off[-1])  # manually checked and in these files the last lights off event seems to be the correct one
+        elif len(lights_off) > 1:  
+            lights_off = float(lights_off[0])
+        else:
+            raise Exception(f"Found {len(lights_off)} lights off events in annotation file {os.path.basename(ann_fname)}")
+        
+        if len(lights_on) == 1:
+            lights_on = float(lights_on[0])
+        elif len(lights_on) == 0:
+            lights_on = None
+        elif lights_on[0] == lights_on[1]:  # if there are multiple lights on events but they have the same timestamp, take the first one
+            lights_on = float(lights_on[0])
+        elif any(name in ann_fname for name in ['10480_2032', '8608_18625', '11341_10369']):
+            lights_on = float(lights_on[0])     # manually checked and in these files the first lights on event seems to be the correct one
+        elif len(lights_on) > 1:
+            lights_on = float(lights_on[-1])
+        else:
+            raise Exception(f"Found {len(lights_on)} lights on events in annotation file {os.path.basename(ann_fname)}")
 
-        return ann_stage_events,start_time_label
+        return ann_stage_events, float(start_time_label), lights_off, lights_on
     
     def align_front(self, logger, alignment, pad_values, epoch_duration,delay_sec,signal: np.ndarray, labels, fs
-                  ) -> Tuple[np.ndarray, np.ndarray]:
+                  ):
 
         # if not (float(delay_sec*Decimal(str(fs)))).is_integer():
         #     print(fs)

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 import pandas as pd
 from decimal import Decimal
 
@@ -68,7 +69,7 @@ class EESM23(BaseDataset):
             ann_id = Path(ann_fname).parent
         return psg_id, ann_id
     
-    def dataset_paths(self) -> tuple[str, str]:
+    def dataset_paths(self):
         return [
             '',
             ''
@@ -93,8 +94,9 @@ class EESM23(BaseDataset):
                                         'Start': float(Decimal(str(start)) - start_time_label),
                                         'Duration': duration})
             
+        lights_off = float(start_time_label)        # see EESM23/code/dataset_preparation/BIDS_unittests_EESM23.py
 
-        return ann_stage_events, float(start_time_label)
+        return ann_stage_events, float(start_time_label), lights_off, None
     
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
         
@@ -102,11 +104,18 @@ class EESM23(BaseDataset):
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
-        if len(labels) == len(signals) + 1:
+        if len(labels) > len(signals):
+            if len(labels) > len(signals) + 1:
+                logger.warning(
+                    f"Labels longer than signals by {len(labels) - len(signals)} epochs in {psg_fname}, truncating.")
             return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
 
         if len(signals) > len(labels):
             return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
+
+        logger.error(
+            f"Unexpected alignment case in {psg_fname}: len(signals)={len(signals)}, len(labels)={len(labels)}")
+        raise ValueError(f"Unexpected signal/label length combination: {len(signals)} signals, {len(labels)} labels")
     
     def preprocess(self, data_dir, ann_dir, output_dir):
         return EESM_Preprocessor(self).preprocess(data_dir, ann_dir, output_dir)

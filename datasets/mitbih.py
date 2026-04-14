@@ -74,13 +74,13 @@ class MITBIH(BaseDataset):
             'ann_ext': 'slp*.st-'   
         }
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             '',
             ''
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse MIT-BIH .st annotation files.
         """
@@ -89,12 +89,12 @@ class MITBIH(BaseDataset):
         record_name, extension = os.path.splitext(ann_fname)
         annot = wfdb.rdann(record_name, extension.strip('.'))
         
-        fs = 250
+        fs = annot.fs   # always 250Hz
 
         start_time_label = None
         
         for i, (sample, aux_note) in enumerate(zip(annot.sample, annot.aux_note)):
-            label = aux_note.strip('\x00')
+            label = aux_note.strip('\x00')  # Some labels have null bytes, remove them
                             
             if start_time_label==None:
                 if sample == 1:
@@ -114,7 +114,7 @@ class MITBIH(BaseDataset):
         for i, event in enumerate(ann_stage_events[:-1]):
             ann_stage_events[i]['Duration'] = ann_stage_events[i+1]['Start'] - event['Start']
 
-        return ann_stage_events, float(start_time_label)/fs
+        return ann_stage_events, float(start_time_label)/fs, None, None
     
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 

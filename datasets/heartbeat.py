@@ -70,7 +70,7 @@ class HEARTBEAT(BaseDataset):
             'ann_ext': '*-nsrr.xml' # not available for this dataset, just for consistency
         }
 
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         """Dataset paths for HEARTBEAT dataset"""
         return [
             os.path.join("polysomnography", "edfs"),

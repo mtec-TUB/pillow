@@ -1,6 +1,6 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 import logging
 import numpy as np
 import xml.etree.ElementTree as ET
@@ -79,7 +79,7 @@ class BaseDataset(ABC):
             ann_id = ann_fname.split(ann_ext)[0]
         return psg_id, ann_id
 
-    def dataset_paths(self) -> List[str]:
+    def dataset_paths(self):
         """Paths where PSG and Annotations are stored.
         Are used to construct full paths if no specific dataset location is given in config.
         Default: NSRR structure
@@ -231,11 +231,12 @@ class BaseDataset(ABC):
         CPAP = auto()
         SNORE = auto()
         POSITION = auto()
+        HR = auto() # Heart Rate
         
         def __str__(self):
             return self.name
 
-    def get_light_times(self, psg_fname):
+    def get_light_times(self, logger, psg_fname):
         """Get lights on and lights off time, if available in dataset
         Used to extract only epochs between these markers
         """
@@ -243,7 +244,7 @@ class BaseDataset(ABC):
         lights_on = None
         return lights_off, lights_on
 
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Generic parse annotation file and extract sleep stage events.
         This works for datasets like
@@ -297,14 +298,16 @@ class BaseDataset(ABC):
                     }
                 )
 
-        return ann_stage_events, ann_startdatetime, None, None
+        lights_off, lights_on = None, None
+
+        return ann_stage_events, ann_startdatetime, lights_off, lights_on
 
     def ann_label(
         self,
         logger: logging.Logger,
         ann_stage_events: List[Dict],
         epoch_duration: int,
-    ) -> np.ndarray:
+    ):
         """
         Generic annotation labeling function for sleep datasets with one annotation per psg file.
         This does not work for dataset ISRUC
@@ -352,12 +355,13 @@ class BaseDataset(ABC):
 
         return np.concatenate(labels)
 
-    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs) -> Tuple[bool, float]:
+    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
         """ Align front part of signals and labels, in some datasets annotations start after signal recording"""
         logger.error("Signal and Annotations do not start at the same time. TODO: implement alignment function")
         raise NotImplementedError("Subclass has no front alignment implemented")
 
     def base_align_front(self, logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels, fs):
+        start_time_shift = 0
         if delay_sec < 0:
             advance_sec = -delay_sec
             if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_SIGNAL.value:
@@ -367,23 +371,27 @@ class BaseDataset(ABC):
                 if advance_sec % epoch_duration != 0:
                     logger.info(f"Partial epoch detected at start, signal ({epoch_duration-advance_sec} sec) and labels (one epoch) will be shortened at the front to match")
                     labels = labels[1:]
-                    signal = signal[int((epoch_duration-advance_sec)*fs):]
+                    signal = signal[int((epoch_duration-(advance_sec % epoch_duration))*fs):]
+                    start_time_shift = epoch_duration - (advance_sec % epoch_duration) 
             elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_ANNOT.value:
                 logger.info(f"Signal started {advance_sec:.2f} sec after label start, signal will be padded with constant value:{np.float64(pad_values["signal"])} at the front to match")
                 n_pad_samples = int(advance_sec*fs)
                 signal = np.hstack((np.full((n_pad_samples,), np.float64(pad_values["signal"])), signal))
+                start_time_shift = delay_sec
         else:
             if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_ANNOT.value:
                 logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, signal will be shortened at the front to match")
                 signal = signal[int(delay_sec*fs):]
+                start_time_shift = delay_sec
             elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_SIGNAL.value:
-                logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, labels will be padded at the front with full epochs of value:{pad_values["label"]} to match")
                 n_pad = int(delay_sec // epoch_duration)
+                logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, labels will be padded at the front with {n_pad} epochs of value:{pad_values["label"]} to match")
                 labels = np.hstack((np.full((n_pad,), pad_values["label"]), labels))
                 if delay_sec % epoch_duration != 0:
                     logger.info(f"Partial epoch detected at start, signal will be shortened at the front to match")
                     signal = signal[int((delay_sec % epoch_duration)*fs):]
-        return signal, labels
+                    start_time_shift = delay_sec - n_pad*epoch_duration
+        return start_time_shift, signal, labels
 
     def align_end(
         self,
@@ -394,7 +402,7 @@ class BaseDataset(ABC):
         ann_fname: str,
         signals: np.ndarray,
         labels: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ):
         logger.error(f"Length mismatch: signal ({os.path.basename(psg_fname)})={len(signals)}, labels({os.path.basename(ann_fname)})={len(labels)}")
         raise NotImplementedError("Subclass has no end alignment implemented but is required")
     

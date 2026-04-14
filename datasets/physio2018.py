@@ -12,7 +12,7 @@ class Physio2018(BaseDataset):
     """Physio2018 (PhysioNet Challenge 2018) dataset."""
     
     def __init__(self):
-        super().__init__("PHYSIO2018","Physio2018 - PysioNet Challenge 2018", keep_folder_structure = True)
+        super().__init__("PHYSIO2018","Physio2018 - PysioNet Challenge 2018", keep_folder_structure = False)
 
         self._file_handler = WFDBHandler()
   
@@ -62,13 +62,13 @@ class Physio2018(BaseDataset):
             'ann_ext': '**/*.arousal'
         }
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             '1.0.0',
             '1.0.0'
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse Physio2018 annotation files.
         """
@@ -99,7 +99,7 @@ class Physio2018(BaseDataset):
         for i, event in enumerate(ann_stage_events[:-1]):
             ann_stage_events[i]['Duration'] = ann_stage_events[i+1]['Start'] - event['Start']
 
-        return ann_stage_events, float(start_time_label)
+        return ann_stage_events, float(start_time_label), None, None
     
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_samples, signal, labels, fs):
     
@@ -111,5 +111,7 @@ class Physio2018(BaseDataset):
 
         if len(signals) > len(labels):
             return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)        
+        elif len(labels) == len(signals) + 1:
+            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)   
     
     

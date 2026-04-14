@@ -98,13 +98,13 @@ class MNC(BaseDataset):
         }
     
 
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             '',
             ''
         ]
 
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         function to parse the annotation file of the dataset into sleep stage events with start and duration
     
@@ -137,4 +137,4 @@ class MNC(BaseDataset):
                 }
             )
 
-        return ann_stage_events, ann_startdatetime
+        return ann_stage_events, ann_startdatetime, None, None

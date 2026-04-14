@@ -113,7 +113,7 @@ class EDFHandler:
         except:
             try:
                 with catch_warnings(record=True) as w:
-                    raw = mne.io.read_raw_edf(filepath, include=channel,preload=False, verbose='WARNING')
+                    raw = mne.io.read_raw_edf(filepath, include=[channel], preload=False, verbose='WARNING')
                     if w:
                         if w[0].message.args[0].startswith("Channel names are not unique"):
                             channel = raw.ch_names[0]    # take only the first of the duplicate channels

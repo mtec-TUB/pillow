@@ -17,7 +17,7 @@ class DatasetRegistry:
         cls._datasets[name] = dataset_class
     
     @classmethod
-    def get_dataset(cls, name: str) -> Type[BaseDataset]:
+    def get_dataset(cls, name: str):
         """Get a dataset class by name"""
         if name not in cls._datasets:
             raise ValueError(f"Dataset '{name}' is not registered. Please choose from: "
@@ -25,7 +25,7 @@ class DatasetRegistry:
         return cls._datasets[name]
     
     @classmethod
-    def list_datasets(cls) -> list:
+    def list_datasets(cls):
         """List all registered datasets"""
         return list(cls._datasets.keys())
 
@@ -38,6 +38,6 @@ def register_dataset(name: str):
     return decorator
 
 
-def get_dataset(name: str) -> Type[BaseDataset]:
+def get_dataset(name: str):
     """Get a dataset class by name"""
     return DatasetRegistry.get_dataset(name)

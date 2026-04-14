@@ -68,14 +68,14 @@ class DCSM(BaseDataset):
             'ann_ext': '*_hypnogram.ids'
         }
 
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             "edfs",
             "annot"
         ]
     
 
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse DCSM .ids annotation files.
         
@@ -105,8 +105,8 @@ class DCSM(BaseDataset):
             })
         
         # DCSM .ids files don't contain start datetime information
-        # Return None for start_datetime
-        return ann_stage_events, None
+        # Return None for start_datetime, lights_off and lights_on
+        return ann_stage_events, None, None, None
     
     def preprocess(self, data_dir, ann_dir, output_dir):
         print("\n DCSM files originally are stored in an unsupported way and therefor need to be preprocessed/resorted ... \n \

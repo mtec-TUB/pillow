@@ -5,7 +5,7 @@ import pandas as pd
 from decimal import Decimal
 from mne.io import read_raw_eeglab
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from psg_processing.core import Dataset_Explorer
 from datasets.base import BaseDataset
@@ -67,7 +67,7 @@ class EESM19(BaseDataset):
         self.file_extensions = {'psg_ext': '**/*task-sleep_acq-*_eeg.set',  # include PSG and earEEG files, but exclude ‘auditory steady state responses’ (ASSR) and electrodeTestLab files
                                 'ann_ext': '**/*scoring1_events.tsv'} 
         
-    def dataset_paths(self) -> tuple[str, str]:
+    def dataset_paths(self):
         return [
             '',
             ''
@@ -81,7 +81,7 @@ class EESM19(BaseDataset):
             ann_id = Path(ann_fname).parent
         return psg_id, ann_id
     
-    def ann_parse(self, ann_fname): 
+    def ann_parse(self, ann_fname):
 
         base_fname = ann_fname.replace('scoring1_events.tsv','')
 
@@ -120,11 +120,19 @@ class EESM19(BaseDataset):
                 ann_stage_events_2.append({'Stage': stage,
                                             'Start': start - start_time_label,
                                             'Duration': duration})
-            
+                
+        events_file = ann_fname.replace("scoring1_events", "diary_events")
+        events = pd.read_csv(events_file,sep='\t', header=0)
 
-        return [ann_stage_events_1, ann_stage_events_2], start_time_label
+        lights_off = events.loc[events['trial_type'] == 'Lights Out', 'onset']
+        if len(lights_off) == 1:
+            lights_off = lights_off.iloc[0]
+        else:
+            raise Exception(f"Expected exactly one 'Lights Out' event in {events_file}, but found {len(lights_off)}.")
+            
+        return [ann_stage_events_1, ann_stage_events_2], start_time_label, lights_off, None
     
-    def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int) -> np.ndarray:
+    def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int):
         """
         Convert multi-scorer sleep stage events to epoch-wise labels for ISRUC dataset.
         Returns 2D array (n_epochs, n_scorers).
@@ -176,18 +184,18 @@ class EESM19(BaseDataset):
     
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
         logger.info("Alignment of scorer 1")
-        signal1, labels1 = self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels[:,0],fs) 
+        start_time_shift, signal1, labels1 = self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels[:,0],fs) 
         logger.info("Alignment of scorer 2")
-        signal2, labels2 = self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels[:,1],fs)
+        start_time_shift, signal2, labels2 = self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels[:,1],fs)
 
         assert len(signal1) == len(signal2), f"Length mismatch after front alignment: signal1={len(signal1)}, signal2={len(signal2)}"
         assert len(labels1) == len(labels2), f"Length mismatch after front alignment: labels1={len(labels1)}, labels2={len(labels2)}"
         
-        return signal1, np.array([labels1, labels2]).T  # Return (signal, (n_epochs, n_scorers))
+        return start_time_shift, signal1, np.array([labels1, labels2]).T  # Return (signal, (n_epochs, n_scorers))
     
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
-        if len(labels) == len(signals) + 1:
+        if len(labels) > len(signals):
             logger.info("Alignment of scorer 1")
             signals1, labels1 = self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels[:,0])
             logger.info("Alignment of scorer 2")
@@ -204,6 +212,8 @@ class EESM19(BaseDataset):
             assert len(signals1) == len(signals2), f"Length mismatch after end alignment: signals1={len(signals1)}, signals2={len(signals2)}"
             assert len(labels1) == len(labels2), f"Length mismatch after end alignment: labels1={len(labels1)}, labels2={len(labels2)}"
             return signals1, np.array([labels1, labels2]).T  # Return (signals, (n_epochs, n_scorers))
+        
+        raise Exception(f"Unexpected case during end alignment: {psg_fname}, len(signals)={len(signals)}, len(labels)={len(labels)}")
 
     def preprocess(self, data_dir, ann_dir, output_dir):
         return EESM_Preprocessor(self).preprocess(data_dir, ann_dir, output_dir)
