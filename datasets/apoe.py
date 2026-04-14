@@ -146,7 +146,7 @@ class APOE(BaseDataset):
         file = Path(psg_fname).parent / f"{basename}.EVTS"
 
         if not file.exists():
-            logger.warning(f"Event file not found for {psg_fname}. Expected at {file}. Cannot determine light times.")
+            logger.warning(f"Event file not found for {os.path.basename(psg_fname)}. Expected at {file}. Cannot determine light times.")
             return None, None
         
         events = pd.read_csv(file, sep=',', header=0, skiprows=1)

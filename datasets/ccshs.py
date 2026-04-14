@@ -1,6 +1,9 @@
+import os
+import numpy as np
+
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
-import numpy as np
+
 
 
 @register_dataset("CCSHS")
@@ -73,27 +76,29 @@ class CCSHS(BaseDataset):
         }
 
     def get_light_times(self, logger, psg_fname):
-        try:
+        if "Light" in self._file_handler.get_channels(logger, psg_fname):
+
             light_data = self._file_handler.get_signal_data(logger, psg_fname, "Light")
-        except ValueError as e:
-            logger.info(f"Light channel not found in {psg_fname}. Cannot determine light on/off times. Error: {e}")
-            return None, None
+
+            light_signal = light_data["signal"]
+
+            # Lights Off when light signal is 1
+            light_off_indices = np.flatnonzero(light_signal == 1)
+
+            if light_off_indices.size > 0:
+                # First occurrence of light off (1)
+                light_off_idx = light_off_indices[0]
+                lights_off_sec = light_off_idx / light_data["sampling_rate"]
+
+                # Last occurrence of light off (1) 
+                light_on_idx = light_off_indices[-1] + 1
+                lights_on_sec = light_on_idx / light_data["sampling_rate"]
+            else:
+                lights_off_sec = None
+                lights_on_sec = None
+
+            return lights_off_sec, lights_on_sec
         
-        light_signal = light_data["signal"]
-
-        # Lights Off when light signal is 1
-        light_off_indices = np.flatnonzero(light_signal == 1)
-
-        if light_off_indices.size > 0:
-            # First occurrence of light off (1)
-            light_off_idx = light_off_indices[0]
-            lights_off_sec = light_off_idx / light_data["sampling_rate"]
-
-            # Last occurrence of light off (1) 
-            light_on_idx = light_off_indices[-1] + 1
-            lights_on_sec = light_on_idx / light_data["sampling_rate"]
         else:
-            lights_off_sec = None
-            lights_on_sec = None
-
-        return lights_off_sec, lights_on_sec
+            logger.info(f"Light channel not found in {os.path.basename(psg_fname)}. Cannot determine light on/off times")
+            return None, None
