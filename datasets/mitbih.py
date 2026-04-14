@@ -74,13 +74,13 @@ class MITBIH(BaseDataset):
             'ann_ext': 'slp*.st-'   
         }
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             '',
             ''
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse MIT-BIH .st annotation files.
         """

@@ -1,6 +1,6 @@
 import os
 import h5py
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -94,13 +94,13 @@ class DODO(BaseDataset):
         }
         
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             '',
             ''
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         DOD-O doesn't use separate annotation files.
         Annotations are embedded in H5 files.

@@ -107,13 +107,13 @@ class ISRUC(BaseDataset):
             'ann_ext': '*/*_1.xlsx'
         }
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             'Data',
             'Data'
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[List[Dict]], datetime]:
+    def ann_parse(self, ann_fname: str):
         """Parse ISRUC annotation files (multiple scorers in separate files)"""
         # ISRUC has two annotation files: *1.xlsx and *2.xlsx
         base_fname = ann_fname.replace('1.xlsx', '')
@@ -168,7 +168,7 @@ class ISRUC(BaseDataset):
         
         return ann_stage_events, None, lights_off[0], lights_on[0]
     
-    def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int) -> np.ndarray:
+    def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int):
         """
         Convert multi-scorer sleep stage events to epoch-wise labels for ISRUC dataset.
         Returns 2D array (n_epochs, n_scorers).

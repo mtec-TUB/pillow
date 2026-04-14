@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 import csv
 from pathlib import Path
@@ -132,7 +132,7 @@ class APOE(BaseDataset):
         }
         
 
-    def dataset_paths(self) -> Tuple[str, str, str]:
+    def dataset_paths(self):
         """Dataset paths for APOE dataset"""
         return [
             "original/PSG",
@@ -179,7 +179,7 @@ class APOE(BaseDataset):
 
         return lights_off, lights_on
 
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse APOE STA annotation files.
         STA files contain space or tab-separated values with epoch number and sleep stage.

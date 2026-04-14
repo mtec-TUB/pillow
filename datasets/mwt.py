@@ -97,7 +97,7 @@ class MWT(BaseDataset):
             logger.error(f"Error processing mat file {filepath}: {e}")
             raise
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[List[Dict]], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse MWT annotation files.
         """
@@ -141,7 +141,7 @@ class MWT(BaseDataset):
 
         return ann_stage_events, None, None, None
     
-    def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int) -> np.ndarray:
+    def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int):
         """
         Convert multi-scorer sleep stage events to epoch-wise labels for ISRUC dataset.
         Returns 2D array (n_epochs, n_scorers).

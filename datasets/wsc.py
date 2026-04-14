@@ -130,13 +130,13 @@ class WSC(BaseDataset):
         
         return psg_id, ann_id
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             'polysomnography',
             'polysomnography'
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse WSC CSV annotation files.
         
@@ -234,7 +234,7 @@ class WSC(BaseDataset):
 
         return ann_stage_events, ann_Startdatetime, lights_off, lights_on
 
-    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs) -> Tuple[bool, float]:
+    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
         """ Align front part of signals and labels, in some datasets annotations start after signal recording"""
 
         return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)

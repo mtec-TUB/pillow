@@ -67,7 +67,7 @@ class SleepEDFX(BaseDataset):
             ann_id = ann_fname.split(ann_ext)[0][:-1]
         return psg_id, ann_id
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             '1.0.0',
             '1.0.0'
@@ -97,7 +97,7 @@ class SleepEDFX(BaseDataset):
         
         return lights_off, None
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse Sleep-EDF-2018 EDF annotation files using PyEDF.
         

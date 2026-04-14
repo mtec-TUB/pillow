@@ -96,7 +96,7 @@ class DREAMT(BaseDataset):
             'ann_ext': '*.csv',  # Annotations are embedded in data CSV files
         }        
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         if self.use_sample_rate == 100:
             return [
                 '2.1.0/data_100Hz',

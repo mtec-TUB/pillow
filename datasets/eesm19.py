@@ -5,7 +5,7 @@ import pandas as pd
 from decimal import Decimal
 from mne.io import read_raw_eeglab
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from psg_processing.core import Dataset_Explorer
 from datasets.base import BaseDataset
@@ -67,7 +67,7 @@ class EESM19(BaseDataset):
         self.file_extensions = {'psg_ext': '**/*task-sleep_acq-*_eeg.set',  # include PSG and earEEG files, but exclude ‘auditory steady state responses’ (ASSR) and electrodeTestLab files
                                 'ann_ext': '**/*scoring1_events.tsv'} 
         
-    def dataset_paths(self) -> tuple[str, str]:
+    def dataset_paths(self):
         return [
             '',
             ''
@@ -81,7 +81,7 @@ class EESM19(BaseDataset):
             ann_id = Path(ann_fname).parent
         return psg_id, ann_id
     
-    def ann_parse(self, ann_fname): 
+    def ann_parse(self, ann_fname):
 
         base_fname = ann_fname.replace('scoring1_events.tsv','')
 
@@ -132,7 +132,7 @@ class EESM19(BaseDataset):
             
         return [ann_stage_events_1, ann_stage_events_2], start_time_label, lights_off, None
     
-    def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int) -> np.ndarray:
+    def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int):
         """
         Convert multi-scorer sleep stage events to epoch-wise labels for ISRUC dataset.
         Returns 2D array (n_epochs, n_scorers).

@@ -1,4 +1,5 @@
 import os
+from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
 from pathlib import Path
 import glob
@@ -64,7 +65,7 @@ class EESM17(BaseDataset):
         self.file_extensions = {'psg_ext': '**/*_eeg.set',
                                 'ann_ext': '**/*_acq-scoring_events.tsv'} 
         
-    def dataset_paths(self) -> tuple[str, str]:
+    def dataset_paths(self):
         return ['', '']
     
     def ann_parse(self, ann_fname):

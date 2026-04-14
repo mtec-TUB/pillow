@@ -1,7 +1,7 @@
 import os
 import wfdb
-from typing import Dict, List, Tuple
-from datetime import datetime, date
+from typing import Any, Dict, List, Optional, Tuple
+from datetime import _Time, datetime, date
 import numpy as np
 import pandas as pd
 
@@ -102,14 +102,14 @@ class CPS(BaseDataset):
         return psg_id, ann_id
 
 
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         """Dataset paths for CPS dataset"""
         return [
             os.path.join("1.0.0", "data"),
             os.path.join("1.0.0", "data")
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse CPS annotation files.
         CPS uses semicolon-separated CSV files with German sleep stage names.

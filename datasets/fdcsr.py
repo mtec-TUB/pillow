@@ -109,13 +109,13 @@ class FDCSR(BaseDataset):
             'ann_ext': '*/*_score.csv'
         }
         
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             "subjects",
             "subjects"
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse FDCSR annotation files with custom datetime handling.
         """

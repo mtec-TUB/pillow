@@ -72,13 +72,13 @@ class MSP(BaseDataset):
                                 }
         
 
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             'polysomnography',
             'polysomnography'
         ]
         
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         function to parse the annotation file of the dataset into sleep stage events with start and duration
 

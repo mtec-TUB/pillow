@@ -62,13 +62,13 @@ class Physio2018(BaseDataset):
             'ann_ext': '**/*.arousal'
         }
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             '1.0.0',
             '1.0.0'
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse Physio2018 annotation files.
         """

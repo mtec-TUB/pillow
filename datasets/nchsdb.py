@@ -149,13 +149,13 @@ class NCHSDB(BaseDataset):
                                 }
         
 
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             'sleep_data',
             'sleep_data'
         ]
         
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         function to parse the annotation file of the dataset into sleep stage events with start and duration
 
@@ -226,7 +226,7 @@ class NCHSDB(BaseDataset):
         return ann_stage_events, float(start_time_label), lights_off, lights_on
     
     def align_front(self, logger, alignment, pad_values, epoch_duration,delay_sec,signal: np.ndarray, labels, fs
-                  ) -> Tuple[np.ndarray, np.ndarray]:
+                  ):
 
         # if not (float(delay_sec*Decimal(str(fs)))).is_integer():
         #     print(fs)

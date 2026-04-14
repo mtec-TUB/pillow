@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
@@ -166,13 +166,13 @@ class ANPHY(BaseDataset):
         return psg_id, ann_id
         
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             "osfstorage-archive",
             "osfstorage-archive"
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse ANPHY annotation files.
         """
@@ -199,7 +199,7 @@ class ANPHY(BaseDataset):
 
         return ann_stage_events, start_time_label, lights_off_sec, lights_on_sec
 
-    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs) -> Tuple[bool, float]:
+    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
         """ Align front part of signals and labels, in some datasets annotations start after signal recording"""
 
         return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)

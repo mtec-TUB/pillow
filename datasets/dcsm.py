@@ -68,14 +68,14 @@ class DCSM(BaseDataset):
             'ann_ext': '*_hypnogram.ids'
         }
 
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             "edfs",
             "annot"
         ]
     
 
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse DCSM .ids annotation files.
         

@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
@@ -71,13 +71,13 @@ class HMC(BaseDataset):
             ann_id = ann_fname.split(ann_ext)[0]
         return psg_id, ann_id
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             os.path.join('1.1', 'recordings'),
             os.path.join('1.1', 'recordings')
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse HMC CSV annotation files.
         

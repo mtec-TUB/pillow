@@ -144,13 +144,13 @@ class CAP(BaseDataset):
             'ann_ext': '*.txt'
         }
     
-    def dataset_paths(self) -> Tuple[str, str]:
+    def dataset_paths(self):
         return [
             "1.0.0",
             "1.0.0"
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str):
         """
         Parse CAP txt annotation files.
         """
@@ -199,7 +199,7 @@ class CAP(BaseDataset):
     
         
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal: np.ndarray, labels, fs
-                  ) -> Tuple[np.ndarray, np.ndarray]:
+                  ):
 
         return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)
 

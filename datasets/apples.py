@@ -1,6 +1,6 @@
 import os
-from typing import Dict, List, Tuple
-from datetime import datetime
+from typing import Dict, List, Optional, Tuple
+from datetime import _Time, datetime
 import pandas as pd
 
 from datasets.base import BaseDataset
@@ -69,7 +69,7 @@ class APPLES(BaseDataset):
             "polysomnography"
         ]
     
-    def ann_parse(self, ann_fname: str) -> Tuple[List[Dict], datetime]:
+    def ann_parse(self, ann_fname: str)-> tuple[list, datetime, _Time, _Time]:
         """
         Parse APPLES annotation files.
         """

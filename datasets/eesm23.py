@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 import pandas as pd
 from decimal import Decimal
 
@@ -68,7 +69,7 @@ class EESM23(BaseDataset):
             ann_id = Path(ann_fname).parent
         return psg_id, ann_id
     
-    def dataset_paths(self) -> tuple[str, str]:
+    def dataset_paths(self):
         return [
             '',
             ''
