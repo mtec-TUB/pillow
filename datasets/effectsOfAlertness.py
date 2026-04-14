@@ -67,7 +67,7 @@ class EffectsOfAlertness(BaseDataset):
         self.file_extensions = {'psg_ext': '**/*.set',
                                 'ann_ext': '**/*scoring.tsv'} 
         
-    def dataset_paths(self) -> tuple[str, str]:
+    def dataset_paths(self):
         return [
             '',
             ''
