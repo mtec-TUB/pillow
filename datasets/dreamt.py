@@ -4,6 +4,7 @@ DREAMT (Dataset for Real-time sleep stage EstimAtion using Multisensor wearable 
 import os
 import numpy as np
 import pandas as pd
+import polars as pl
 import csv
 from typing import Dict, List, Optional, Tuple
 from datasets.base import BaseDataset
@@ -15,6 +16,8 @@ class DREAMT(BaseDataset):
     
     def __init__(self):
         super().__init__("DREAMT","DREAMT - Dataset for Real-time sleep stage EstimAtion using Multisensor wearable Technology")
+
+        self.use_sample_rate = 100
 
         self._file_handler = None # DREAMT uses custom CSV handling directly implemented here
 
@@ -79,7 +82,7 @@ class DREAMT(BaseDataset):
             "ABDOMEN": self.Mapping(self.TTRef.ABDOMINAL, None),
             "SAO2": self.Mapping(self.TTRef.SPO2, None),
             "HR": self.Mapping(self.TTRef.HR, None),
-            "FLOW": self.Mapping(self.TTRef.FLOW, None),
+            "FLOW": self.Mapping(self.TTRef.AIRFLOW, None),
         }
         
         self.channel_types = {'analog': ['C4-M1', 'F4-M1', 'O2-M1', 'Fp1-O2', 'T3 - CZ', 'CZ - T4', 'CHIN', 'E1', 'E2', 'ECG', 'LAT', 'RAT', 'SNORE', 
@@ -94,10 +97,18 @@ class DREAMT(BaseDataset):
         }        
     
     def dataset_paths(self) -> Tuple[str, str]:
-        return [
-            '2.1.0/data_100Hz',
-            '2.1.0/data_100Hz'
-        ]
+        if self.use_sample_rate == 100:
+            return [
+                '2.1.0/data_100Hz',
+                '2.1.0/data_100Hz'
+            ]
+        elif self.use_sample_rate == 64:
+            return [
+                '2.1.0/data_64Hz',
+                '2.1.0/data_64Hz'
+            ]
+        else:
+            raise ValueError(f"Unsupported sample rate: {self.use_sample_rate}. Existing rates in dataset are 100Hz and 64Hz.")
     
     def get_channels(self, logger, filepath):
         """Extract column names from DREAMT CSV files."""
@@ -114,7 +125,7 @@ class DREAMT(BaseDataset):
     def read_signal(self, logger, filepath, channel):
         """Read signal from DREAMT CSV file for specific channel."""
         try:
-            dataset = pd.read_csv(filepath, sep=",", header=0)
+            dataset = pl.read_csv(filepath, null_values=[""])
             if channel in dataset.columns:
                 return dataset[channel].to_numpy()
         except Exception as e:
@@ -125,17 +136,17 @@ class DREAMT(BaseDataset):
     def get_signal_data(self, logger, filepath, channel):
         """Get complete DREAMT CSV signal information for processing."""
         try:
-            sampling_rate = 100
-            signal_values = []
+            sampling_rate = self.use_sample_rate
 
-            with open(filepath, "r", newline="", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
+            df = pl.read_csv(filepath, columns=[channel], null_values=[""], schema_overrides={channel: pl.Float64})
+            signal = df[channel].to_numpy()
+            missing_count = int(np.isnan(signal).sum())
 
-                for row in reader:
-                    value = row[channel]
-                    signal_values.append(float(value))
+            if missing_count == len(signal):
+                # occurs for channel T3-Cz in file S062_PSG_df_updated.csv
+                logger.warning(f"All values for channel {channel} in file {os.path.basename(filepath)} are missing. Skipping this channel")
+                return {}
 
-            signal = np.asarray(signal_values, dtype=np.float32)
             file_duration = len(signal) / sampling_rate
 
             return {
@@ -154,7 +165,7 @@ class DREAMT(BaseDataset):
         """
         DREAMT annotation parsing.
         """
-        sampling_rate = 100
+        sampling_rate = self.use_sample_rate
         epoch_duration = 30
         rows_per_epoch = sampling_rate * epoch_duration
 
@@ -162,15 +173,20 @@ class DREAMT(BaseDataset):
         start_time = None
 
         with open(ann_fname, "r", newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
+            reader = csv.reader(f)
+
+            header = next(reader)
+            stage_idx = header.index("Sleep_Stage")
+            time_idx = header.index("TIMESTAMP")
+
 
             for row_idx, row in enumerate(reader):
-                # keep only the first row of each epoch
+                # keep only the first sample/annotation of each epoch
                 if row_idx % rows_per_epoch != 0:
                     continue
 
-                stage = row["Sleep_Stage"]
-                epoch_start = float(row["TIMESTAMP"])
+                stage = row[stage_idx]
+                epoch_start = float(row[time_idx])
 
                 if start_time is None:
                     start_time = epoch_start
@@ -182,7 +198,7 @@ class DREAMT(BaseDataset):
                 })
 
         lights_off, lights_on = None, None
-        return ann_stage_events, None, lights_off, lights_on
+        return ann_stage_events, start_time, lights_off, lights_on
     
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
         # Labels can be one epoch longer than signal because signal gets cropped to full epochs and label exist for the last partial epoch
