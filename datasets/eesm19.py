@@ -30,7 +30,7 @@ class EESM19(BaseDataset):
                         4: "N2",  # NREM Stage 2
                         5: "N3",  # NREM Stage 3
                         2: "REM",   # REM sleep
-                        7: 6    # Artefact
+                        7: "UNK",    # Artefact
                         }
         
         

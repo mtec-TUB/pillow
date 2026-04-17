@@ -20,7 +20,7 @@ class ANPHY(BaseDataset):
             "N2": "N2",  # NREM Stage 2
             "N3": "N3",  # NREM Stage 3
             "R": "REM",   # REM sleep
-            "L": 6    # Prepare, lights on/off time
+            "L": "UNK",    # Prepare, lights on/off time
         }
         
         self.channel_names = ['AF3', 'AF3-Ref', 'AF4', 'AF4-Ref', 'AF7', 'AF7-Ref', 'AF8', 'AF8-Ref', 'AFZ', 'AFZ-Ref', 'C1', 'C1-', 'C1-Ref', 'C2', 

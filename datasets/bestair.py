@@ -19,7 +19,7 @@ class BESTAIR(BaseDataset):
             "Stage 3 sleep": "N3",
             "Stage 4 sleep": "N3",  # Follow AASM Manual
             "REM sleep": "REM",
-            "Unscored": 6
+            "Unscored": "UNK",
         }
         
         # https://gitlab-scm.partners.org/zzz-public/nsrr/-/blob/master/studies/legacy/bestair/sigs.alias.1

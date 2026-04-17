@@ -29,7 +29,7 @@ class ISRUC(BaseDataset):
             "n2": "N2",   # in file "Subgroup 1_2_2_2.xlsx"
             "N3": "N3",   # Stage 3
             "R": "REM",    # REM
-            "U": 6    # Unknown
+            "U": "UNK",    # Unknown
         }
         
         

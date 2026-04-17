@@ -27,7 +27,7 @@ class CPS(BaseDataset):
             "N3": "N3",
             "Rem": "REM",
             "A": "UNK",
-            "Artefakt": 6
+            "Artefakt": "UNK",
         }
 
         # https://physionet.org/content/cps-dataset-sleep/1.0.0/

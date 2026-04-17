@@ -24,7 +24,7 @@ class DODO(BaseDataset):
             2: "N2",   # NREM Stage 2
             3: "N3",   # NREM Stage 3
             4: "REM",   # REM sleep
-            -1: 6   # Unscored
+            -1: "UNK",   # Unscored
         }
         
         

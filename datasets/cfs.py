@@ -21,7 +21,7 @@ class CFS(BaseDataset):
             "Stage 3 sleep": "N3",
             "Stage 4 sleep": "N3",  # Follow AASM Manual
             "REM sleep": "REM",
-            "Unscored": 6
+            "Unscored": "UNK",
         }
 
         self.intra_dataset_mapping = {

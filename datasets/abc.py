@@ -17,7 +17,7 @@ class ABC(BaseDataset):
                         "Stage 2 sleep": "N2",
                         "Stage 3 sleep": "N3",
                         "REM sleep": "REM",
-                        "Unscored": 6
+                        "Unscored": "UNK"
                         }
         
         

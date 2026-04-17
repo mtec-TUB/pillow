@@ -27,7 +27,7 @@ class EESM23(BaseDataset):
                         "N2": "N2",  # NREM Stage 2
                         "N3": "N3",  # NREM Stage 3
                         "REM": "REM",   # REM sleep
-                        "Artefact": 6
+                        "Artefact": "UNK",
                         }
         
         
