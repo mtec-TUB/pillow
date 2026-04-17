@@ -79,6 +79,7 @@ class STAGES(BaseDataset):
             "T6": self.Mapping(self.TTRef.P8, None),
             "RAT": self.Mapping(self.TTRef.EMG_RLEG, None),
             "LAT": self.Mapping(self.TTRef.EMG_LLEG, None),
+            "Heartrate": self.Mapping(self.TTRef.HR, None),
         }
 
         self.intra_dataset_mapping = {'Abdomen': [ 'ABD', 'ABDM', 'ABDOMEN', 'Abd', 'Abdomen'],

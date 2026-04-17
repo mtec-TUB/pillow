@@ -42,6 +42,7 @@ class MSP(BaseDataset):
             "ECG": self.Mapping(self.TTRef.ECG, None),
             "EMG1": self.Mapping(self.TTRef.EMG_LCHIN, None),   # not sure if this is correct (left/right)
             "EMG2": self.Mapping(self.TTRef.EMG_RCHIN, None),
+            "HR": self.Mapping(self.TTRef.HR, None),
         }
         
         self.channel_names =  ['RAT', 'LAT', 'EMG2', 'EMG1', 'ECG', 'abdomen', 'thorax', 'nasal_pres',

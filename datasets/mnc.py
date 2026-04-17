@@ -64,6 +64,7 @@ class MNC(BaseDataset):
             "snore": self.Mapping(self.TTRef.SNORE, None),
             "ECG": self.Mapping(self.TTRef.ECG, None),
             "pap_flow": self.Mapping(self.TTRef.CPAP, None),
+            "hr": self.Mapping(self.TTRef.HR, None),
         }
         
         

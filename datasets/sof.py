@@ -47,6 +47,7 @@ class SOF(BaseDataset):
             "Airflow": self.Mapping(self.TTRef.AIRFLOW, None),
             "Leg/L": self.Mapping(self.TTRef.EMG_LLEG, None),
             "Leg/R": self.Mapping(self.TTRef.EMG_RLEG, None),
+            "HR": self.Mapping(self.TTRef.HR, None),
         }
         
         

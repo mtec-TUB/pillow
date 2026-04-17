@@ -98,7 +98,7 @@ class CAP(BaseDataset):
             "EMG1-EMG2": self.Mapping(self.TTRef.EMG_CHIN, None),   # is the chin EMG channel that appears most frequently
             "LOC-ROC": self.Mapping(self.TTRef.EL, self.TTRef.ER),
             "ROC-LOC": self.Mapping(self.TTRef.ER, self.TTRef.EL),
-
+            "HR": self.Mapping(self.TTRef.HR, None),
         }
         
         self.channel_names = ['A1', 'A2', 'ADDDOME', 'ADDOME', 'Abdo', 'C3', 'C3-A2', 'C3-P3', 'C3A2', 'C4', 'C4-A1',

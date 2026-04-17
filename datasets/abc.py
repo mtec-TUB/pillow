@@ -62,6 +62,7 @@ class ABC(BaseDataset):
             "Snore": self.Mapping(self.TTRef.SNORE, None),
             "PosSensor": self.Mapping(self.TTRef.POSITION, None),
             "CPAP Flow": self.Mapping(self.TTRef.CPAP, None),
+            "Derived HR": self.Mapping(self.TTRef.HR, None),
         }
                 
         

@@ -103,6 +103,7 @@ class HOMEPAP(BaseDataset):
             "abdomen": self.Mapping(self.TTRef.ABDOMINAL, None),
             "chest": self.Mapping(self.TTRef.THORACIC, None),
             "airflow": self.Mapping(self.TTRef.AIRFLOW, None),
+            "heartrate": self.Mapping(self.TTRef.HR, None),
         }
         
         
