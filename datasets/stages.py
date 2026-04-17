@@ -18,12 +18,12 @@ class STAGES(BaseDataset):
     
     def _setup_dataset_config(self):
         self.ann2label = {
-                'Wake': 0,
-                'Stage1': 1,
-                'Stage2': 2,
-                'Stage3': 3,
-                'REM': 4,
-                'UnknownStage': 6,
+                'Wake': "W",
+                'Stage1': "N1",
+                'Stage2': "N2",
+                'Stage3': "N3",
+                'REM': "REM",
+                'UnknownStage': "UNK",
         }
 
         # does not include channels that are only present in very few recordings

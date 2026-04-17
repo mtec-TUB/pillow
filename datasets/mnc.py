@@ -20,17 +20,17 @@ class MNC(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-                "wake": 0,
-                "NREM1": 1,
-                "NREM2": 2,
-                "NREM3": 3,
-                "NREM4": 3,
-                "REM": 4,
-                "unscored": 6,
-                "9": 6,  # unknown?
-                "8": 6, # unknown?
-                " ": 6,  # empty lines
-                "NaN": 6,
+                "wake": "W",
+                "NREM1": "N1",
+                "NREM2": "N2",
+                "NREM3": "N3",
+                "NREM4": "N3",
+                "REM": "REM",
+                "unscored": "UNK",
+                "9": "UNK",  # unknown?
+                "8": "UNK", # unknown?
+                " ": "UNK",  # empty lines
+                "NaN": "UNK",
         }
 
         self.intra_dataset_mapping = {

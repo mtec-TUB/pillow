@@ -20,13 +20,13 @@ class EffectsOfAlertness(BaseDataset):
     
     def _setup_dataset_config(self):
         self.ann2label = {
-                        1: 0,   # Wake
-                        3: 1,   # NREM Stage 1
-                        4: 2,   # NREM Stage 2
-                        5: 3,   # NREM Stage 3
-                        2: 4,   # REM sleep
-                        7: 6,   # Artefact
-                        8: 6,   # Unknown
+                        1: "W",   # Wake
+                        3: "N1",   # NREM Stage 1
+                        4: "N2",   # NREM Stage 2
+                        5: "N3",   # NREM Stage 3
+                        2: "REM",   # REM sleep
+                        7: "UNK",   # Artefact
+                        8: "UNK",   # Unknown
                         }
         
         

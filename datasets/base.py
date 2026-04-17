@@ -310,6 +310,7 @@ class BaseDataset(ABC):
         self,
         logger: logging.Logger,
         ann_stage_events: List[Dict],
+        STAGE_DICT: Dict[str, int],
         epoch_duration: int,
     ):
         """
@@ -342,6 +343,7 @@ class BaseDataset(ABC):
             else:
                 logger.error(f"Something unexpected: label {ann_str} not found")
                 raise Exception(f"Something unexpected: label {ann_str} not found")
+            label = STAGE_DICT[label]   # Map to standardized label
 
             # Compute # of epoch for this stage
             if ann_duration % epoch_duration != 0:

@@ -11,13 +11,13 @@ class MESA(BaseDataset):
   
     def _setup_dataset_config(self):
         self.ann2label = {
-            "Wake": 0,
-            "Stage 1 sleep": 1,
-            "Stage 2 sleep": 2,
-            "Stage 3 sleep": 3,
-            "Stage 4 sleep": 3, # Follow AASM Manual
-            "REM sleep": 4,
-            "Unscored": 6,
+            "Wake": "W",
+            "Stage 1 sleep": "N1",
+            "Stage 2 sleep": "N2",
+            "Stage 3 sleep": "N3",
+            "Stage 4 sleep": "N3", # Follow AASM Manual
+            "REM sleep": "REM",
+            "Unscored": "UNK",
         }
 
 

@@ -15,11 +15,11 @@ class SLEEPBRL(BaseDataset):
   
     def _setup_dataset_config(self):
         self.ann2label = {
-                "W": 0,
-                "1": 1,
-                "2": 2,
-                "3": 3,
-                "R": 4,
+                "W": "W",
+                "1": "N1",
+                "2": "N2",
+                "3": "N3",
+                "R": "REM",
                 }
         
         self.channel_names = ['S9', 'S14', 'S1', 'S10', 'S5', 'S6', 'S3',

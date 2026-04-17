@@ -19,13 +19,13 @@ class MITBIH(BaseDataset):
   
     def _setup_dataset_config(self):
         self.ann2label = {
-                "W": 0,
-                "1": 1,
-                "2": 2,
-                "3": 3,
-                "4": 3,
-                "R": 4,
-                "M": 5,
+                "W": "W",
+                "1": "N1",
+                "2": "N2",
+                "3": "N3",
+                "4": "N3",
+                "R": "REM",
+                "M": "MOVE",
                 }
         
         self.intra_dataset_mapping = {

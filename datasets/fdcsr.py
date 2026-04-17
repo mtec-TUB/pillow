@@ -18,16 +18,16 @@ class FDCSR(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label =  {
-            5: 0,  # Wake
-            1: 1,  # NREM Stage 1
-            2: 2,  # NREM Stage 2
-            3: 3,  # NREM Stage 3
-            4: 3,  # Follow AASM Manual
-            6: 4,  # REM sleep
-            0: 6,  # Unknown
-            7: 5,  # Movement
-            8: 6,  # Lights Out
-            9: 6,  # Lights On
+            5: "W",  # Wake
+            1: "N1",  # NREM Stage 1
+            2: "N2",  # NREM Stage 2
+            3: "N3",  # NREM Stage 3
+            4: "N3",  # Follow AASM Manual
+            6: "REM",  # REM sleep
+            0: "UNK",  # Unknown
+            7: "MOVE",  # Movement
+            8: "UNK",  # Lights Out
+            9: "UNK",  # Lights On
         }
         
         

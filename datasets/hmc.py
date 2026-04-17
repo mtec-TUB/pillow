@@ -14,11 +14,11 @@ class HMC(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-            "Sleep stage W": 0,   # Wake
-            "Sleep stage N1": 1,  # NREM Stage 1
-            "Sleep stage N2": 2,  # NREM Stage 2
-            "Sleep stage N3": 3,  # NREM Stage 3
-            "Sleep stage R": 4,   # REM sleep
+            "Sleep stage W": "W",   # Wake
+            "Sleep stage N1": "N1",  # NREM Stage 1
+            "Sleep stage N2": "N2",  # NREM Stage 2
+            "Sleep stage N3": "N3",  # NREM Stage 3
+            "Sleep stage R": "REM",   # REM sleep
         }
 
         self.inter_dataset_mapping = {

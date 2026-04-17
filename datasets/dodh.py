@@ -17,11 +17,11 @@ class DODH(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-            0: 0,   # Wake
-            1: 1,   # NREM Stage 1
-            2: 2,   # NREM Stage 2
-            3: 3,   # NREM Stage 3
-            4: 4,   # REM sleep
+            0: "W",   # Wake
+            1: "N1",   # NREM Stage 1
+            2: "N2",   # NREM Stage 2
+            3: "N3",   # NREM Stage 3
+            4: "REM",   # REM sleep
             -1: 6   # Unscored
         }
         

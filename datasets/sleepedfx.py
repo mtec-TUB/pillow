@@ -16,13 +16,13 @@ class SleepEDFX(BaseDataset):
         
     def _setup_dataset_config(self):
         self.ann2label = {
-            "Sleep stage W": 0,      # Wake
-            "Sleep stage 1": 1,      # NREM Stage 1
-            "Sleep stage 2": 2,      # NREM Stage 2
-            "Sleep stage 3": 3,      # NREM Stage 3
-            "Sleep stage 4": 3,      # NREM Stage 4 (Follow AASM Manual)
-            "Sleep stage R": 4,      # REM sleep
-            "Sleep stage ?": 6,      # Unknown/Unscored
+            "Sleep stage W": "W",     # Wake
+            "Sleep stage 1": "N1",      # NREM Stage 1
+            "Sleep stage 2": "N2",      # NREM Stage 2
+            "Sleep stage 3": "N3",      # NREM Stage 3
+            "Sleep stage 4": "N3",      # NREM Stage 4 (Follow AASM Manual)
+            "Sleep stage R": "REM",      # REM sleep
+            "Sleep stage ?": "UNK",      # Unknown/Unscored
             "Movement time": 5       # Movement
         }
 

@@ -23,6 +23,12 @@ from .signal_processor import SignalProcessor
 
 logging.captureWarnings(True)
 
+# Final sleep stage labels mapping (did not yet find a better place for this, maybe in config?)
+# labels will appear like this in output 
+STAGE_DICT = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "MOVE": 5, "UNK": 6}
+
+SLEEP_STAGES = [STAGE_DICT["N1"],STAGE_DICT["N2"],STAGE_DICT["N3"],STAGE_DICT["REM"]]
+
 
 class DatasetProcessor:
     """
@@ -211,7 +217,7 @@ class FileProcessor:
                     return
                 
                 # Map dataset-labels to standardized labels and check consistency
-                labels = self.dataset.ann_label(file_logger, ann_stage_events, self.config.epoch_duration)
+                labels = self.dataset.ann_label(file_logger, ann_stage_events, STAGE_DICT, self.config.epoch_duration)
 
                 # Check how many sleep epochs are in the file
                 sleep_mask = np.isin(labels, self.SLEEP_STAGES)

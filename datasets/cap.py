@@ -15,15 +15,15 @@ class CAP(BaseDataset):
   
     def _setup_dataset_config(self):
         self.ann2label = {
-                            "W":0,
-                            "S1":1,
-                            "S2":2,
-                            "S3":3,
-                            "1S3":3,    # occurs in file n12.txt
-                            "S4":3,
-                            "REM":4,
-                            "R":4,
-                            "MT": 5
+                            "W": "W",
+                            "S1": "N1",
+                            "S2": "N2",
+                            "S3": "N3",
+                            "1S3": "N3",    # occurs in file n12.txt
+                            "S4": "N3",
+                            "REM": "REM",
+                            "R": "REM",
+                            "MT": "MOVE"
                             }
         
         self.intra_dataset_mapping = {

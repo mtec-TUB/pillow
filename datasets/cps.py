@@ -21,12 +21,12 @@ class CPS(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-            "Wach": 0,
-            "N1": 1,
-            "N2": 2,
-            "N3": 3,
-            "Rem": 4,
-            "A": 6,
+            "Wach": "W",
+            "N1": "N1",
+            "N2": "N2",
+            "N3": "N3",
+            "Rem": "REM",
+            "A": "UNK",
             "Artefakt": 6
         }
 

@@ -21,14 +21,14 @@ class ISRUC(BaseDataset):
         
     def _setup_dataset_config(self):
         self.ann2label =  {
-            "W": 0,   # Wake
-            "w": 0,     # in file "Subgroup 3_9_9_9_1.xlsx"
-            "N": 1,     # in file "Subgroup 1_4_4_4_1.xlsx", compared to "Subgroup 1_4_4_4_1.txt" -> N1
-            "N1": 1,   # Stage 1
-            "N2": 2,   # Stage 2
-            "n2": 2,   # in file "Subgroup 1_2_2_2.xlsx"
-            "N3": 3,   # Stage 3
-            "R": 4,    # REM
+            "W": "W",   # Wake
+            "w": "W",     # in file "Subgroup 3_9_9_9_1.xlsx"
+            "N": "N1",     # in file "Subgroup 1_4_4_4_1.xlsx", compared to "Subgroup 1_4_4_4_1.txt" -> N1
+            "N1": "N1",   # Stage 1
+            "N2": "N2",   # Stage 2
+            "n2": "N2",   # in file "Subgroup 1_2_2_2.xlsx"
+            "N3": "N3",   # Stage 3
+            "R": "REM",    # REM
             "U": 6    # Unknown
         }
         
@@ -168,7 +168,7 @@ class ISRUC(BaseDataset):
         
         return ann_stage_events, None, lights_off[0], lights_on[0]
     
-    def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int):
+    def ann_label(self, logger, ann_stage_events: List[List[Dict]], STAGE_DICT, epoch_duration: int):
         """
         Convert multi-scorer sleep stage events to epoch-wise labels for ISRUC dataset.
         Returns 2D array (n_epochs, n_scorers).
@@ -191,6 +191,7 @@ class ISRUC(BaseDataset):
                 else:
                     logger.info(f"Something unexpected: label {ann_str} not found")
                     raise Exception(f"Something unexpected: label {ann_str} not found")
+                label = STAGE_DICT[label]   # Map to standardized label
 
                 # Compute # of epoch for this stage
                 if duration_sec % epoch_duration != 0:

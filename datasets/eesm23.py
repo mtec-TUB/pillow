@@ -22,11 +22,11 @@ class EESM23(BaseDataset):
     
     def _setup_dataset_config(self):
         self.ann2label = {
-                        "Wake": 0,   # Wake
-                        "N1": 1,  # NREM Stage 1
-                        "N2": 2,  # NREM Stage 2
-                        "N3": 3,  # NREM Stage 3
-                        "REM": 4,   # REM sleep
+                        "Wake": "W",   # Wake
+                        "N1": "N1",  # NREM Stage 1
+                        "N2": "N2",  # NREM Stage 2
+                        "N3": "N3",  # NREM Stage 3
+                        "REM": "REM",   # REM sleep
                         "Artefact": 6
                         }
         
