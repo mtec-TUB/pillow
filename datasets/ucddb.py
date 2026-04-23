@@ -15,15 +15,15 @@ class UCDDB(BaseDataset):
         
     def _setup_dataset_config(self):
         self.ann2label =  {
-            0: 0,   # Wake
-            2: 1,   # Stage 1
-            3: 2,   # Stage 2
-            4: 3,   # Stage 3
-            5: 3,   # Stage 4 according to AASM
-            1: 4,    # REM
-            6: 6,
-            7: 6,
-            8: 6,
+            0: "W",   # Wake
+            2: "N1",   # Stage 1
+            3: "N2",   # Stage 2
+            4: "N3",   # Stage 3
+            5: "N3",   # Stage 4 according to AASM
+            1: "REM",    # REM
+            6: "UNK",
+            7: "UNK",
+            8: "UNK",
         }
         
         

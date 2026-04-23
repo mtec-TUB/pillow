@@ -34,11 +34,11 @@ class WFDBHandler:
             logger.error(f"Error reading signal from {filepath}: {e}")
             raise
 
-    def get_signal_data(self, logger, filepath, channel):
-        """Get complete signal information for processing."""
+    def get_start_datetime(self, logger, filepath):
+        """Get start datetime of file."""
         try:
             psg_fname_no_ext, _ = os.path.splitext(filepath)
-            record = wfdb.rdrecord(psg_fname_no_ext, channel_names=[channel])
+            record = wfdb.rdheader(psg_fname_no_ext)
             
             psg_date = record.base_date
             if psg_date == None:
@@ -49,6 +49,17 @@ class WFDBHandler:
             else:
                 start_datetime = datetime.combine(psg_date, psg_time)
 
+            return start_datetime
+        except Exception as e:
+            logger.error(f"Error processing WFDB file {filepath}: {e}")
+            raise
+
+    def get_signal_data(self, logger, filepath, channel):
+        """Get complete signal information for processing."""
+        try:
+            psg_fname_no_ext, _ = os.path.splitext(filepath)
+            record = wfdb.rdrecord(psg_fname_no_ext, channel_names=[channel])
+            
             sampling_rate = record.fs
             signal = record.p_signal[:,0]
 
@@ -60,7 +71,6 @@ class WFDBHandler:
                 "signal": signal,
                 "sampling_rate": sampling_rate,
                 "unit": unit,
-                "start_datetime": start_datetime,
                 "file_duration": file_duration,
             }
         except Exception as e:

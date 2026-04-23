@@ -18,12 +18,12 @@ class STAGES(BaseDataset):
     
     def _setup_dataset_config(self):
         self.ann2label = {
-                'Wake': 0,
-                'Stage1': 1,
-                'Stage2': 2,
-                'Stage3': 3,
-                'REM': 4,
-                'UnknownStage': 6,
+                'Wake': "W",
+                'Stage1': "N1",
+                'Stage2': "N2",
+                'Stage3': "N3",
+                'REM': "REM",
+                'UnknownStage': "UNK",
         }
 
         # does not include channels that are only present in very few recordings
@@ -79,6 +79,7 @@ class STAGES(BaseDataset):
             "T6": self.Mapping(self.TTRef.P8, None),
             "RAT": self.Mapping(self.TTRef.EMG_RLEG, None),
             "LAT": self.Mapping(self.TTRef.EMG_LLEG, None),
+            "Heartrate": self.Mapping(self.TTRef.HR, None),
         }
 
         self.intra_dataset_mapping = {'Abdomen': [ 'ABD', 'ABDM', 'ABDOMEN', 'Abd', 'Abdomen'],

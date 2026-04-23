@@ -24,7 +24,7 @@ class MWT(BaseDataset):
         # Dataset uses BERN scoring (0-wake, 1-MSE, 2-MSEc, 3-ED), we map more than 15s of MSE (micro-sleep-event) to "sleep" and the rest to "wake"
         # see also https://doi.org/10.1093/sleep/zsz163
         self.ann2label = {
-            "wake": 0,
+            "wake": "W",
             "sleep": 1
         }
 
@@ -73,6 +73,10 @@ class MWT(BaseDataset):
         except Exception as e:
             logger.error(f"Error reading mat signal from {filepath}: {e}")
         return None
+    
+    def get_start_datetime(self, logger, filepath):
+        """Get start datetime of file."""
+        return None  # MWT does not contain start datetime information
 
     def get_signal_data(self, logger, filepath, channel):
         """Get complete EDF signal information for processing."""
@@ -90,7 +94,6 @@ class MWT(BaseDataset):
             return {
                 "signal": signal,
                 "sampling_rate": float(sampling_rate),
-                "start_datetime": None,
                 "file_duration": file_duration,
             }
         except Exception as e:
@@ -141,7 +144,7 @@ class MWT(BaseDataset):
 
         return ann_stage_events, None, None, None
     
-    def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int):
+    def ann_label(self, logger, ann_stage_events: List[List[Dict]], STAGE_DICT, epoch_duration: int):
         """
         Convert multi-scorer sleep stage events to epoch-wise labels for ISRUC dataset.
         Returns 2D array (n_epochs, n_scorers).
@@ -164,6 +167,7 @@ class MWT(BaseDataset):
                 else:
                     logger.info(f"Something unexpected: label {ann_str} not found")
                     raise Exception(f"Something unexpected: label {ann_str} not found")
+                label = STAGE_DICT[label]   # Map to standardized label
 
                 # Compute # of epoch for this stage
                 if duration_sec % epoch_duration != 0:

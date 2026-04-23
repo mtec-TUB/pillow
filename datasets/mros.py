@@ -13,13 +13,13 @@ class MROS(BaseDataset):
   
     def _setup_dataset_config(self):
         self.ann2label = {
-            "Wake": 0,
-            "Stage 1 sleep": 1,
-            "Stage 2 sleep": 2,
-            "Stage 3 sleep": 3,
-            "Stage 4 sleep": 3, # Follow AASM Manual
-            "REM sleep": 4,
-            "Unscored": 6
+            "Wake": "W",
+            "Stage 1 sleep": "N1",
+            "Stage 2 sleep": "N2",
+            "Stage 3 sleep": "N3",
+            "Stage 4 sleep": "N3", # Follow AASM Manual
+            "REM sleep": "REM",
+            "Unscored": "UNK",
         }
         
         
@@ -60,6 +60,7 @@ class MROS(BaseDataset):
             "RChin": self.Mapping(self.TTRef.EMG_RCHIN, self.TTRef.Fpz),
             "L Chin-R Chin": self.Mapping(self.TTRef.EMG_LCHIN, self.TTRef.EMG_RCHIN),
             "ECGR": self.Mapping(self.TTRef.ECG, None), # most frequently used ECG channel
+            "HR": self.Mapping(self.TTRef.HR, None),
         }
         
         

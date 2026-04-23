@@ -17,12 +17,12 @@ class MSP(BaseDataset):
     
     def _setup_dataset_config(self):
         self.ann2label = {
-                'W': 0,
-                'N1': 1,
-                'N2': 2,
-                'N3': 3,
-                'R': 4,
-                '?': 6,
+                'W': "W",
+                'N1': "N1",
+                'N2': "N2",
+                'N3': "N3",
+                'R': "REM",
+                '?': "UNK",
         }
 
         self.inter_dataset_mapping = {
@@ -42,6 +42,7 @@ class MSP(BaseDataset):
             "ECG": self.Mapping(self.TTRef.ECG, None),
             "EMG1": self.Mapping(self.TTRef.EMG_LCHIN, None),   # not sure if this is correct (left/right)
             "EMG2": self.Mapping(self.TTRef.EMG_RCHIN, None),
+            "HR": self.Mapping(self.TTRef.HR, None),
         }
         
         self.channel_names =  ['RAT', 'LAT', 'EMG2', 'EMG1', 'ECG', 'abdomen', 'thorax', 'nasal_pres',

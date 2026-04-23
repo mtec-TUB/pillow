@@ -15,13 +15,13 @@ class CCSHS(BaseDataset):
   
     def _setup_dataset_config(self):
         self.ann2label = {
-            "Wake": 0,
-            "Stage 1 sleep": 1,
-            "Stage 2 sleep": 2,
-            "Stage 3 sleep": 3,
-            "Stage 4 sleep": 3, # according to AASM (only existing in one epoch in one single file)
-            "REM sleep": 4,
-            "Movement": 5,
+            "Wake": "W",
+            "Stage 1 sleep": "N1",
+            "Stage 2 sleep": "N2",
+            "Stage 3 sleep": "N3",
+            "Stage 4 sleep": "N3", # according to AASM (only existing in one epoch in one single file)
+            "REM sleep": "REM",
+            "Movement": "MOVE",
         }
 
         self.intra_dataset_mapping = {

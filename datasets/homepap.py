@@ -12,12 +12,12 @@ class HOMEPAP(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-            "Wake": 0,
-            "Stage 1 sleep": 1,
-            "Stage 2 sleep": 2,
-            "Stage 3 sleep": 3,
-            "Stage 4 sleep": 4,
-            "REM sleep": 4,
+            "Wake": "W",
+            "Stage 1 sleep": "N1",
+            "Stage 2 sleep": "N2",
+            "Stage 3 sleep": "N3",
+            "Stage 4 sleep": "REM",
+            "REM sleep": "REM",
             "Movement": 5
         }
         
@@ -103,6 +103,7 @@ class HOMEPAP(BaseDataset):
             "abdomen": self.Mapping(self.TTRef.ABDOMINAL, None),
             "chest": self.Mapping(self.TTRef.THORACIC, None),
             "airflow": self.Mapping(self.TTRef.AIRFLOW, None),
+            "heartrate": self.Mapping(self.TTRef.HR, None),
         }
         
         

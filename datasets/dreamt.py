@@ -52,12 +52,12 @@ class DREAMT(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-            "W": 0,      # Wake
-            "N1": 1,     # NREM Stage 1
-            "N2": 2,     # NREM Stage 2
-            "N3": 3,     # NREM Stage 3
-            "R": 4,      # REM sleep
-            "Missing": 6, # Unscored/Missing
+            "W": "W",      # Wake
+            "N1": "N1",     # NREM Stage 1
+            "N2": "N2",     # NREM Stage 2
+            "N3": "N3",     # NREM Stage 3
+            "R": "REM",      # REM sleep
+            "Missing": "UNK", # Unscored/Missing
             "P": 0     # Preparation stage, labeled as Wake as in described in https://physionet.org/content/dreamt/2.1.0/
         }        
         
@@ -132,6 +132,9 @@ class DREAMT(BaseDataset):
             logger.error(f"Error reading DREAMT CSV signal from {filepath}: {e}")
         return None
     
+    def get_start_datetime(self, logger, filepath):
+        """Get start datetime of file."""
+        return None  # DREAMT CSV files do not contain start datetime information
 
     def get_signal_data(self, logger, filepath, channel):
         """Get complete DREAMT CSV signal information for processing."""
@@ -153,7 +156,6 @@ class DREAMT(BaseDataset):
                 "signal": signal,
                 "sampling_rate": sampling_rate,
                 "unit": self.unit_dict.get(channel,'a.u.'),
-                "start_datetime": None,
                 "file_duration": file_duration,
             }
 

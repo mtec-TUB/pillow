@@ -46,6 +46,10 @@ class BaseDataset(ABC):
         """Read signal data for a specific channel."""
         return self._file_handler.read_signal(logger, filepath, channel)
     
+    def get_start_datetime(self, logger, filepath):
+        """Get start datetime of file."""
+        return self._file_handler.get_start_datetime(logger, filepath)
+    
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for processing."""
         return self._file_handler.get_signal_data(logger, filepath, channel)
@@ -306,6 +310,7 @@ class BaseDataset(ABC):
         self,
         logger: logging.Logger,
         ann_stage_events: List[Dict],
+        STAGE_DICT: Dict[str, int],
         epoch_duration: int,
     ):
         """
@@ -338,6 +343,7 @@ class BaseDataset(ABC):
             else:
                 logger.error(f"Something unexpected: label {ann_str} not found")
                 raise Exception(f"Something unexpected: label {ann_str} not found")
+            label = STAGE_DICT[label]   # Map to standardized label
 
             # Compute # of epoch for this stage
             if ann_duration % epoch_duration != 0:

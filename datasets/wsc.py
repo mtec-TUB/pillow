@@ -17,23 +17,23 @@ class WSC(BaseDataset):
         # see wsc-scoring-annotation-documentation.xlsx
         self.ann2label = {
             # String-based labels
-            "STAGE - W": 0,
-            "STAGE - N1": 1,
-            "STAGE - N2": 2,
-            "STAGE - N3": 3,
-            "STAGE - N4": 3,  # Follow AASM Manual
-            "STAGE - R": 4,
-            "STAGE - NO STAGE": 6,
-            "STAGE - MVT": 5,
+            "STAGE - W": "W",
+            "STAGE - N1": "N1",
+            "STAGE - N2": "N2",
+            "STAGE - N3": "N3",
+            "STAGE - N4": "N3",  # Follow AASM Manual
+            "STAGE - R": "REM",
+            "STAGE - NO STAGE": "UNK",
+            "STAGE - MVT": "MOVE",
             # Numeric labels
-            0: 0,  # Wake
-            1: 1,  # NREM Stage 1
-            2: 2,  # NREM Stage 2
-            3: 3,  # NREM Stage 3
-            4: 3,  # NREM Stage 4 (Follow AASM Manual)
-            5: 4,  # REM
-            6: 5,   # Movement
-            7: 6,  # Unscored
+            0: "W",  # Wake
+            1: "N1",  # NREM Stage 1
+            2: "N2",  # NREM Stage 2
+            3: "N3",  # NREM Stage 3
+            4: "N3",  # NREM Stage 4 (Follow AASM Manual)
+            5: "REM",  # REM
+            6: "MOVE",   # Movement
+            7: "UNK",  # Unscored
         }
 
         self.inter_dataset_mapping = {

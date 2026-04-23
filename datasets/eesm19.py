@@ -25,12 +25,12 @@ class EESM19(BaseDataset):
     
     def _setup_dataset_config(self):
         self.ann2label = {
-                        1: 0,   # Wake
-                        3: 1,  # NREM Stage 1
-                        4: 2,  # NREM Stage 2
-                        5: 3,  # NREM Stage 3
-                        2: 4,   # REM sleep
-                        7: 6    # Artefact
+                        1: "W",   # Wake
+                        3: "N1",  # NREM Stage 1
+                        4: "N2",  # NREM Stage 2
+                        5: "N3",  # NREM Stage 3
+                        2: "REM",   # REM sleep
+                        7: "UNK",    # Artefact
                         }
         
         
@@ -132,7 +132,7 @@ class EESM19(BaseDataset):
             
         return [ann_stage_events_1, ann_stage_events_2], start_time_label, lights_off, None
     
-    def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int):
+    def ann_label(self, logger, ann_stage_events: List[List[Dict]], STAGE_DICT, epoch_duration: int):
         """
         Convert multi-scorer sleep stage events to epoch-wise labels for ISRUC dataset.
         Returns 2D array (n_epochs, n_scorers).
@@ -155,6 +155,7 @@ class EESM19(BaseDataset):
                 else:
                     logger.info(f"Something unexpected: label {ann_str} not found")
                     raise Exception(f"Something unexpected: label {ann_str} not found")
+                label = STAGE_DICT[label]   # Map to standardized label
 
                 # Compute # of epoch for this stage
                 if duration_sec % epoch_duration != 0:

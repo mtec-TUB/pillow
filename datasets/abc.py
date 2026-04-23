@@ -13,12 +13,12 @@ class ABC(BaseDataset):
     
 
     def _setup_dataset_config(self):
-        self.ann2label = {"Wake": 0,
-                        "Stage 1 sleep": 1,
-                        "Stage 2 sleep": 2,
-                        "Stage 3 sleep": 3,
-                        "REM sleep": 4,
-                        "Unscored": 6
+        self.ann2label = {"Wake": "W",
+                        "Stage 1 sleep": "N1",
+                        "Stage 2 sleep": "N2",
+                        "Stage 3 sleep": "N3",
+                        "REM sleep": "REM",
+                        "Unscored": "UNK"
                         }
         
         
@@ -63,6 +63,7 @@ class ABC(BaseDataset):
             "Snore": self.Mapping(self.TTRef.SNORE, None),
             "PosSensor": self.Mapping(self.TTRef.POSITION, None),
             "CPAP Flow": self.Mapping(self.TTRef.CPAP, None),
+            "Derived HR": self.Mapping(self.TTRef.HR, None),
         }
                 
         

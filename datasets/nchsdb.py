@@ -27,15 +27,15 @@ class NCHSDB(BaseDataset):
     
     def _setup_dataset_config(self):
         self.ann2label = {
-                'Sleep stage W': 0,
-                'Sleep stage N1': 1,
-                'Sleep stage N2': 2,
-                'Sleep stage N3': 3,
-                'Sleep stage R': 4,
-                'Sleep stage ?': 6,
-                'Sleep stage 2': 2,
-                'Sleep stage 1': 1,
-                'Sleep stage 3' : 3,
+                'Sleep stage W': "W",
+                'Sleep stage N1': "N1",
+                'Sleep stage N2': "N2",
+                'Sleep stage N3': "N3",
+                'Sleep stage R': "REM",
+                'Sleep stage ?': "UNK",
+                'Sleep stage 2': "N2",
+                'Sleep stage 1': "N1",
+                'Sleep stage 3' : "N3",
         }
 
         self.intra_dataset_mapping = {'Abdomen': ['Abdominal','EEG Abd'],

@@ -28,7 +28,7 @@ class BufferedHandler(logging.Handler):
         # Write all logs to file
         with open(log_path, "a") as f:
             for record in self.buffer:
-                if channel is None or record.channel == channel:
+                if channel is None or record.channel is None or record.channel == channel:
                     f.write(self.format(record) + "\n")
 
         # Write to console with specified log level
@@ -82,7 +82,11 @@ class LoggingManager:
         logger.propagate = False
         logger.handlers.clear()
 
-        formatter = logging.Formatter(self.format, self.date_format)
+        formatter = logging.Formatter(
+            f"%(asctime)s - %(levelname)s - [{file_identifier}] %(message)s",
+            self.date_format,
+        )
+
         buffer_handler = BufferedHandler(formatter, self.console_level)
         logger.addHandler(buffer_handler)
 

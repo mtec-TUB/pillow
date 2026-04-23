@@ -17,15 +17,15 @@ class APOE(BaseDataset):
         super().__init__("APOE","APOE - Sleep Disordered Breathing, ApoE and Lipid Metabolism")
         
     def _setup_dataset_config(self):
-        self.ann2label = {  0: 0,
-                            1: 1,
-                            2: 2,
-                            3: 3,
-                            4: 3,  # Follow AASM Manual
-                            5: 4,
-                            7: 6,
-                            8: 6,
-                            10: 6,
+        self.ann2label = {  0: "W",
+                            1: "N1",
+                            2: "N2",
+                            3: "N3",
+                            4: "N3",  # Follow AASM Manual
+                            5: "REM",
+                            7: "UNK",
+                            8: "UNK",
+                            10: "UNK",
                         }
         
         

@@ -14,13 +14,13 @@ class APPLES(BaseDataset):
         super().__init__("APPLES","APPLES - Apnea Positive Pressure Long-term Efficacy Study")
 
     def _setup_dataset_config(self):
-        self.ann2label ={'W': 0,
-                        'N1': 1,
-                        'N2': 2,
-                        'N3': 3,
-                        'R': 4,
-                        '?': 6,
-                        'L': 6, # treat epochs with L as unknown
+        self.ann2label ={'W': "W",
+                        'N1': "N1",
+                        'N2': "N2",
+                        'N3': "N3",
+                        'R': "REM",
+                        '?': "UNK",
+                        'L': "UNK", # treat epochs with L as unknown
                     }
         
         self.inter_dataset_mapping = {
