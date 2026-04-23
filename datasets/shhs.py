@@ -22,7 +22,7 @@ class SHHS(BaseDataset):
             "Stage 4 sleep": "N3", # Follow AASM Manual
             "REM sleep": "REM",
             "Unscored": "UNK",
-            "Movement": 5
+            "Movement": "MOVE"
         }
         
         
