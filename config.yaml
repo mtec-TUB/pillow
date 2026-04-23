@@ -5,38 +5,35 @@
 # Dataset to process (required)
 # Available options: ABC, BESTAIR, CAP, DOD-H, MESA, WSC and many more
 # Execute "python3 process_dataset.py --help" to get a full up-to-date list
-dataset: "ABC"
+dataset: ABC
 
 # Base directory where your sleep datasets are stored
-base_data_dir: "/media/linda/Elements/sleep_data"
+base_data_dir: /media/linda/Elements/sleep_data
 
 # Specific data directory (null = use automatic path from dataset definition and base_data_dir)
 data_dir: null
-
-# Specific annotation directory (null = use automatic path from dataset definition and base_data_dir)
-ann_dir: null
 
 # Specific output directory (null = use automatic path under base_data_dir)
 output_dir: null
 
 # Output file format
-# Options: "npz" (numpy compressed), "edf" (European Data Format), "hdf5" (Hierarchical Data Format)
-# - npz: saves a dictionary per channel per file with keys x, y, fs, ch_label, ch_label_orig, file_duration, epoch_duration, n_epochs
-# - edf: saves signal and annotation in one EDF file per recording with annotations inside the annotation channel
-# - hdf5: saves signal, annotations and metadata in one HDF5 file per recording, with datasets for each channel and annotations, and metadata as attributes
-output_format: "edf"
+# Options:
+# - npz: numpy compressed, saves a dictionary per channel per file with keys x, y, fs, ch_label, ch_label_orig, file_duration, epoch_duration, n_epochs
+# - edf: European Data Format, saves signal and annotation in one EDF file per recording with annotations inside the annotation channel
+# - hdf5: Hierarchical Data Format,saves signal, annotations and metadata in one HDF5 file per recording, with datasets for each channel and annotations, and metadata as attributes
+output_format: edf
 
 # Overwrite existing output files
 # if false, files that exist already in the output directory will be skipped
 overwrite: false
 
 # Logging level for console output (file logs will always include INFO level)
-# Options: 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'
-logging_level: "WARNING"
+# Options: CRITICAL, ERROR, WARNING, INFO, DEBUG
+logging_level: WARNING
 
 # Action to perform
-# Options: "process", "get_channel_names", "get_channel_types"
-action: "process"
+# Options: process, get_channel_names, get_channel_types
+action: process
 
 # Number of workers in parallel processing (default: null, take all kernels)
 num_workers: null
@@ -78,12 +75,12 @@ use_annot: true
 # Most datasets already have aligned signals and annotations, these options are for edge cases
 # If labels do not matter for your application and you want to keep the signals as original as possible, use "match_signal" (they will only be cropped to full epochs)
 # Use in combination with parameter pad_values
-# Options: "match_shorter", "match_longer", "match_signal", "match_annot"
-# - match shorter one (crop the longer one at front and/or end), guarantees no padding
-# - match longer one (pad signal with VALUE to match longer annotations, and/or pad annotations with VALUE to match longer signal)
-# - match signal length (crop or pad annotation with VALUE if needed but never change signal)
-# - match annot length (crop or pad signal with VALUE if needed but never change annotation)
-alignment: "match_signal"
+# Options:
+# - match_shorter: match shorter one (crop the longer one at front and/or end), guarantees no padding
+# - match_longer: match longer one (pad signal with VALUE to match longer annotations, and/or pad annotations with VALUE to match longer signal)
+# - match_signal: match signal length (crop or pad annotation with VALUE if needed but never change signal)
+# - match_annot:match annot length (crop or pad signal with VALUE if needed but never change annotation)
+alignment: match_signal
 
 # Padding values for signal and labels when using alignment options that require padding
 # default signal padding 'null' will use np.nan (if you choose EDF as file output, NaN will be converted to the physical minimum)
@@ -101,11 +98,11 @@ rm_unk: false
 # Selection of epochs based on Annotation (only if 'use_annot' is true)
 # Used to remove extensive wake periods at the start and end of recordings while keeping some wake epochs for context (e.g., for sleep onset detection)
 # Options
-# - "all" to keep all available epochs
-# - "lights" to keep only epochs in between Lights off and on markers if available in this dataset
+# - all: to keep all available epochs
+# - lights: to keep only epochs in between Lights off and on markers if available in this dataset
 #   - set alignment to "match_longer" for best results
-# - integer number to determine how many epochs of WAKE to keep at start and end (e.g., 60 to keep 30 minutes with epoch duration of 30s)
-select_epochs: "lights"
+# - integer number: to determine how many epochs of WAKE (Non-Sleep) to keep at start and end (e.g., 60 to keep 30 minutes with epoch duration of 30s)
+select_epochs: lights
 
 # Truncate Non-Sleep epochs at end of recording if no Lights on marker is available (only if 'use_annot' is true and 'select_epochs' is set to "lights")
 # If true, all epochs after the last sleep epoch will be removed if no 'lights on' marker is available, otherwise these epochs will be kept
