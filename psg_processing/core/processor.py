@@ -454,11 +454,11 @@ class FileProcessor:
                 lights_off_sec = lights_off
                 if lights_off_sec != 0:
                     if lights_off_sec < 0 and lights_off_sec > -3600:   # Lights Off probably starts before PSG Data (1 hour range before signal start)
-                        logger.warning(f"{psg_fname}: Lights Off time {lights_off_sec} is before signal start time {startdatetime.time()}. No epoch selection applied.")
+                        logger.warning(f"Lights Off time {lights_off_sec} is before signal start time {startdatetime.time()}. No epoch selection applied.")
                         # front_padding = 
                         # maybe padding with wake epochs until lights Off time is reached? For now, just keep all epochs and do not select
                     elif lights_off_sec < 0:
-                        raise Exception(f"{psg_fname}: Lights Off time ({lights_off_sec}) is more than 1 hour before signal start ({startdatetime.time()})")
+                        raise Exception(f"Lights Off time ({lights_off_sec}) is more than 1 hour before signal start ({startdatetime.time()})")
                     else:
                         # Round to full epoch
                         lights_off_epoch = self._round_marker_time(logger, "lights_off", lights_off_sec, self.config.epoch_duration)
@@ -466,10 +466,10 @@ class FileProcessor:
                 else:
                     logger.info("Lights Off time is at the start of the signal, no need of epoch selection based on lights Off time.")
             else:
-                raise Exception(f"{psg_fname}: Lights Off time has unsupported format: {lights_off}.")
+                raise Exception(f"Lights Off time has unsupported format: {lights_off}.")
         
         else:
-            logger.warning(f"{psg_fname}: Lights Off time not available, keeping all wake epochs at start.")
+            logger.warning(f"Lights Off time not available, keeping all wake epochs at start.")
             
         if channel_data["lights_on"] is not None:
             lights_on = channel_data["lights_on"]
@@ -494,14 +494,14 @@ class FileProcessor:
                 lights_on_sec = lights_on
 
                 if lights_on_sec < 0:
-                    raise Exception(f"{psg_fname}: Lights On time ({lights_on_sec}) is before signal start ({startdatetime.time()})")
+                    raise Exception(f"Lights On time ({lights_on_sec}) is before signal start ({startdatetime.time()})")
                         
                 lights_on_epoch = self._round_marker_time(logger, "lights_on", lights_on_sec, self.config.epoch_duration)
                 logger.info(f"Select only epochs before lights On at second {lights_on_sec} (epoch {lights_on_epoch})")
             else:
-                raise Exception(f"{psg_fname}: Lights On time has unsupported format: {lights_on}.")
+                raise Exception(f"Lights On time has unsupported format: {lights_on}.")
         else:
-            logger.warning(f"{psg_fname}: Lights On time not available.")
+            logger.warning(f"Lights On time not available.")
 
         return lights_off_epoch, lights_on_epoch
    
