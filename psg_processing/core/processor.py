@@ -522,7 +522,7 @@ class FileProcessor:
         if marker_sec % epoch_duration != 0:              
             if marker == "lights_off":
                 round_marker_epoch = floor(marker_sec / epoch_duration)
-                logger.info(f"Lights Off time {marker_time} is not exactly at the start of an epoch. Keep data from second{round_marker_epoch * epoch_duration} (epoch {round_marker_epoch}) on to avoid cutting epochs.")
+                logger.info(f"Lights Off time {marker_time} is not exactly at the start of an epoch. Keep data from second {round_marker_epoch * epoch_duration} (epoch {round_marker_epoch}) on to avoid cutting epochs.")
             elif marker == "lights_on":
                 round_marker_epoch = ceil(marker_sec / epoch_duration)
                 logger.info(f"Lights On time {marker_time} is not exactly at the end of an epoch. Keep data until second {round_marker_epoch * epoch_duration} (epoch {round_marker_epoch}) to avoid cutting epochs.")
