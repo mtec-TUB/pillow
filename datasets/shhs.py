@@ -104,10 +104,7 @@ class SHHS(BaseDataset):
             nsrrid = int(Path(psg_fname).stem.split('shhs2-')[1])
             row = overview_table[overview_table['nsrrid'] == nsrrid]
             if not row.empty:
-                if pd.isna(row['ligh'].values[0]):
-                    lights_appropiate = False
-                else:
-                    lights_appropiate = bool(row['ligh'].values[0])
+                lights_appropiate = bool(row['ligh'].values[0])
 
         if not lights_appropiate:
             logger.info(f"Light off times not appropriate for {os.path.basename(psg_fname)} according to {os.path.basename(overview_file)}.")
