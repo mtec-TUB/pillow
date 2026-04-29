@@ -3,6 +3,8 @@
 
 A comprehensive toolkit for processing and storing polysomnography (PSG) datasets in a harmonized way, supporting various file formats and automated signal processing.
 
+An extensive overview of all datasets is available in our [PillowCase](https://mtec-tub.github.io/pillowcase/)
+
 ---
 
 ## **Table of Contents**
