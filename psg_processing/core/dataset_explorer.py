@@ -43,11 +43,9 @@ class Dataset_Explorer:
         self.get_channel_types = []
 
         # Setup logger with StreamHandler (console only)
-        if not logger:
-            logging_manager = LoggingManager(console_level=log_level)
-            self.logger = logging_manager.create_pipeline_logger()
-        else:
-            self.logger = logger
+        self.logging_manager = LoggingManager(console_level=log_level)
+
+        self.logger = logger
 
     def get_files(self):
         """
@@ -56,6 +54,9 @@ class Dataset_Explorer:
         Returns:
             tuple: (psg_filenames, annotation_filenames) arrays
         """
+        if not self.logger:
+            self.logger = self.logging_manager.create_pipeline_logger()
+
         # Discover PSG signal files
         if not os.path.exists(self.data_dir):
             self.logger.error(f"Data directory does not exist: {self.data_dir}")
@@ -123,19 +124,20 @@ class Dataset_Explorer:
             set: Set of tuples containing (channel_name, frequency) pairs for EDF files,
                  or just channel names for other formats.
         """
-        self.logger.info("Getting all available channel names ...")
 
         self.get_files()
+        self.logger.info("Getting all available channel names ...")
 
         self.ch_names = Counter()
 
         # Use tqdm for clean progress bar
         for psg_fname in tqdm(self.psg_fnames, desc="Processing files", unit="file"):
+            self.logger, _ = self.logging_manager.create_file_logger(os.path.basename(psg_fname))
             channels = self.dataset.get_channels(self.logger, psg_fname)
             # for label, freq in zip(channels, freqs):
             #     self.ch_names.add((label, float(freq)))
             if not channels:
-                self.logger.warning(f"Skipping file with no readable channels: {os.path.basename(psg_fname)}")
+                self.logger.warning(f"Skipping file with no readable channels")
                 continue
             self.ch_names.update(channels)
 
