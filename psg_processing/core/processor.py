@@ -693,6 +693,8 @@ class ChannelProcessor:
         if self.config.use_annot:
             # Apply start alignment of signal and annotations 
             start_time_shift, signal, labels = self._apply_start_shift(data, signal, labels, fs)
+        else:
+            start_time_shift = 0
 
         # Reshape into epochs
         n_epoch_samples = self.config.epoch_duration * fs
@@ -782,8 +784,9 @@ class ChannelProcessor:
         start_idx = 0
         end_idx = len(signal_epoched)
 
-        sleep_mask = np.isin(labels, SLEEP_STAGES)
-        sleep_idx = np.where(sleep_mask)[0]
+        if self.config.use_annot:
+            sleep_mask = np.isin(labels, SLEEP_STAGES)
+            sleep_idx = np.where(sleep_mask)[0]
 
         if self.config.select_epochs == "all":
             pass
@@ -856,10 +859,11 @@ class ChannelProcessor:
                             \n Start idx: {start_idx}, End idx: {end_idx}, Remove idx (Mov/Unk): {remove_idx}")
             return None, None, None
 
-        self.logger.info(f"Data after selection: {signal_epoched.shape}, {labels.shape}")
+        self.logger.info(f"Data after selection: {signal_epoched.shape}, {labels.shape if labels is not None else None}")
 
         # Adapt start time
-        new_startdatetime = startdatetime + timedelta(seconds=float(select_idx[0] * self.config.epoch_duration))
+        if isinstance(startdatetime, datetime):
+            startdatetime = startdatetime + timedelta(seconds=float(select_idx[0] * self.config.epoch_duration))
 
-        return new_startdatetime, signal_epoched, labels
+        return startdatetime, signal_epoched, labels
 
