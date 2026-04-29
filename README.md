@@ -112,7 +112,7 @@ We do not provide any data. Please request the data from the original authors an
 The steps that are performed during processing depend heavily on your [config.yaml](/config.yaml). If you keep it as the default, the following will be applied (see [process_dataset.py](/process_dataset.py) and [processor.py](/psg_processing/core/processor.py)):
 
 - the configuration file [config.yaml](/config.yaml) is loaded and checked for correct parameters
-- all PSG files with matching extension (dataset.file_extension) are automatically detected and processed sequentially 
+- all PSG files with matching extension (dataset.file_extension) are automatically detected and processed in parallel
 - the annotations are loaded (param: use_annot) either from a seperate corresponding annotation file or from the input PSG file itself (if no matching annotation is found, the PSG file is skipped)
 - annotation file is checked for timing consistency, label violations and start time
 - all available channels inside PSG file are processed sequentially
@@ -125,12 +125,12 @@ The steps that are performed during processing depend heavily on your [config.ya
     - analog channels (like EEG) are resampled with polyphase filtering (mse.filter)
 - signal is filtered based on AASM recomendation (param: filter)
 - signal is clipped to the orignal range (because filtering may introduce overshootings)
-- start of signal and labels/annotation is compared and handled to align them (param: alignment and pad_values)
+- start of signal and labels/annotation is compared and aligned (param: alignment and pad_values)
 - signal is truncated to whole epochs and reshaped to [num_epochs, epoch_dur * fs] (param: epoch_duration)
-- end of signal and labels/annotations is compared and handled to align them (param: alignment and pad_values)
+- end of signal and labels/annotations is compared and aligned (param: alignment and pad_values)
 - signal is cleaned based on annotations
     - max. 30min of wake epochs are kept at beginning and ending of signal
-    - epochs labeled with 'Movement' or 'Artifact' are removed
+    - epochs labeled with 'Movement' or 'Unknown' are removed
 - signal, labels and other information is saved to the output_path (see [Output](#output))
 
 
@@ -189,7 +189,7 @@ The pipeline generates one h5 file per input psg file, including all chosen chan
     ```bash
     python process_dataset.py
     ```
-    - if you want to apply resampling and filtering to your data you need to know which channels are analog (e.g. EEG channels) and which digital (e.g. Oxygen saturation). You can find it out by setting the parameters `action` inside [config.yaml](/config.yaml) to 'get_channel_types' and run the main script again (Check the results manually to prevent wrong processing)
+    - if you want to apply resampling and filtering to your data you need to know which channels are analog (e.g. EEG channels) and which digital (e.g. Oxygen saturation). You can find it out by setting the parameters`action` inside [config.yaml](/config.yaml) to 'get_channel_types' and run the main script again (Check the results manually to prevent wrong processing)
 3. **Define all pending dataset properties:**
     - Now you are good to go to define all pending properties inside your script to make use of the whole processing pipeline. Inside `_setup_dataset_config`, specify the collected channel names, channel types, channel groups (to apply filtering according to AASM) and optional intra-dataset- and inter-dataset-channel-mappings (can be used to harmonize channel names, see [BESTAIR dataset](/datasets/bestair.py))
 4. **Perform processing:**
