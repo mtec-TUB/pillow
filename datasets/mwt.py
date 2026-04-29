@@ -61,7 +61,7 @@ class MWT(BaseDataset):
             psg_f = loadmat(filepath)['Data']
             return psg_f.dtype.names
         except Exception as e:
-            logger.error(f"Error reading mat file {filepath}: {e}")
+            logger.error(f"Error reading mat file: {e}")
             return []
 
     def read_signal(self, logger, filepath, channel):
@@ -71,7 +71,7 @@ class MWT(BaseDataset):
             if channel in psg_f.dtype.names:
                 return psg_f[0,0][channel][:, 0]
         except Exception as e:
-            logger.error(f"Error reading mat signal from {filepath}: {e}")
+            logger.error(f"Error reading mat signal: {e}")
         return None
     
     def get_start_datetime(self, logger, filepath):
@@ -97,7 +97,7 @@ class MWT(BaseDataset):
                 "file_duration": file_duration,
             }
         except Exception as e:
-            logger.error(f"Error processing mat file {filepath}: {e}")
+            logger.error(f"Error processing mat file: {e}")
             raise
     
     def ann_parse(self, ann_fname: str):

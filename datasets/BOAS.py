@@ -73,7 +73,7 @@ class BOAS(BaseDataset):
         headband_channels = self._file_handler.get_channels(logger, headband_filepath)
         all_channels = psg_channels + headband_channels
         if len(all_channels) > len(set(all_channels)):
-            raise ValueError(f"Duplicate channel names found in PSG and Headband files for {filepath}. Please check the files and ensure unique channel names.")
+            raise ValueError(f"Duplicate channel names found in PSG and Headband files. Please check the files and ensure unique channel names.")
         return all_channels
     
     def read_signal(self, logger, filepath, channel):

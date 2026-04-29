@@ -19,7 +19,7 @@ class DOD_H5Handler:
                 f["signals"].visititems(visitor)    # only get channels in signals subfolder
             return channel_names
         except Exception as e:
-            logger.error(f"Error during channel extraction from {filepath}: {e}")
+            logger.error(f"Error during channel extraction: {e}")
             raise
 
     def read_signal(self, logger, filepath, channel):
@@ -32,7 +32,7 @@ class DOD_H5Handler:
                 signal = f["signals"][channel][:]
                 return signal
         except Exception as e:
-            logger.error(f"Error during signal extraction from {filepath}: {e}")
+            logger.error(f"Error during signal extraction: {e}")
             raise
 
     def get_start_datetime(self, logger, filepath):
@@ -42,14 +42,14 @@ class DOD_H5Handler:
 
                 start_time = f.attrs.get("start_time")
                 if start_time is None:
-                    logger.warning(f"No start_time attribute found in {filepath}, defaulting to datetime(1970, 1, 1)")
+                    logger.warning(f"No start_time attribute found, defaulting to datetime(1970, 1, 1)")
                     start_datetime = datetime(1970, 1, 1)
                 else:
                     start_datetime = datetime.fromtimestamp(start_time)
 
                 return start_datetime
         except Exception as e:
-            logger.error(f"Error during data retrieval {filepath}: {e}")
+            logger.error(f"Error during start_datetime retrieval: {e}")
             raise
 
     def get_signal_data(self, logger, filepath, channel):
@@ -71,5 +71,5 @@ class DOD_H5Handler:
                     "file_duration": file_duration,
                 }
         except Exception as e:
-            logger.error(f"Error during data retrieval {filepath}: {e}")
+            logger.error(f"Error during data retrieval: {e}")
             raise

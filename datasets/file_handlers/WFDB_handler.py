@@ -17,7 +17,7 @@ class WFDBHandler:
             #     freqs.append(fields["fs"])
             return record.sig_name  # , freqs
         except Exception as e:
-            logger.error(f"Error reading WFDB file {filepath}: {e}")
+            logger.error(f"Error during channel extraction: {e}")
             raise
 
     def read_signal(self, logger, filepath, channel):
@@ -31,7 +31,7 @@ class WFDBHandler:
             else:
                 return None # channel not found in this file
         except Exception as e:
-            logger.error(f"Error reading signal from {filepath}: {e}")
+            logger.error(f"Error reading signal: {e}")
             raise
 
     def get_start_datetime(self, logger, filepath):
@@ -51,7 +51,7 @@ class WFDBHandler:
 
             return start_datetime
         except Exception as e:
-            logger.error(f"Error processing WFDB file {filepath}: {e}")
+            logger.error(f"Error during start_datetime retrieval: {e}")
             raise
 
     def get_signal_data(self, logger, filepath, channel):
@@ -74,5 +74,5 @@ class WFDBHandler:
                 "file_duration": file_duration,
             }
         except Exception as e:
-            logger.error(f"Error processing WFDB file {filepath}: {e}")
+            logger.error(f"Runtime error during data retrieval: {e}")
             raise

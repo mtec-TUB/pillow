@@ -49,7 +49,7 @@ class EDFHandler:
                 # Always re-raise KeyboardInterrupt
                 raise
             except Exception as e:
-                logger.error(f"Error during channel extraction from {filepath}: {e}")
+                logger.error(f"Error during channel extraction: {e}")
                 logger.error(
                     "Maybe the repair_edfs.py script or EDF Browser header repairer can help."
                 )
@@ -83,7 +83,7 @@ class EDFHandler:
                 # Always re-raise KeyboardInterrupt
                 raise
             except Exception as e:
-                logger.error(f"Error during signal extraction from {filepath}: {e}")
+                logger.error(f"Error during signal extraction: {e}")
                 logger.error(
                     "Maybe the repair_edfs.py script or EDF Browser header repairer can help."
                 )
@@ -107,7 +107,7 @@ class EDFHandler:
                 # Always re-raise KeyboardInterrupt
                 raise
             except Exception as e:
-                logger.error(f"Error during data retrieval {filepath}: {e}")
+                logger.error(f"Error during start_datetime retrieval: {e}")
                 logger.error("Maybe the repair_edfs.py script or EDF Browser header repairer can help.")
                 raise
 
@@ -152,7 +152,7 @@ class EDFHandler:
                 # Always re-raise KeyboardInterrupt
                 raise
             except Exception as e:
-                logger.error(f"Error during data retrieval {filepath}: {e}")
+                logger.error(f"Error during data retrieval: {e}")
                 logger.error("Maybe the repair_edfs.py script or EDF Browser header repairer can help.")
                 raise
 

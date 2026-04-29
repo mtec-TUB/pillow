@@ -23,10 +23,10 @@ class EEGLABHandler:
                 raw_epoched_data = mne.io.read_epochs_eeglab(filepath, verbose="WARNING")
                 return raw_epoched_data.ch_names
             except OSError as e:
-                logger.error(f"Skipping corrupt/unreadable file {filepath}: {e}")
+                logger.error(f"Skipping corrupt/unreadable file: {e}")
                 return []
             except Exception as e:
-                logger.error(f"Error during channel extraction from {filepath}: {e}")
+                logger.error(f"Error during channel extraction from: {e}")
                 raise
 
     def read_signal(self, logger, filepath, channel):
@@ -56,7 +56,7 @@ class EEGLABHandler:
             else:
                 return None
         except Exception as e:
-            logger.error(f"Error reading signal from {filepath}: {e}")
+            logger.error(f"Error reading signal: {e}")
             return None
         
     def get_start_datetime(self, logger, filepath):
@@ -69,10 +69,10 @@ class EEGLABHandler:
             raw_epoched_data = mne.io.read_epochs_eeglab(filepath, verbose="WARNING")
             info = raw_epoched_data.info
         except RuntimeError as e:
-            logger.error(f"Runtime error during data retrieval from {filepath}: {e}")
+            logger.error(f"Runtime error during data retrieval: {e}")
             return {}  # probably because the file is empty or corrupted, return empty dict to skip this channel
         except Exception as e:
-            logger.error(f"Error during data retrieval {filepath}: {e}")
+            logger.error(f"Error during start_datetime retrieval: {e}")
             raise
 
         start_datetime = info["meas_date"]
@@ -85,7 +85,7 @@ class EEGLABHandler:
 
             signal = raw_data.get_data(picks=channel)[0]
             if np.all(np.isnan(signal)):
-                logger.warning(f"Signal for channel {channel} in file {filepath} contains only NaN values.")
+                logger.warning(f"Signal for channel {channel} contains only NaN values.")
                 return {}
 
             samples = len(signal)
@@ -109,12 +109,11 @@ class EEGLABHandler:
             samples = len(signal)
             info = raw_epoched_data.info
         except RuntimeError as e:
-            logger.error(f"Runtime error during data retrieval from {filepath}: {e}")
+            logger.warning(f"Runtime error during data retrieval: {e}")
             return {}  # probably because the file is empty or corrupted, return empty dict to skip this channel
         except Exception as e:
-            logger.error(f"Error during data retrieval {filepath}: {e}")
+            logger.error(f"Error during data retrieval: {e}")
             raise
-
 
         sampling_rate = info["sfreq"]
         file_duration = samples / sampling_rate
