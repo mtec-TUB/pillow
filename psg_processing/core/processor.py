@@ -179,11 +179,11 @@ class FileProcessor:
         try:
             # Start buffering logs for this file
             file_id = Path(self.psg_fname).stem
-            file_logger, buffer_handler = self.logging_manager.create_file_logger(file_identifier=file_id)
+            self.logger, buffer_handler = self.logging_manager.create_file_logger(file_identifier=file_id)
 
-            file_logger.info(f"Signal file: {Path(self.psg_fname).relative_to(self.config.psg_dir)}")
+            self.logger.info(f"Signal file: {Path(self.psg_fname).relative_to(self.config.psg_dir)}")
             if self.config.use_annot:
-                file_logger.info(f"Annotation file: {Path(self.ann_fname).relative_to(self.config.ann_dir)}")
+                self.logger.info(f"Annotation file: {Path(self.ann_fname).relative_to(self.config.ann_dir)}")
 
             # Initialize signal data dictionary which holds all necessary info for processing and saving
             file_data = {
@@ -195,7 +195,7 @@ class FileProcessor:
                 file_output_path, log_path = self._setup_file_output()
                 # Skip if file already exists and overwrite is False
                 if os.path.exists(file_output_path) and not self.config.overwrite:
-                    file_logger.info(f"File already exists: {file_output_path}, skipping file.")
+                    self.logger.info(f"File already exists: {file_output_path}, skipping file.")
                     return
             else:
                 log_paths = {}  # Store log paths for each channel separately
@@ -205,7 +205,7 @@ class FileProcessor:
             if isinstance(start_datetime, datetime):
                     start_datetime = start_datetime.replace(tzinfo=None)
             file_data["start_datetime"] = start_datetime
-            file_logger.info(f"Start datetime: {start_datetime}")
+            self.logger.info(f"Start datetime: {start_datetime}")
 
             if self.config.use_annot:
                 # Parse annotations (is same for all channels)
@@ -219,24 +219,24 @@ class FileProcessor:
                 })
 
                 if ann_stage_events == []:
-                    file_logger.warning(f"No sleep stage annotations found in {os.path.basename(self.ann_fname)}, skipping file.")
+                    self.logger.warning(f"No sleep stage annotations found in {os.path.basename(self.ann_fname)}, skipping file.")
                     return
                 
                 # Map dataset-labels to standardized labels and check consistency
-                labels = self.dataset.ann_label(file_logger, ann_stage_events, STAGE_DICT, self.config.epoch_duration)
+                labels = self.dataset.ann_label(self.logger, ann_stage_events, STAGE_DICT, self.config.epoch_duration)
 
                 # Check how many sleep epochs are in the file
                 sleep_mask = np.isin(labels, SLEEP_STAGES)
                 sleep_idx = np.where(sleep_mask)[0]
 
                 if len(sleep_idx) < self.config.min_sleep_epochs:
-                    file_logger.warning("File contains less sleep epochs than required, skipping file.")
+                    self.logger.warning("File contains less sleep epochs than required, skipping file.")
                     return
                 
                 file_data["labels"] = labels
  
                 # Check if annotations and signal start at the same timestamp and pad/crop if necessary and configured
-                file_data["start_delay"] = self._get_start_delay(file_logger, ann_Startdatetime, start_datetime)
+                file_data["start_delay"] = self._get_start_delay(ann_Startdatetime, start_datetime)
 
             else:
                 file_data.update({
@@ -249,21 +249,21 @@ class FileProcessor:
 
             if self.config.select_epochs == "lights":
                 # Some datasets have lights marker not embedded in annotation but in a separate file or as a psg channel
-                lights_off, lights_on = self.dataset.get_light_times(file_logger, self.psg_fname)
+                lights_off, lights_on = self.dataset.get_light_times(self.logger, self.psg_fname)
                 if lights_off is not None:
                     file_data["lights_off"] = lights_off
                 if lights_on is not None:
                     file_data["lights_on"] = lights_on     
 
                 # Calculate the epochs to select later between lights off and lights on
-                file_data["lights_off"], file_data["lights_on"] = self._get_lights_epochs(file_logger, file_data)    
+                file_data["lights_off"], file_data["lights_on"] = self._get_lights_epochs(file_data)    
 
             # Intersection of available channels in psg file and configured channels to process
             channels = list(
-                set(self.config.channels) & set(self.dataset.get_channels(file_logger, self.psg_fname))
+                set(self.config.channels) & set(self.dataset.get_channels(self.logger, self.psg_fname))
             )
             if len(channels)==0:
-                file_logger.warning(f"No selected channels found in this file. Skipping.")
+                self.logger.warning(f"No selected channels found in this file. Skipping.")
                 return 
 
             # Process each channel, then save after all channels are processed
@@ -271,7 +271,7 @@ class FileProcessor:
             for channel in sorted(channels):
                 # Set current channel for logging
                 buffer_handler.set_channel(channel)
-                channel_harm = self._harmonize_channel_name(file_logger, channel)
+                channel_harm = self._harmonize_channel_name(channel)
                 if self.config.output_format == "npz":
                     file_output_path, log_path = self._setup_channel_output(channel_harm)
                     log_paths[channel] = log_path
@@ -284,10 +284,10 @@ class FileProcessor:
 
                 # Skip if file already exists and overwrite is False (only for output format npz on this level)
                 if os.path.exists(file_output_path) and not self.config.overwrite:
-                    file_logger.info(f"File already exists: {file_output_path}, skipping channel {channel}.")
+                    self.logger.info(f"File already exists: {file_output_path}, skipping channel {channel}.")
                     continue 
 
-                channel_processor = ChannelProcessor(file_logger, self.config, self.dataset, channel)
+                channel_processor = ChannelProcessor(self.logger, self.config, self.dataset, channel)
                 proc_channel_data = channel_processor._process_channel(copy.deepcopy(file_data))
 
                 if proc_channel_data is not None:
@@ -297,16 +297,16 @@ class FileProcessor:
                         "ch_name": channel_harm,
                         "file_output_path": file_output_path,
                     }
-                file_logger.info("=" * 40)
+                self.logger.info("=" * 40)
 
             # Save all channel data (output format handled inside _save_processed_data)
             if len(all_channel_data) > 0:
                 self._save_processed_data(all_channel_data)
-                file_logger.info(f"Successfully processed: {Path(self.psg_fname).name}")
+                self.logger.info(f"Successfully processed: {Path(self.psg_fname).name}")
         
         except Exception as e:
             # Log the exception
-            file_logger.error(f"Error processing file {Path(self.psg_fname).name}: {str(e)}", exc_info=True)
+            self.logger.error(f"Error processing file {Path(self.psg_fname).name}: {str(e)}", exc_info=True)
             raise  # Re-raise after logging        
         finally:
 
@@ -322,11 +322,11 @@ class FileProcessor:
                 # For edf/hdf5, flush all channels' logs to single file
                 buffer_handler.flush_to_console_and_file(log_path)
 
-    def _harmonize_channel_name(self, logger, channel):
+    def _harmonize_channel_name(self, channel):
         """Harmonize channel name based on dataset-specific mapping."""
         if self.config.map_channel_names:
             channel_harm = self.dataset.map_channel(channel)
-            logger.info(f"Mapped channel name {channel} to {channel_harm}")
+            self.logger.info(f"Mapped channel name {channel} to {channel_harm}")
             return channel_harm
         else:
             return channel
@@ -384,7 +384,7 @@ class FileProcessor:
 
         return file_output_path, log_file_path
 
-    def _get_start_delay(self, logger, ann_start_datetime, signal_start_datetime):
+    def _get_start_delay(self, ann_start_datetime, signal_start_datetime):
         """ Check if annotation and signal start datetime are aligned and calculate the delay between annotation and signal start if necessary.
         """
         delay = 0
@@ -403,18 +403,17 @@ class FileProcessor:
             else:
                 raise Exception(f"Unsupported format of annotation start datetime: {ann_start_datetime}")
             if delay != 0:
-                logger.info(f"Start of signal: {signal_start_datetime}, Start of labels: {ann_start_datetime}")
+                self.logger.info(f"Start of signal: {signal_start_datetime}, Start of labels: {ann_start_datetime}")
 
         return delay
 
-    def _get_lights_epochs(self, logger, channel_data):
+    def _get_lights_epochs(self, channel_data):
         """Get the epochs where lights off and lights on happen based on the configured lights marker in annotation or PSG data.
         - The epoch in which lights off event happens is return as lights_off_epoch
         - The epoch AFTER which lights on event happens is returned as lights_on_epoch, 
             meaning that the epoch in which lights on event happens is still included in the selected data. 
 
         Args:
-            logger (_type_): logger
             channel_data (_type_): Dictionary containing minimum the following keys: "psg_fname", "start_datetime", "lights_off", "lights_on"
 
         Returns:
@@ -438,7 +437,7 @@ class FileProcessor:
                 if lights_off_sec != 0:
                     if lights_off_sec < 0 and lights_off_sec > -3600:       
                         # Between -3600 and 0, before signal start but in 1 hour range
-                        logger.info(f"Lights Off time {lights_off} is before signal start time {startdatetime.time()}. No epoch selection applied.")
+                        self.logger.info(f"Lights Off time {lights_off} is before signal start time {startdatetime.time()}. No epoch selection applied.")
                         # maybe padding with wake epochs until lights Off time is reached? For now, just keep all epochs and do not select (keep lights_off_epoch at 0)
                     else:
                         if lights_off_sec < 0:
@@ -446,33 +445,33 @@ class FileProcessor:
                             lights_off_sec += 24*3600 # add 24h
                         
                         # Round to full epoch
-                        lights_off_epoch = self._round_marker_time(logger, "lights_off", lights_off_sec, self.config.epoch_duration, lights_off.time())
+                        lights_off_epoch = self._round_marker_time(self.logger, "lights_off", lights_off_sec, self.config.epoch_duration, lights_off.time())
                         
-                        logger.info(f"Select only epochs after lights Off at {(startdatetime + timedelta(seconds=lights_off_sec)).time()} (epoch {lights_off_epoch})")
+                        self.logger.info(f"Select only epochs after lights Off at {(startdatetime + timedelta(seconds=lights_off_sec)).time()} (epoch {lights_off_epoch})")
                  
                 else:
-                    logger.info("Lights Off time is at the start of the signal, no need of epoch selection based on lights Off time.")
+                    self.logger.info("Lights Off time is at the start of the signal, no need of epoch selection based on lights Off time.")
 
             elif isinstance(lights_off, (int,float)):
                 lights_off_sec = lights_off
                 if lights_off_sec != 0:
                     if lights_off_sec < 0 and lights_off_sec > -3600:   # Lights Off probably starts before PSG Data (1 hour range before signal start)
-                        logger.warning(f"Lights Off time {lights_off_sec} is before signal start time {startdatetime.time()}. No epoch selection applied.")
+                        self.logger.warning(f"Lights Off time {lights_off_sec} is before signal start time {startdatetime.time()}. No epoch selection applied.")
                         # front_padding = 
                         # maybe padding with wake epochs until lights Off time is reached? For now, just keep all epochs and do not select
                     elif lights_off_sec < 0:
                         raise Exception(f"Lights Off time ({lights_off_sec}) is more than 1 hour before signal start ({startdatetime.time()})")
                     else:
                         # Round to full epoch
-                        lights_off_epoch = self._round_marker_time(logger, "lights_off", lights_off_sec, self.config.epoch_duration)
-                        logger.info(f"Select only epochs after lights Off at second {lights_off_sec} (epoch {lights_off_epoch})")
+                        lights_off_epoch = self._round_marker_time(self.logger, "lights_off", lights_off_sec, self.config.epoch_duration, lights_off.time())
+                        self.logger.info(f"Select only epochs after lights Off at second {lights_off_sec} (epoch {lights_off_epoch})")
                 else:
-                    logger.info("Lights Off time is at the start of the signal, no need of epoch selection based on lights Off time.")
+                    self.logger.info("Lights Off time is at the start of the signal, no need of epoch selection based on lights Off time.")
             else:
                 raise Exception(f"Lights Off time has unsupported format: {lights_off}.")
         
         else:
-            logger.warning(f"Lights Off time not available, keeping all wake epochs at start.")
+            self.logger.warning(f"Lights Off time not available, keeping all wake epochs at start.")
             
         if channel_data["lights_on"] is not None:
             lights_on = channel_data["lights_on"]
@@ -489,8 +488,8 @@ class FileProcessor:
                     # Assume lights On is after and signal start before midnight
                     lights_on_sec += 24 * 3600  # add 24h
 
-                lights_on_epoch = self._round_marker_time(logger, "lights_on", lights_on_sec, self.config.epoch_duration, lights_on.time())
-                logger.info(f"Select only epochs before lights On at {(startdatetime + timedelta(seconds=lights_on_sec)).time()} (epoch {lights_on_epoch})")
+                lights_on_epoch = self._round_marker_time("lights_on", lights_on_sec, self.config.epoch_duration, lights_on.time())
+                self.logger.info(f"Select only epochs before lights On at {(startdatetime + timedelta(seconds=lights_on_sec)).time()} (epoch {lights_on_epoch})")
 
             elif isinstance(lights_on, (int,float)):
                 # seconds from recording start until lights On
@@ -499,16 +498,16 @@ class FileProcessor:
                 if lights_on_sec < 0:
                     raise Exception(f"Lights On time ({lights_on_sec}) is before signal start ({startdatetime.time()})")
                         
-                lights_on_epoch = self._round_marker_time(logger, "lights_on", lights_on_sec, self.config.epoch_duration)
-                logger.info(f"Select only epochs before lights On at second {lights_on_sec} (epoch {lights_on_epoch})")
+                lights_on_epoch = self._round_marker_time("lights_on", lights_on_sec, self.config.epoch_duration)
+                self.logger.info(f"Select only epochs before lights On at second {lights_on_sec} (epoch {lights_on_epoch})")
             else:
                 raise Exception(f"Lights On time has unsupported format: {lights_on}.")
         else:
-            logger.warning(f"Lights On time not available.")
+            self.logger.warning(f"Lights On time not available.")
 
         return lights_off_epoch, lights_on_epoch
    
-    def _round_marker_time(self, logger, marker, marker_sec, epoch_duration, marker_time=None):
+    def _round_marker_time(self, marker, marker_sec, epoch_duration, marker_time=None):
         """Helper function to round lights Off/On time to the next (or previous) epoch if it is not exactly at the end of an epoch and log this behavior.
         
         Args:
@@ -525,10 +524,10 @@ class FileProcessor:
         if marker_sec % epoch_duration != 0:              
             if marker == "lights_off":
                 round_marker_epoch = floor(marker_sec / epoch_duration)
-                logger.info(f"Lights Off time {marker_time} is not exactly at the start of an epoch. Keep data from second {round_marker_epoch * epoch_duration} (epoch {round_marker_epoch}) on to avoid cutting epochs.")
+                self.logger.info(f"Lights Off time {marker_time} is not exactly at the start of an epoch. Keep data from second {round_marker_epoch * epoch_duration} (epoch {round_marker_epoch}) on to avoid cutting epochs.")
             elif marker == "lights_on":
                 round_marker_epoch = ceil(marker_sec / epoch_duration)
-                logger.info(f"Lights On time {marker_time} is not exactly at the end of an epoch. Keep data until second {round_marker_epoch * epoch_duration} (epoch {round_marker_epoch}) to avoid cutting epochs.")
+                self.logger.info(f"Lights On time {marker_time} is not exactly at the end of an epoch. Keep data until second {round_marker_epoch * epoch_duration} (epoch {round_marker_epoch}) to avoid cutting epochs.")
         else:
             round_marker_epoch = marker_sec / epoch_duration
         return int(round_marker_epoch)
