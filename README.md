@@ -74,6 +74,7 @@ We do not provide any data. Please request the data from the original authors an
 | APOE        | 0.2.1                 | https://doi.org/10.25822/6ssj-2157                                 |
 | APPLES      | 0.1.0                 | https://doi.org/10.25822/63pr-a591                                 |
 | BESTAIR     | 0.6.1                 | https://doi.org/10.25822/f656-yg39                                 |
+| BOAS        | 1.1.1                 | https://doi.org/10.18112/openneuro.ds005555.v1.1.1                 |
 | CAP         | 1.0.0                 | https://doi.org/10.13026/C2VC79                                    |
 | CCSHS       | 0.8.0                 | https://doi.org/10.25822/cg2n-4y91                                 |
 | CFS         | 0.7.0                 | https://doi.org/10.25822/jmyx-mz90                                 |
@@ -99,6 +100,7 @@ We do not provide any data. Please request the data from the original authors an
 | MWT         | v1                    | https://doi.org/10.5281/zenodo.3251716                             |
 | NCHSDB      | Jul, 2022             | https://doi.org/10.25822/jpdr-vz50                                 |
 | Physio2018  | 1.0.0                 | https://doi.org/10.13026/1q9b-ge17                                 |
+| REDSD       | 1.0.8                 | https://doi.org/10.18112/openneuro.ds004902.v1.0.8                 |
 | SLEEPBRL    | 1.0.0                 | https://doi.org/10.13026/C29H4K                                    |
 | SHHS        | 0.21.0                | https://doi.org/10.25822/ghy8-ks59                                 |
 | Sleep-EDF   | 1.0.0                 | https://doi.org/10.13026/C2X676                                    |
