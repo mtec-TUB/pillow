@@ -108,6 +108,7 @@ We do not provide any data. Please request the data from the original authors an
 | SOF         | 0.8.0                 | https://doi.org/10.25822/e1cf-rx65                                 |
 | STAGES      | 0.3.0                 | https://doi.org/10.25822/me0d-xs45                                 |
 | UCDDB       | 1.0.1                 | https://doi.org/10.13026/C26C7D                                    |
+| UCSD        | 1.0.2                 | https://doi.org/10.18112/openneuro.ds006695.v1.0.2                 |
 | WSC         | 0.7.0                 | https://doi.org/10.25822/js0k-yh52                                 |
 
 ---
