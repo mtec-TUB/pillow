@@ -96,15 +96,16 @@ We do not provide any data. Please request the data from the original authors an
 | MIT-BIH     | 1.0.0                 | https://doi.org/10.13026/C23K5S                                    |
 | MNC         | Jan 22, 2021          | https://doi.org/10.25822/00tc-zz78                                 |
 | MrOS        | 0.6.0                 | https://doi.org/10.25822/kc27-0425                                 |
-| MSP         | Apr, 2023             | https://doi.org/10.25822/gc7q-g526                                 |
+| MSP         | 0.1.1                 | https://doi.org/10.25822/gc7q-g526                                 |
 | MWT         | v1                    | https://doi.org/10.5281/zenodo.3251716                             |
-| NCHSDB      | Jul, 2022             | https://doi.org/10.25822/jpdr-vz50                                 |
+| NCHSDB      | 0.3.0                 | https://doi.org/10.25822/jpdr-vz50                                 |
 | Physio2018  | 1.0.0                 | https://doi.org/10.13026/1q9b-ge17                                 |
 | REDSD       | 1.0.8                 | https://doi.org/10.18112/openneuro.ds004902.v1.0.8                 |
-| SLEEPBRL    | 1.0.0                 | https://doi.org/10.13026/C29H4K                                    |
 | SHHS        | 0.21.0                | https://doi.org/10.25822/ghy8-ks59                                 |
+| SIEFERT     | 1.0.2                 | https://doi.org/10.18112/openneuro.ds005121.v1.0.2                 |
+| SLEEPBRL    | 1.0.0                 | https://doi.org/10.13026/C29H4K                                    |
 | Sleep-EDF   | 1.0.0                 | https://doi.org/10.13026/C2X676                                    |
-| SOF         | Jun 12, 2020          | https://doi.org/10.25822/e1cf-rx65                                 |
+| SOF         | 0.8.0                 | https://doi.org/10.25822/e1cf-rx65                                 |
 | STAGES      | 0.3.0                 | https://doi.org/10.25822/me0d-xs45                                 |
 | UCDDB       | 1.0.1                 | https://doi.org/10.13026/C26C7D                                    |
 | WSC         | 0.7.0                 | https://doi.org/10.25822/js0k-yh52                                 |
