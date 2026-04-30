@@ -538,7 +538,12 @@ class FileProcessor:
         output_format = self.config.output_format
         channels_sorted = sorted(all_channel_data.keys())
         channel_dicts = [all_channel_data[ch] for ch in channels_sorted]
-
+        try:
+            all_signals = np.array([channel_data["signal"].flatten() for channel_data in channel_dicts])
+        except Exception as e:
+            self.logger.error(f"Error storing signals, they do not have the same lengths: {[len(channel_data['signal']) for channel_data in channel_dicts]}")
+            raise ValueError(f"Error storing signals, they do not have the same lengths: {[len(channel_data['signal']) for channel_data in channel_dicts]}")
+                
         if output_format == "npz":
             for channel_data in channel_dicts:
                 save_dict = {
@@ -598,7 +603,6 @@ class FileProcessor:
 
                 # Write samples
                 edf_writer.setStartdatetime(Startdatetime)
-                all_signals = [channel_data["signal"].flatten() for channel_data in channel_dicts]
                 edf_writer.writeSamples(all_signals)
 
                 # Write annotations
@@ -629,6 +633,7 @@ class FileProcessor:
                     else:
                         group_name = channel_data["ch_name"]
                     ch_grp = grp_signals.create_group(group_name)
+                    # Signal
                     ch_grp.create_dataset("data", data=signal, compression="gzip", shuffle=True)
                     ch_grp.attrs["ch_label"] = channel_data["ch_name"]
                     ch_grp.attrs["ch_label_orig"] = channel_data["ch_name_orig"]
