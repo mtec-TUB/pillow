@@ -1,5 +1,4 @@
 from mne.io import read_raw_brainvision
-from pymatreader import read_mat
 from mne import _fiff
 
 class BRAINVISIONHandler:
@@ -8,20 +7,11 @@ class BRAINVISIONHandler:
     def get_channels(self, logger, filepath):
         """Extract channel names file."""
         try:
-            # Fast path: read only metadata from the .set file.
-            mat = read_mat(filepath, variable_names=['chanlocs'])
-            chanlocs = mat.get("chanlocs")
-            labels = chanlocs.get('labels',[]) 
-            return labels
-        
-        except:
-            # Fall back to slower mne that may preload the data
-            try:
-                raw_data = read_raw_brainvision(filepath, verbose="WARNING",preload=False)
-                return raw_data.ch_names
-            except Exception as e:
-                logger.error(f"Error during channel extraction from: {e}")
-                raise
+            raw_data = read_raw_brainvision(filepath, verbose="WARNING",preload=False)
+            return raw_data.ch_names
+        except Exception as e:
+            logger.error(f"Error during channel extraction from: {e}")
+            raise
 
     def read_signal(self, logger, filepath, channel):
         """Read signal from file for specific channel."""
