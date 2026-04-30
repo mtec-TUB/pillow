@@ -77,7 +77,7 @@ class EDFHandler:
                         else:
                             logger.warning(str(w[0].message))
                 if channel in raw.ch_names:
-                    signal = raw.get_data()
+                    signal = raw.get_data()[0]
                     return signal
             except KeyboardInterrupt:
                 # Always re-raise KeyboardInterrupt
