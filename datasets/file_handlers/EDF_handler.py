@@ -4,7 +4,6 @@ from warnings import catch_warnings
 
 class EDFHandler:
     """Handler for EDF files
-    Tries to get file content with pyedflib and falls back to mne if pyedflib fails
     """
 
     def get_channels(self, logger, filepath):
@@ -39,7 +38,7 @@ class EDFHandler:
         except Exception as e:
             logger.error(f"Error during channel extraction: {e}")
             logger.error(
-                "Maybe the repair_edfs.py script or EDF Browser header repairer can help."
+                "Maybe EDF Browser header repair can help."
             )
             return []
 
@@ -62,7 +61,7 @@ class EDFHandler:
         except Exception as e:
             logger.error(f"Error during signal extraction: {e}")
             logger.error(
-                "Maybe the repair_edfs.py script or EDF Browser header repairer can help."
+                "Maybe EDF Browser header repair can help."
             )
         return None     # channel was not found in this file
         
@@ -77,7 +76,7 @@ class EDFHandler:
             raise
         except Exception as e:
             logger.error(f"Error during start_datetime retrieval: {e}")
-            logger.error("Maybe the repair_edfs.py script or EDF Browser header repairer can help.")
+            logger.error("Maybe EDF Browser header repair can help.")
             raise
 
         return start_datetime
@@ -104,7 +103,7 @@ class EDFHandler:
             raise
         except Exception as e:
             logger.error(f"Error during data retrieval: {e}")
-            logger.error("Maybe the repair_edfs.py script or EDF Browser header repairer can help.")
+            logger.error("Maybe EDF Browser header repair can help.")
             raise
 
         return {
