@@ -9,6 +9,10 @@ class BOAS(BaseDataset):
 
     def __init__(self):
         super().__init__("BOAS","BOAS - Bitbrain Open Access Sleep (ds005555)", keep_folder_structure=False)
+
+        # File "sub-72_task-Sleep_acq-psg_eeg.edf" is shorter than the corresponding headband file
+        # We will truncate all channels to the shortest signal length to ensure alignment across channels
+        self.shortest_signal_length = None
     
     def _setup_dataset_config(self):
         self.ann2label = {0: "W",
@@ -74,6 +78,11 @@ class BOAS(BaseDataset):
         all_channels = psg_channels + headband_channels
         if len(all_channels) > len(set(all_channels)):
             raise ValueError(f"Duplicate channel names found in PSG and Headband files. Please check the files and ensure unique channel names.")
+        
+        # Find the shortest signal length across all channels
+        channel_lengths = [len(self.read_signal(logger, filepath, ch)) for ch in all_channels]
+        self.shortest_signal_length = min(channel_lengths)
+
         return all_channels
     
     def read_signal(self, logger, filepath, channel):
@@ -88,17 +97,33 @@ class BOAS(BaseDataset):
     
     def get_start_datetime(self, logger, filepath):
         """Get start datetime of file."""
-        return self._file_handler.get_start_datetime(logger, filepath)
+        start_datetime_psg = self._file_handler.get_start_datetime(logger, filepath).replace(tzinfo=None)
+
+        headband_filepath = filepath.replace('psg_eeg.edf', 'headband_eeg.edf')
+        start_datetime_hb = self._file_handler.get_start_datetime(logger, headband_filepath).replace(tzinfo=None)
+        if start_datetime_psg != start_datetime_hb:
+            logger.error(f"Start datetimes of PSG ({start_datetime_psg}) and Headband ({start_datetime_hb}) files do not match.")
+            raise ValueError(f"Start datetimes of PSG ({start_datetime_psg}) and Headband ({start_datetime_hb}) files do not match.")
+        else:
+            return start_datetime_psg            
     
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for processing."""
         if channel in self.psg_channel_names:
-            return self._file_handler.get_signal_data(logger, filepath, channel)
+            signal_data = self._file_handler.get_signal_data(logger, filepath, channel)
         elif channel in self.hb_channel_names:
             headband_filepath = filepath.replace('psg_eeg.edf', 'headband_eeg.edf')
-            return self._file_handler.get_signal_data(logger, headband_filepath, channel)
+            signal_data = self._file_handler.get_signal_data(logger, headband_filepath, channel)
         else:
+            logger.error(f"Channel {channel} not found in either PSG or Headband channel list")
             raise ValueError(f"Channel {channel} not found in either PSG or Headband channel list")
+        
+        if len(signal_data["signal"]) > self.shortest_signal_length:
+            signal_data["file_duration"] = self.shortest_signal_length / signal_data["sampling_rate"]
+            logger.warning(f"Truncating signal for channel {channel} to shortest signal ({signal_data["file_duration"]} sec) to ensure alignment across channels.")
+            signal_data["signal"] = signal_data["signal"][:self.shortest_signal_length]
+
+        return signal_data
 
     def dataset_paths(self):
         return ['', '']
@@ -125,14 +150,8 @@ class BOAS(BaseDataset):
 
 
         return ann_stage_events, start_time, None, None
-    
-    # def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
 
-    #     return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs) 
-    
-    # def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
+    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
-    #     if len(signals) > len(labels):
-    #         return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
-    #     elif len(labels) == len(signals) + 1:
-    #         return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
+        if len(labels) > len(signals):
+            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
