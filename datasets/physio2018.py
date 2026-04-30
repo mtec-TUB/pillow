@@ -12,7 +12,7 @@ class Physio2018(BaseDataset):
     """Physio2018 (PhysioNet Challenge 2018) dataset."""
     
     def __init__(self):
-        super().__init__("PHYSIO2018","Physio2018 - PysioNet Challenge 2018", keep_folder_structure = False)
+        super().__init__("PHYSIO2018","Physio2018 - PhysioNet Challenge 2018", keep_folder_structure = False)
 
         self._file_handler = WFDBHandler()
   
