@@ -225,7 +225,7 @@ class ISRUC(BaseDataset):
             return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
         
 
-    def preprocess(self, data_dir, ann_dir, output_dir):
+    def preprocess(self, data_dir, ann_dir):
         print("\n ISRUC files originally are stored in an inconvenient way and therefor should be preprocessed/resorted ... \n \
               This will not modify the original file content")
         

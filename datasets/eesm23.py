@@ -117,5 +117,5 @@ class EESM23(BaseDataset):
             f"Unexpected alignment case in {psg_fname}: len(signals)={len(signals)}, len(labels)={len(labels)}")
         raise ValueError(f"Unexpected signal/label length combination: {len(signals)} signals, {len(labels)} labels")
     
-    def preprocess(self, data_dir, ann_dir, output_dir):
-        return EESM_Preprocessor(self).preprocess(data_dir, ann_dir, output_dir)
+    def preprocess(self, data_dir, ann_dir):
+        return EESM_Preprocessor(self).preprocess(data_dir, ann_dir)

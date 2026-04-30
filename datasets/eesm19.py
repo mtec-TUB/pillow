@@ -216,22 +216,22 @@ class EESM19(BaseDataset):
         
         raise Exception(f"Unexpected case during end alignment: {psg_fname}, len(signals)={len(signals)}, len(labels)={len(labels)}")
 
-    def preprocess(self, data_dir, ann_dir, output_dir):
-        return EESM_Preprocessor(self).preprocess(data_dir, ann_dir, output_dir)
+    def preprocess(self, data_dir, ann_dir):
+        return EESM_Preprocessor(self).preprocess(data_dir, ann_dir)
 
 class EESM_Preprocessor:
 
     def __init__(self, dataset):
         self.dataset = dataset
 
-    def preprocess(self, data_dir, ann_dir, output_dir):
+    def preprocess(self, data_dir, ann_dir):
         print("\n Files originally contain NaN values in signals. \n")
         
         execute_preprocess = input("Do you want to interpolate over these NaN values now (as recommended from the dataset authors)? (Y/N) ")
         
         if str(execute_preprocess).lower() == "y":
 
-            self.interpolate_files(data_dir, ann_dir, output_dir)
+            self.interpolate_files(data_dir, ann_dir)
             
             if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
                 return False
@@ -241,7 +241,7 @@ class EESM_Preprocessor:
         return True
     
 
-    def interpolate_files(self, data_dir, ann_dir, output_dir):
+    def interpolate_files(self, data_dir, ann_dir):
         # Get files using dataset-specific extensions
         explorer = Dataset_Explorer(
             logger=None,

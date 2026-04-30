@@ -179,7 +179,7 @@ class FDCSR(BaseDataset):
         if len(signals) == len(labels) + 1:
             return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
     
-    def preprocess(self, data_dir, ann_dir, output_dir):
+    def preprocess(self, data_dir, ann_dir):
         print("\n FDCSR files originally are stored in an unsupported format and therefor need to be preprocessed/resorted \n")
         
         execute_preprocess = input("Do you want to perform the preprocessing now? (Y/N) ")
@@ -188,7 +188,6 @@ class FDCSR(BaseDataset):
             splitter = FDCSRSleepScoreSplitter(data_dir)
             unscored_files = splitter.process_sleep_scores()
             if unscored_files:
-                dest_folder = os.path.join(os.path.split(output_dir)[0], "unscored_files")
                 print(f"{len(unscored_files)} unscored files were found.")
                 print("Successfully ended preprocessing")
                 

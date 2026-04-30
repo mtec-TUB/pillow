@@ -109,7 +109,7 @@ def main(config):
     print(f"Output directory: {config.output_dir}")
 
     # Preprocess file structure if needed (Reordering etc.)
-    ret = dataset.preprocess(config.psg_dir, config.ann_dir, config.output_dir)
+    ret = dataset.preprocess(config.psg_dir, config.ann_dir)
     if ret is False:
         return
 
