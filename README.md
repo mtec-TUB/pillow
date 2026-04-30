@@ -82,7 +82,7 @@ We do not provide any data. Please request the data from the original authors an
 | DCSM        | Mar 15, 2021          | https://doi.org/10.17894/ucph.282d3c1e-9b98-4c1e-886e-704afdfa9179 |
 | DOD-H       | v1 (Jul 15, 2025)     | https://doi.org/10.5281/zenodo.15900394                            |
 | DOD-O       | v1 (Jul 15, 2025)     | https://doi.org/10.5281/zenodo.15900394                            |
-| DREAMT      | 1.0.0 (2.1.0 in prep) | https://doi.org/10.13026/dztc-dv77                                 |
+| DREAMT      | 2.1.0                 | https://doi.org/10.13026/dztc-dv77                                 |
 | EESM17      | 1.0.5                 | https://doi.org/10.18112/openneuro.ds004348.v1.0.5                 |
 | EESM19      | 1.0.2                 | https://doi.org/10.18112/openneuro.ds005185.v1.0.2                 |
 | EESM23      | 1.0.0                 | https://doi.org/10.18112/openneuro.ds005178.v1.0.0                 |
