@@ -201,13 +201,17 @@ class FileProcessor:
                 log_paths = {}  # Store log paths for each channel separately
 
             # Get Start datetime of polysomnography data
-            start_datetime = self.dataset.get_start_datetime(file_logger, self.psg_fname)
+            start_datetime = self.dataset.get_start_datetime(self.logger, self.psg_fname)
+            if isinstance(start_datetime, datetime):
+                    start_datetime = start_datetime.replace(tzinfo=None)
             file_data["start_datetime"] = start_datetime
             file_logger.info(f"Start datetime: {start_datetime}")
 
             if self.config.use_annot:
                 # Parse annotations (is same for all channels)
                 ann_stage_events, ann_Startdatetime, lights_off, lights_on = self.dataset.ann_parse(self.ann_fname)
+                if isinstance(ann_Startdatetime, datetime):
+                    ann_Startdatetime = ann_Startdatetime.replace(tzinfo=None)
                 file_data["ann_start_datetime"] = ann_Startdatetime
                 file_data.update({
                     "lights_off": lights_off,
@@ -383,14 +387,13 @@ class FileProcessor:
     def _get_start_delay(self, logger, ann_start_datetime, signal_start_datetime):
         """ Check if annotation and signal start datetime are aligned and calculate the delay between annotation and signal start if necessary.
         """
+        delay = 0
         if ann_start_datetime != None:
-            delay = 0
-
             # If annotation start datetime is given as a datetime object, compare with signal start datetime and calculate start delay
             if isinstance(ann_start_datetime, datetime) and signal_start_datetime is not None:
                 # Strip timezone info before comparison/subtraction
-                ann_dt = ann_start_datetime.replace(tzinfo=None)
-                sig_dt = signal_start_datetime.replace(tzinfo=None)
+                ann_dt = ann_start_datetime
+                sig_dt = signal_start_datetime
                 if ann_dt.time() != sig_dt.time():
                     delay = (ann_dt - sig_dt).total_seconds()
                     
