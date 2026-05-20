@@ -539,6 +539,7 @@ class FileProcessor:
         channel_dicts = [all_channel_data[ch] for ch in channels_sorted]
         n_epochs = [len(channel_data["signal"]) for channel_data in channel_dicts]
         if len(np.unique(n_epochs)) != 1:
+            self.logger.error(f"All channels must have the same number of epochs after processing to be saved together, but got different number of epochs: {n_epochs}")
             raise ValueError(f"All channels must have the same number of epochs after processing to be saved together, but got different number of epochs: {n_epochs}")
 
         if output_format == "npz":
@@ -571,8 +572,6 @@ class FileProcessor:
                 for i, channel_data in enumerate(channel_dicts):
                     signal = channel_data["signal"].flatten()
                     scale = 10**3  # to get 3 decimals for physical min and max
-                    if len(signal) == 0:
-                        print("here")
                     phys_min = floor(np.nanmin(signal) * scale) / scale
                     phys_max = ceil(np.nanmax(signal) * scale) / scale
                     if phys_min == phys_max:
