@@ -537,12 +537,10 @@ class FileProcessor:
         output_format = self.config.output_format
         channels_sorted = sorted(all_channel_data.keys())
         channel_dicts = [all_channel_data[ch] for ch in channels_sorted]
-        try:
-            all_signals = np.array([channel_data["signal"].flatten() for channel_data in channel_dicts])
-        except Exception as e:
-            self.logger.error(f"Error storing signals, they do not have the same lengths: {[len(channel_data['signal']) for channel_data in channel_dicts]}")
-            raise ValueError(f"Error storing signals, they do not have the same lengths: {[len(channel_data['signal']) for channel_data in channel_dicts]}")
-                
+        n_epochs = [len(channel_data["signal"]) for channel_data in channel_dicts]
+        if len(np.unique(n_epochs)) != 1:
+            raise ValueError(f"All channels must have the same number of epochs after processing to be saved together, but got different number of epochs: {n_epochs}")
+
         if output_format == "npz":
             for channel_data in channel_dicts:
                 save_dict = {
@@ -602,7 +600,7 @@ class FileProcessor:
 
                 # Write samples
                 edf_writer.setStartdatetime(Startdatetime)
-                edf_writer.writeSamples(all_signals)
+                edf_writer.writeSamples([channel_data["signal"].flatten() for channel_data in channel_dicts])
 
                 # Write annotations
                 if self.config.use_annot:
