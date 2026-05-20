@@ -19,7 +19,7 @@ An extensive overview of all datasets is available in our [PillowCase](https://m
 
 ## **Architecture**
 
-The codebase is organized into three main components:
+The codebase is organized into four main components:
 
 ```
 ├── datasets/                      # Dataset-specific logic
@@ -101,6 +101,7 @@ We do not provide any data. Please request the data from the original authors an
 | NCHSDB      | 0.3.0                 | https://doi.org/10.25822/jpdr-vz50                                 |
 | Physio2018  | 1.0.0                 | https://doi.org/10.13026/1q9b-ge17                                 |
 | REDSD       | 1.0.8                 | https://doi.org/10.18112/openneuro.ds004902.v1.0.8                 |
+| SEF         | 1.0.13                | https://openneuro.org/datasets/ds003768/versions/1.0.13            |
 | SHHS        | 0.21.0                | https://doi.org/10.25822/ghy8-ks59                                 |
 | SIEFERT     | 1.0.2                 | https://doi.org/10.18112/openneuro.ds005121.v1.0.2                 |
 | SLEEPBRL    | 1.0.0                 | https://doi.org/10.13026/C29H4K                                    |
