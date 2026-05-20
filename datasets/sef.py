@@ -21,6 +21,7 @@ class SEF(BaseDataset):
                           "1": "N1",
                           "2": "N2",
                           "3": "N3",
+                          "Unscorable": "UNK",
                         #   "R": "REM",
                           }
         
@@ -89,7 +90,7 @@ class SEF(BaseDataset):
             if start_time is None:
                 start_time = start
 
-            stage = row['30-sec_epoch_sleep_stage']
+            stage = str(row['30-sec_epoch_sleep_stage'])
             ann_stage_events.append({'Stage': stage,
                                         'Start': start - start_time,
                                         'Duration': epoch_duration})
