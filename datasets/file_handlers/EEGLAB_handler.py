@@ -1,4 +1,5 @@
-import mne
+from mne.io import read_raw_eeglab, read_epochs_eeglab
+from mne import _fiff
 import numpy as np
 from pymatreader import read_mat
 
@@ -17,10 +18,10 @@ class EEGLABHandler:
         except:
             # Fall back to slower mne that may preload the data
             try:
-                raw_data = mne.io.read_raw_eeglab(filepath, verbose="WARNING",preload=False)
+                raw_data = read_raw_eeglab(filepath, verbose="WARNING",preload=False)
                 return raw_data.ch_names
             except TypeError as e:
-                raw_epoched_data = mne.io.read_epochs_eeglab(filepath, verbose="WARNING")
+                raw_epoched_data = read_epochs_eeglab(filepath, verbose="WARNING")
                 return raw_epoched_data.ch_names
             except OSError as e:
                 logger.error(f"Skipping corrupt/unreadable file: {e}")
@@ -32,7 +33,7 @@ class EEGLABHandler:
     def read_signal(self, logger, filepath, channel):
         """Read signal from file for specific channel."""
         try:
-            raw_data = mne.io.read_raw_eeglab(filepath, verbose='ERROR')
+            raw_data = read_raw_eeglab(filepath, verbose='ERROR')
             if channel in raw_data.ch_names:
                 return raw_data.get_data(picks=channel)[0]
             else:
@@ -48,7 +49,7 @@ class EEGLABHandler:
                 n_epochs = eeg.get("trials")
                 events = np.vstack((np.arange(n_epochs,dtype=int), np.zeros(n_epochs,dtype=int), np.ones(n_epochs, dtype=int))).T
                 event_id=dict(unknown=1)
-                raw_epoched_data = mne.io.read_epochs_eeglab(filepath, verbose="WARNING", events=events, event_id=event_id)
+                raw_epoched_data = read_epochs_eeglab(filepath, verbose="WARNING", events=events, event_id=event_id)
             
                 epoched_data = raw_epoched_data.get_data(picks=channel)[:,0,:]  # shape (n_epochs, n_times)
                 continuous = epoched_data.flatten()
@@ -62,11 +63,11 @@ class EEGLABHandler:
     def get_start_datetime(self, logger, filepath):
         """Get start datetime of file."""
         try:
-            raw_data = mne.io.read_raw_eeglab(filepath, verbose='WARNING', preload=True)
+            raw_data = read_raw_eeglab(filepath, verbose='WARNING', preload=True)
             info = raw_data.info
 
         except TypeError as e:
-            raw_epoched_data = mne.io.read_epochs_eeglab(filepath, verbose="WARNING")
+            raw_epoched_data = read_epochs_eeglab(filepath, verbose="WARNING")
             info = raw_epoched_data.info
         except RuntimeError as e:
             logger.error(f"Runtime error during data retrieval: {e}")
@@ -81,7 +82,7 @@ class EEGLABHandler:
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for specific channel."""
         try:
-            raw_data = mne.io.read_raw_eeglab(filepath, verbose='WARNING', preload=True)
+            raw_data = read_raw_eeglab(filepath, verbose='WARNING', preload=True)
 
             signal = raw_data.get_data(picks=channel)[0]
             if np.all(np.isnan(signal)):
@@ -101,7 +102,7 @@ class EEGLABHandler:
             n_epochs = eeg.get("trials")
             events = np.vstack((np.arange(n_epochs,dtype=int), np.zeros(n_epochs,dtype=int), np.ones(n_epochs, dtype=int))).T
             event_id=dict(unknown=1)
-            raw_epoched_data = mne.io.read_epochs_eeglab(filepath, verbose="WARNING", events=events, event_id=event_id)
+            raw_epoched_data = read_epochs_eeglab(filepath, verbose="WARNING", events=events, event_id=event_id)
         
             epoched_data = raw_epoched_data.get_data(picks=channel)[:,0,:]  # shape (n_epochs, n_times)
             
@@ -118,7 +119,7 @@ class EEGLABHandler:
         sampling_rate = info["sfreq"]
         file_duration = samples / sampling_rate
         unit = info['chs'][info['ch_names'].index(channel)]['unit']
-        unit = mne._fiff.meas_info._unit2human[unit]
+        unit = _fiff.meas_info._unit2human[unit]
         return {
             "signal": signal,
             "sampling_rate": sampling_rate,
