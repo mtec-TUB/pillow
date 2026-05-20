@@ -100,6 +100,7 @@ We do not provide any data. Please request the data from the original authors an
 | MWT         | v1                    | https://doi.org/10.5281/zenodo.3251716                             |
 | NCHSDB      | 0.3.0                 | https://doi.org/10.25822/jpdr-vz50                                 |
 | Physio2018  | 1.0.0                 | https://doi.org/10.13026/1q9b-ge17                                 |
+| PSG-IPA     | 1.0.0                 | https://doi.org/10.13026/esx0-nw71                                 |
 | REDSD       | 1.0.8                 | https://doi.org/10.18112/openneuro.ds004902.v1.0.8                 |
 | SEF         | 1.0.13                | https://openneuro.org/datasets/ds003768/versions/1.0.13            |
 | SHHS        | 0.21.0                | https://doi.org/10.25822/ghy8-ks59                                 |
