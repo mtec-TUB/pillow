@@ -445,7 +445,7 @@ class FileProcessor:
                             lights_off_sec += 24*3600 # add 24h
                         
                         # Round to full epoch
-                        lights_off_epoch = self._round_marker_time(self.logger, "lights_off", lights_off_sec, self.config.epoch_duration, lights_off.time())
+                        lights_off_epoch = self._round_marker_time("lights_off", lights_off_sec, self.config.epoch_duration, lights_off.time())
                         
                         self.logger.info(f"Select only epochs after lights Off at {(startdatetime + timedelta(seconds=lights_off_sec)).time()} (epoch {lights_off_epoch})")
                  
@@ -463,7 +463,7 @@ class FileProcessor:
                         raise Exception(f"Lights Off time ({lights_off_sec}) is more than 1 hour before signal start ({startdatetime.time()})")
                     else:
                         # Round to full epoch
-                        lights_off_epoch = self._round_marker_time(self.logger, "lights_off", lights_off_sec, self.config.epoch_duration, lights_off.time())
+                        lights_off_epoch = self._round_marker_time("lights_off", lights_off_sec, self.config.epoch_duration, lights_off.time())
                         self.logger.info(f"Select only epochs after lights Off at second {lights_off_sec} (epoch {lights_off_epoch})")
                 else:
                     self.logger.info("Lights Off time is at the start of the signal, no need of epoch selection based on lights Off time.")
