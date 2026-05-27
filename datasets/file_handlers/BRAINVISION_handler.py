@@ -28,7 +28,7 @@ class BRAINVISIONHandler:
     def get_start_datetime(self, logger, filepath):
         """Get start datetime of file."""
         try:
-            raw_data = read_raw_brainvision(filepath, verbose='WARNING', preload=True)
+            raw_data = read_raw_brainvision(filepath, verbose='WARNING', preload=False)
             info = raw_data.info
         except Exception as e:
             logger.error(f"Error during start_datetime retrieval: {e}")
@@ -40,7 +40,7 @@ class BRAINVISIONHandler:
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for specific channel."""
         try:
-            raw_data = read_raw_brainvision(filepath, verbose='WARNING', preload=True)
+            raw_data = read_raw_brainvision(filepath, verbose='WARNING', preload=False)
 
             signal = raw_data.get_data(picks=channel)[0]
 
