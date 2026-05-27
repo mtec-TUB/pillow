@@ -1,3 +1,7 @@
+import os
+import numpy as np
+from datetime import timedelta
+
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from datasets.file_handlers import BRAINVISIONHandler
@@ -101,9 +105,32 @@ class SIEFERT(BaseDataset):
                                          'PO4', 'PO8', 'P6', 'P2', 'CPz', 'CP4', 'TP8', 'C6', 'C2', 'FC4', 'FT8', 'F6', 'F2', 'AF4', 'AF8', 'SW filtered'],
                                 'emg': ['T7','T8',]}
                 
-        self.file_extensions = {'psg_ext': '**/*.vhdr',
+        self.file_extensions = {'psg_ext': '**/*run-01_eeg.vhdr',
                                 'ann_ext': '*stages'} # no annotations, just for consistency
         
+    def get_signal_data(self, logger, filepath, channel):
+        run_02_psg = filepath.replace("run-01_eeg.vhdr", "run-02_eeg.vhdr")
+        if os.path.exists(run_02_psg):
+            run_01_signal = self._file_handler.get_signal_data(logger, filepath, channel)
+            run_01_starttime = self._file_handler.get_start_datetime(logger, filepath)
+            run_01_duration = run_01_signal["file_duration"]
+
+            run_02_signal = self._file_handler.get_signal_data(logger, run_02_psg, channel)
+            run_02_starttime = self._file_handler.get_start_datetime(logger, run_02_psg)
+
+            missing_time = run_02_starttime - (run_01_starttime + timedelta(seconds=run_01_duration))
+            missing_samples = int(missing_time.total_seconds() * run_01_signal["sampling_rate"])
+            logger.warning(f"Channel data is splitted over two files (run-01 and run-02). They will be combined using {missing_time.minutes} minutes of NaN values.")
+
+            return {
+                "signal": np.concatenate([run_01_signal["signal"], np.full(missing_samples, np.nan), run_02_signal["signal"]]),
+                "sampling_rate": run_01_signal["sampling_rate"],
+                "unit": run_01_signal["unit"],
+                "file_duration": run_01_signal["file_duration"] + missing_time.total_seconds() + run_02_signal["file_duration"]
+            }
+        else:
+            return self._file_handler.get_signal_data(logger, filepath, channel)
+
 
     def dataset_paths(self):
         return ['', '']
