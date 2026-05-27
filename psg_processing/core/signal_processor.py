@@ -24,7 +24,7 @@ class SignalProcessor:
     during processing.
     """
 
-    def __init__(self, logger, signal, ch_name, filter_freq, ch_types):
+    def __init__(self, logger, signal, ch_name, config, ch_types):
         """
         Initialize the SignalProcessor.
 
@@ -39,7 +39,9 @@ class SignalProcessor:
         self.signal_max = np.nanmax(signal)
         self.signal_mean = np.nanmean(signal)
 
-        self.filter_freq = filter_freq
+        self.filter_freq = config.filter_freq
+        self.filter_type = config.filter_type
+        self.iir_filter_order = config.iir_filter_order
         self.select_ch = ch_name
         self.ch_type = self._get_channel_type(ch_name, ch_types)
         self.highpassed = False
@@ -180,12 +182,18 @@ class SignalProcessor:
                 f"Filter signal with low: {low} Hz and high: {high} Hz bandpass"
             )
 
+            if self.filter_type == "iir" and self.iir_filter_order is not None:
+                iir_params = {"ftype": "butter", "order": self.iir_filter_order}
+            else:
+                iir_params = None
+
             self.signal = filter_data(
                 self.signal,
                 fs,
                 low,
                 high,
-                method="fir",
+                method=self.filter_type,
+                iir_params=iir_params,
                 n_jobs=1,
                 verbose="WARNING",
             )

@@ -679,7 +679,7 @@ class ChannelProcessor:
         fs = data["sampling_rate"]
 
         if self.config.resample is not None or self.config.filter:
-            signal_processor = SignalProcessor(self.logger, signal, data["ch_name_orig"], self.config.filter_freq, self.dataset.channel_types)
+            signal_processor = SignalProcessor(self.logger, signal, data["ch_name_orig"], self.config, self.dataset.channel_types)
 
             if self.config.resample is not None:
                 # Resample signal

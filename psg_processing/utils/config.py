@@ -35,17 +35,9 @@ class ProcessorConfig:
         self.dataset = kwargs.get("dataset")
 
         # Path parameters
-        self.base_data_dir: Path = self._validate_path(
-            kwargs.get("base_data_dir"),
-        )
-
-        self.data_dir: Optional[Path] = self._validate_path(
-            kwargs.get("data_dir")
-        )
-
-        self.output_dir: Optional[Path] = self._validate_path(
-            kwargs.get("output_dir")
-        )
+        self.base_data_dir: Path = self._validate_path(kwargs.get("base_data_dir"))
+        self.data_dir: Optional[Path] = self._validate_path(kwargs.get("data_dir"))
+        self.output_dir: Optional[Path] = self._validate_path(kwargs.get("output_dir"))
 
         # Enum parameters
         self.output_format: str = self._validate_enum(
@@ -66,12 +58,16 @@ class ProcessorConfig:
             "action"
         )
 
-        self.num_workers = self._validate_workers(kwargs.get("num_workers"))
-
         self.alignment: str = self._validate_enum(
             kwargs.get("alignment"),
             self.VALID_ALIGNMENT,
             "alignment"
+        )
+
+        self.filter_type: str = self._validate_enum(
+            kwargs.get("filter_type"),
+            {"fir", "iir"},
+            "filter_type"
         )
 
         # Boolean parameters
@@ -85,25 +81,16 @@ class ProcessorConfig:
         self.use_annot: bool = self._validate_bool(kwargs.get("use_annot"))
 
         # Other parameters
+        self.num_workers = self._validate_workers(kwargs.get("num_workers"))
         self.resample: Optional[int] = self._validate_resample(kwargs.get("resample"))
-
         self.epoch_duration: int = self._validate_epoch_duration(kwargs.get("epoch_duration"))
-
         self.min_sleep_epochs: int = self._validate_min_sleep_epochs(kwargs.get("min_sleep_epochs"))
-
         self.channels: List[str] = self._validate_channels(kwargs.get("channels"))
-
-        self.select_epochs: Union[int, str] = \
-            self._validate_select_epochs(kwargs.get("select_epochs"))
-        
-        self.truncate_non_sleep_end: bool = self._validate_truncate_non_sleep_end(kwargs.get("truncate_non_sleep_end"),self.select_epochs)
-
-        self.filter_freq: Dict[str, List[Optional[float]]] = \
-            self._validate_filter_freq(kwargs.get("filter_freq"))
-
-        self.pad_values = self._validate_pad_values(
-            kwargs.get("pad_values")
-        )
+        self.select_epochs: Union[int, str] = self._validate_select_epochs(kwargs.get("select_epochs"))
+        self.truncate_non_sleep_end: bool = self._validate_truncate_non_sleep_end(kwargs.get("truncate_non_sleep_end"), self.select_epochs)
+        self.iir_filter_order: int = self._validate_iir_filter_order(kwargs.get("iir_filter_order"))
+        self.filter_freq: Dict[str, List[Optional[float]]] = self._validate_filter_freq(kwargs.get("filter_freq"))
+        self.pad_values = self._validate_pad_values(kwargs.get("pad_values"))
 
         # ---------- Cross-checks ----------
         self._validate_consistency()
@@ -182,6 +169,13 @@ class ProcessorConfig:
                 "truncate_non_sleep_end can only be True if select_epochs is set to 'lights'."
             )
         return value
+    
+    def _validate_iir_filter_order(self, value):
+        if value is None:
+            return None
+        if not isinstance(value, int) or value < 0:
+            raise ConfigError(f"iir_filter_order must be non-negative int or None.")
+        return value
 
     def _validate_filter_freq(self, value):
         if not isinstance(value, dict):
@@ -235,16 +229,18 @@ class ProcessorConfig:
                 "both 'data_dir' and 'ann_dir' must be provided."
             )
 
-        # Optional: forbid ambiguous configuration
+        # Forbid ambiguous configuration
         if has_base and has_specific:
             raise ConfigError(
                 "Provide either 'base_data_dir' OR "
                 "'data_dir' and 'ann_dir', not both."
             )
     
-        # Filtering requires resampling or original fs known
         if self.filter and not self.filter_freq:
             raise ConfigError("filter=True but no filter_freq defined.")
+        
+        if self.filter_type == "fir" and self.iir_filter_order is not None:
+            raise ConfigError("Set iir_filter_order to 'null' when filter_type is 'fir'.")
 
         if not self.use_annot:
             if self.rm_move or self.rm_unk:

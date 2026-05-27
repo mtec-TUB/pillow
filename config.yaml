@@ -44,6 +44,13 @@ resample: null
 # Apply filtering after resampling
 filter: false
 
+# Filter type to use when 'filter'=true
+# Options:
+# - fir: Finite Impulse Response filter
+# - iir: Infinite Impulse Response filter (if used, filter order can be specified, or kept as null for automatic selection by mne library)
+filter_type: fir
+iir_filter_order: null
+
 # Filter frequencies to use when 'filter'=true for different signal groups (default: AASM guidelines)
 # Filter format: [low_cutoff, high_cutoff] (null = no cutoff)
 filter_freq:
