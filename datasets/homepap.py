@@ -16,9 +16,9 @@ class HOMEPAP(BaseDataset):
             "Stage 1 sleep": "N1",
             "Stage 2 sleep": "N2",
             "Stage 3 sleep": "N3",
-            "Stage 4 sleep": "REM",
+            "Stage 4 sleep": "N3",
             "REM sleep": "REM",
-            "Movement": 5
+            "Movement": "MOVE"
         }
         
         
