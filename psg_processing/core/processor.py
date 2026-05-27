@@ -203,7 +203,7 @@ class FileProcessor:
             # Get Start datetime of polysomnography data
             start_datetime = self.dataset.get_start_datetime(self.logger, self.psg_fname)
             if isinstance(start_datetime, datetime):
-                    start_datetime = start_datetime.replace(tzinfo=None)
+                start_datetime = start_datetime.replace(tzinfo=None)
             file_data["start_datetime"] = start_datetime
             self.logger.info(f"Start datetime: {start_datetime}")
 
@@ -419,7 +419,6 @@ class FileProcessor:
         Returns:
             _type_: epochs of lights off and lights on
         """
-        psg_fname = os.path.basename(channel_data["psg_fname"])
         
         startdatetime = channel_data["start_datetime"]
         lights_off_epoch = 0
@@ -463,7 +462,7 @@ class FileProcessor:
                         raise Exception(f"Lights Off time ({lights_off_sec}) is more than 1 hour before signal start ({startdatetime.time()})")
                     else:
                         # Round to full epoch
-                        lights_off_epoch = self._round_marker_time("lights_off", lights_off_sec, self.config.epoch_duration, lights_off.time())
+                        lights_off_epoch = self._round_marker_time("lights_off", lights_off_sec, self.config.epoch_duration)
                         self.logger.info(f"Select only epochs after lights Off at second {lights_off_sec} (epoch {lights_off_epoch})")
                 else:
                     self.logger.info("Lights Off time is at the start of the signal, no need of epoch selection based on lights Off time.")
@@ -811,7 +810,7 @@ class ChannelProcessor:
                     # lights on happened happenend in last unfilled epoch that was cropped -> keep all epochs
                     pass
                 else:
-                    self.logger.warning(f"Lights On is {len(signal_epoched) - lights_on_epoch} epochs after signal ends.")
+                    self.logger.warning(f"Lights On is {lights_on_epoch - len(signal_epoched)} epochs after signal ends.")
                     pass
                     # maybe padding with wake epochs until lights On time is reached? For now, just keep all epochs and do not select based on lights On time
                     # raise Exception
