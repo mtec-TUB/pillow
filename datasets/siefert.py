@@ -102,7 +102,7 @@ class SIEFERT(BaseDataset):
                                 'emg': ['T7','T8',]}
                 
         self.file_extensions = {'psg_ext': '**/*.vhdr',
-                                'ann_ext': '.'} # no annotations
+                                'ann_ext': '*stages'} # no annotations, just for consistency
         
 
     def dataset_paths(self):

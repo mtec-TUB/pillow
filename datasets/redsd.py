@@ -103,7 +103,7 @@ class REDSD(BaseDataset):
                                 }
                 
         self.file_extensions = {'psg_ext': '**/*.set',
-                                'ann_ext': '.'} # no annotations
+                                'ann_ext': '*stages'} # no annotations, just for consistency
         
 
     def dataset_paths(self):
