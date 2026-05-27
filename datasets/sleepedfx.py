@@ -23,7 +23,7 @@ class SleepEDFX(BaseDataset):
             "Sleep stage 4": "N3",      # NREM Stage 4 (Follow AASM Manual)
             "Sleep stage R": "REM",      # REM sleep
             "Sleep stage ?": "UNK",      # Unknown/Unscored
-            "Movement time": 5       # Movement
+            "Movement time": "MOV",       # Movement
         }
 
         self.inter_dataset_mapping = {

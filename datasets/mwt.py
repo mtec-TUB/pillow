@@ -25,7 +25,7 @@ class MWT(BaseDataset):
         # see also https://doi.org/10.1093/sleep/zsz163
         self.ann2label = {
             "wake": "W",
-            "sleep": 1
+            "sleep": "N1",
         }
 
         # https://zenodo.org/records/3251716
