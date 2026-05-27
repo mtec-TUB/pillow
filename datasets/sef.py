@@ -18,11 +18,19 @@ class SEF(BaseDataset):
     
     def _setup_dataset_config(self):
         self.ann2label = {"W": "W",
+                          "W (uncertain)": "W",
                           "1": "N1",
+                          "1 (uncertain)": "N1",
                           "2": "N2",
+                          "2 (uncertain)": "N2",
                           "3": "N3",
+                          "3 (uncertain)": "N3",
                           "Unscorable": "UNK",
-                        #   "R": "REM",
+                          "unscorable": "UNK",
+                          "1 (unscorable)": "UNK",
+                          "2 (unscorable)": "UNK",
+                          "3 (unscorable)": "UNK",
+                          "2 or 3 (unscorable)": "UNK",
                           }
         
         self.channel_names = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8', 'T7', 'T8', 'P7', 'P8', 'Fz', 'Cz', 
@@ -86,11 +94,17 @@ class SEF(BaseDataset):
         epoch_duration = 30
 
         for i, row in ann_df.iterrows():
-            start = row['epoch_start_time_sec']
+            try:
+                start = int(row['epoch_start_time_sec'])
+                stage = str(row['30-sec_epoch_sleep_stage'])
+            except (ValueError, TypeError):
+                # File sub-32_task-sleep_run-1_eeg.tsv has wrong column split (space instead of tab)
+                start, stage = row['epoch_start_time_sec'].split(" ")
+                start = int(start)
+
             if start_time is None:
                 start_time = start
 
-            stage = str(row['30-sec_epoch_sleep_stage'])
             ann_stage_events.append({'Stage': stage,
                                         'Start': start - start_time,
                                         'Duration': epoch_duration})
@@ -98,6 +112,9 @@ class SEF(BaseDataset):
         return ann_stage_events, start_time, None, None
     
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
+
+        if len(labels) > len(signals):
+            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
 
         if len(signals) > len(labels):
             return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
