@@ -58,7 +58,7 @@ class DREAMT(BaseDataset):
             "N3": "N3",     # NREM Stage 3
             "R": "REM",      # REM sleep
             "Missing": "UNK", # Unscored/Missing
-            "P": "W"     # Preparation stage, labeled as Wake as in described in https://physionet.org/content/dreamt/2.1.0/
+            "P": "UNK"     # Preparation stage, labeled as Wake as in described in https://physionet.org/content/dreamt/2.1.0/
         }        
         
         self.channel_names = ['C4-M1', 'F4-M1', 'O2-M1', 'Fp1-O2', 'T3 - CZ', 'CZ - T4', 'CHIN', 'E1', 'E2', 'ECG', 'LAT', 'RAT', 'SNORE', 'PTAF', 'FLOW', 
