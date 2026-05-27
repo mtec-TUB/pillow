@@ -1,5 +1,4 @@
 import os
-import mne
 from mne.io import read_raw_edf
 from mne import _fiff
 from warnings import catch_warnings
@@ -15,9 +14,9 @@ class EDFHandler:
                 raw = read_raw_edf(filepath, preload=False, verbose='WARNING')
                 if w:
                     if w[0].message.args[0].startswith("Channel names are not unique"):
-                        # duplicate channel names detected -> mne automatically maps them two unique names
-                        # we want the orig channel name
-                        # so we have to find the duplicates and remove the unique identifier
+                        # duplicate channel names detected -> mne automatically maps them to unique names 
+                        # We wouldnt find them with the given channel name
+                        # We have to find the duplicates and remove the unique identifier
                         duplicates = []
                         for ch in raw.ch_names:
                             # try to load the file including only this channel name
@@ -29,7 +28,7 @@ class EDFHandler:
                         orig_ch_name = prefix.rstrip("-")
                         labels = list(set(raw.ch_names) - set(duplicates)) + [orig_ch_name]
                     else:
-                        logger.warning("Warning during PSG loading with mne library: " + str(w[0].message))
+                        logger.info("Warning during channel extraction with mne library: " + str(w[0].message))
                         labels = raw.ch_names
                 else:
                     labels = raw.ch_names
@@ -60,7 +59,7 @@ class EDFHandler:
                     if w[0].message.args[0].startswith("Channel names are not unique"):
                         channel = raw.ch_names[0]   # take only the first of the duplicate channels
                     else:
-                        logger.warning("Warning during PSG loading with mne library: " + str(w[0].message))
+                        logger.info("Warning during signal extraction with mne library: " + str(w[0].message))
             if channel in raw.ch_names:
                 signal = raw.get_data()[0]
                 return signal
@@ -114,7 +113,7 @@ class EDFHandler:
                     if w[0].message.args[0].startswith("Channel names are not unique"):
                         channel = raw.ch_names[0]    # take only the first of the duplicate channels
                     else:
-                        logger.warning("Warning during PSG loading with mne library: " + str(w[0].message))
+                        logger.warning("Warning during data retrieval with mne library: " + str(w[0].message))
             
             signal = raw.get_data(picks=channel)[0]
             sampling_rate = raw.info['sfreq']
