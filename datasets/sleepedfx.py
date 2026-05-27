@@ -1,9 +1,8 @@
 import os
-import numpy as np
-import pyedflib
+from mne import read_annotations
 import pandas as pd
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import timedelta
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
@@ -107,12 +106,12 @@ class SleepEDFX(BaseDataset):
         Returns:
             Tuple of (sleep_stage_events, start_datetime)
         """
-        try:
-            ann_f = pyedflib.EdfReader(ann_fname)
-        except Exception as e:
-            return [], None, None, None
-        ann_onsets, ann_durations, ann_stages = ann_f.readAnnotations()
-        ann_startdatetime = ann_f.getStartdatetime()
+        ann_f = read_annotations(ann_fname)
+
+        ann_onsets = ann_f.onset
+        ann_durations = ann_f.duration
+        ann_stages = ann_f.description
+        ann_startdatetime = ann_f.orig_time
         start_offset = 0
         
         ann_stage_events = []
@@ -120,9 +119,12 @@ class SleepEDFX(BaseDataset):
         for a in range(len(ann_stages)):
             onset_sec = int(ann_onsets[a])
             
-            # Handle data gaps at the beginning
+            # Handle delayed annotations at the beginning
             if a == 0 and onset_sec != 0:
-                ann_startdatetime = ann_startdatetime + timedelta(seconds=onset_sec)
+                if ann_startdatetime is not None:
+                    ann_startdatetime = ann_startdatetime + timedelta(seconds=onset_sec)
+                else:
+                    ann_startdatetime = onset_sec
                 start_offset = onset_sec
             
             # Special handling for specific files with known gaps
@@ -148,8 +150,7 @@ class SleepEDFX(BaseDataset):
                 'Start': onset_sec - start_offset,
                 'Duration': duration_sec
             })
-        
-        ann_f.close()
+    
         return ann_stage_events, ann_startdatetime, None, None
 
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
