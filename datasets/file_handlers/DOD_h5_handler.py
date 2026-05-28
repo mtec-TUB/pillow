@@ -35,8 +35,8 @@ class DOD_H5Handler:
             logger.error(f"Error during signal extraction: {e}")
             raise
 
-    def get_start_datetime(self, logger, filepath):
-        """Get start datetime of file."""
+    def get_file_info(self, logger, filepath):
+        """Get information about the file."""
         try:
             with h5py.File(filepath, "r") as f:
 
@@ -47,10 +47,13 @@ class DOD_H5Handler:
                 else:
                     start_datetime = datetime.fromtimestamp(start_time)
 
-                return start_datetime
+                file_duration = f.attrs.get("duration")
+
         except Exception as e:
-            logger.error(f"Error during start_datetime retrieval: {e}")
+            logger.error(f"Error during file info retrieval: {e}")
             raise
+
+        return {"start_datetime": start_datetime, "file_duration": file_duration}
 
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for specific channel."""
@@ -62,13 +65,11 @@ class DOD_H5Handler:
                 unit = dataset.parent.attrs.get("unit")
 
                 sampling_rate = dataset.parent.attrs.get("fs")
-                file_duration = len(signal) / sampling_rate
 
                 return {
                     "signal": signal,
                     "sampling_rate": sampling_rate,
-                    "unit": unit,
-                    "file_duration": file_duration,
+                    "unit": unit
                 }
         except Exception as e:
             logger.error(f"Error during data retrieval: {e}")

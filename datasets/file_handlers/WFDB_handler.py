@@ -34,8 +34,8 @@ class WFDBHandler:
             logger.error(f"Error reading signal: {e}")
             raise
 
-    def get_start_datetime(self, logger, filepath):
-        """Get start datetime of file."""
+    def get_file_info(self, logger, filepath):
+        """Get information about the file."""
         try:
             psg_fname_no_ext, _ = os.path.splitext(filepath)
             record = wfdb.rdheader(psg_fname_no_ext)
@@ -49,9 +49,14 @@ class WFDBHandler:
             else:
                 start_datetime = datetime.combine(psg_date, psg_time)
 
-            return start_datetime
+            fs = record.fs[0] if isinstance(record.fs, list) else record.fs
+            sig_len = record.sig_len[0] if isinstance(record.sig_len, list) else record.sig_len
+            
+            file_duration = sig_len / fs
+
+            return {"start_datetime": start_datetime, "file_duration": file_duration}
         except Exception as e:
-            logger.error(f"Error during start_datetime retrieval: {e}")
+            logger.error(f"Error during file info retrieval: {e}")
             raise
 
     def get_signal_data(self, logger, filepath, channel):
@@ -63,15 +68,14 @@ class WFDBHandler:
             sampling_rate = record.fs
             signal = record.p_signal[:,0]
 
-            file_duration = record.sig_len / sampling_rate
+            # file_duration = record.sig_len / sampling_rate
 
             unit = record.units[0]
 
             return {
                 "signal": signal,
                 "sampling_rate": sampling_rate,
-                "unit": unit,
-                "file_duration": file_duration,
+                "unit": unit
             }
         except Exception as e:
             logger.error(f"Runtime error during data retrieval: {e}")

@@ -81,17 +81,19 @@ class EDFHandler:
             logger.error("Maybe EDF Browser header repair can help.")
         return None     # channel was not found in this file
         
-    def get_start_datetime(self, logger, filepath):
-        """Get start datetime of file."""
+    def get_file_info(self, logger, filepath):
+        """Get information about the file."""
         try:
             raw = read_raw_edf(filepath, preload=False, verbose='WARNING')                
             start_datetime = raw.info['meas_date']
+            file_duration = raw.duration
         except NotImplementedError as e:
             # This can happen for some EDF files which e.g. do not have the standard .edf extension, but are still internally in EDF format (.rec)
             try:
                 with open(filepath, "rb") as f:
                     raw = read_raw_edf(f, preload=True, verbose="WARNING")   # only supported for mne version >= 1.10
                     start_datetime = raw.info['meas_date']
+                    file_duration = raw.duration
             except Exception as e:
                 raise
         except KeyboardInterrupt:
@@ -102,7 +104,8 @@ class EDFHandler:
             logger.error("Maybe EDF Browser header repair can help.")
             raise
 
-        return start_datetime
+        return {"start_datetime": start_datetime,
+                "file_duration": file_duration}
 
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for specific channel."""
@@ -117,7 +120,6 @@ class EDFHandler:
             
             signal = raw.get_data(picks=channel)[0]
             sampling_rate = raw.info['sfreq']
-            file_duration = raw.n_times / sampling_rate
             unit = raw.info['chs'][0]['unit']
             unit = _fiff.meas_info._unit2human[unit]
         except NotImplementedError as e:
@@ -127,7 +129,6 @@ class EDFHandler:
                     raw = read_raw_edf(f, include=[channel], preload=True, verbose="WARNING")   # only supported for mne version >= 1.10
                     signal = raw.get_data(picks=channel)[0]
                     sampling_rate = raw.info['sfreq']
-                    file_duration = raw.n_times / sampling_rate
                     unit = raw.info['chs'][0]['unit']
                     unit = _fiff.meas_info._unit2human[unit]
             except Exception as e:
@@ -144,5 +145,4 @@ class EDFHandler:
             "signal": signal,
             "sampling_rate": sampling_rate,
             "unit": unit,
-            "file_duration": file_duration,
         }

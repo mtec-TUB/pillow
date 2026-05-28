@@ -201,11 +201,14 @@ class FileProcessor:
                 log_paths = {}  # Store log paths for each channel separately
 
             # Get Start datetime of polysomnography data
-            start_datetime = self.dataset.get_start_datetime(self.logger, self.psg_fname)
+            file_info = self.dataset.get_file_info(self.logger, self.psg_fname)
+            start_datetime = file_info["start_datetime"]
             if isinstance(start_datetime, datetime):
                 start_datetime = start_datetime.replace(tzinfo=None)
             file_data["start_datetime"] = start_datetime
             self.logger.info(f"Start datetime: {start_datetime}")
+            file_data["file_duration"] = file_info["file_duration"]
+            self.logger.info(f"File duration: {file_data['file_duration']} sec, {file_data['file_duration']/3600:.2f} h")
 
             if self.config.use_annot:
                 # Parse annotations (is same for all channels)
@@ -670,7 +673,6 @@ class ChannelProcessor:
         del psg_data  # free memory
 
         self.logger.info(f"Select channel samples: {len(data['signal'])}")
-        self.logger.info(f"File duration: {data['file_duration']} sec, {data['file_duration']/3600:.2f} h")
 
         # Process the signal (resample, filter, clean)
         signal = data["signal"].astype(np.float64)

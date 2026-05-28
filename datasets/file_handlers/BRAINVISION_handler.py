@@ -25,38 +25,34 @@ class BRAINVISIONHandler:
             logger.error(f"Error reading signal: {e}")
             return None
         
-    def get_start_datetime(self, logger, filepath):
-        """Get start datetime of file."""
+    def get_file_info(self, logger, filepath):
+        """Get information about the file."""
         try:
             raw_data = read_raw_brainvision(filepath, verbose='WARNING', preload=False)
             info = raw_data.info
+            file_duration = raw_data.duration
+            start_datetime = info["meas_date"]
         except Exception as e:
-            logger.error(f"Error during start_datetime retrieval: {e}")
+            logger.error(f"Error during file info retrieval: {e}")
             raise
 
-        start_datetime = info["meas_date"]
-        return start_datetime
+        return {"start_datetime": start_datetime, "file_duration": file_duration}
 
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for specific channel."""
         try:
             raw_data = read_raw_brainvision(filepath, verbose='WARNING', preload=False)
-
             signal = raw_data.get_data(picks=channel)[0]
-
-            samples = len(signal)
             info = raw_data.info
         except Exception as e:
             logger.error(f"Error during data retrieval: {e}")
             raise
 
         sampling_rate = info["sfreq"]
-        file_duration = samples / sampling_rate
         unit = info['chs'][info['ch_names'].index(channel)]['unit']
         unit = _fiff.meas_info._unit2human[unit]
         return {
             "signal": signal,
             "sampling_rate": sampling_rate,
-            "unit": unit,
-            "file_duration": file_duration,
+            "unit": unit
         }

@@ -60,24 +60,25 @@ class EEGLABHandler:
             logger.error(f"Error reading signal: {e}")
             return None
         
-    def get_start_datetime(self, logger, filepath):
-        """Get start datetime of file."""
+    def get_file_info(self, logger, filepath):
+        """Get information about the file."""
         try:
             raw_data = read_raw_eeglab(filepath, verbose='WARNING', preload=True)
             info = raw_data.info
 
         except TypeError as e:
-            raw_epoched_data = read_epochs_eeglab(filepath, verbose="WARNING")
-            info = raw_epoched_data.info
+            raw_data = read_epochs_eeglab(filepath, verbose="WARNING")
+            info = raw_data.info
         except RuntimeError as e:
             logger.error(f"Runtime error during data retrieval: {e}")
             return {}  # probably because the file is empty or corrupted, return empty dict to skip this channel
         except Exception as e:
-            logger.error(f"Error during start_datetime retrieval: {e}")
+            logger.error(f"Error during file info retrieval: {e}")
             raise
 
         start_datetime = info["meas_date"]
-        return start_datetime
+        file_duration = raw_data.duration
+        return {"start_datetime": start_datetime, "file_duration": file_duration}
 
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for specific channel."""
@@ -89,7 +90,6 @@ class EEGLABHandler:
                 logger.warning(f"Signal for channel {channel} contains only NaN values.")
                 return {}
 
-            samples = len(signal)
             info = raw_data.info
 
         except TypeError as e:
@@ -107,7 +107,6 @@ class EEGLABHandler:
             epoched_data = raw_epoched_data.get_data(picks=channel)[:,0,:]  # shape (n_epochs, n_times)
             
             signal = epoched_data.flatten()
-            samples = len(signal)
             info = raw_epoched_data.info
         except RuntimeError as e:
             logger.warning(f"Runtime error during data retrieval: {e}")
@@ -117,12 +116,10 @@ class EEGLABHandler:
             raise
 
         sampling_rate = info["sfreq"]
-        file_duration = samples / sampling_rate
         unit = info['chs'][info['ch_names'].index(channel)]['unit']
         unit = _fiff.meas_info._unit2human[unit]
         return {
             "signal": signal,
             "sampling_rate": sampling_rate,
-            "unit": unit,
-            "file_duration": file_duration,
+            "unit": unit
         }
