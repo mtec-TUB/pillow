@@ -200,15 +200,22 @@ class FileProcessor:
             else:
                 log_paths = {}  # Store log paths for each channel separately
 
-            # Get Start datetime of polysomnography data
+            # Get Start datetime and duration of polysomnography data
             file_info = self.dataset.get_file_info(self.logger, self.psg_fname)
             if file_info == {}:
                 return
+            
             start_datetime = file_info["start_datetime"]
             if isinstance(start_datetime, datetime):
                 start_datetime = start_datetime.replace(tzinfo=None)
             file_data["start_datetime"] = start_datetime
             self.logger.info(f"Start datetime: {start_datetime}")
+
+            if file_info['file_duration'] // self.config.epoch_duration < 1:
+                self.logger.warning(
+                    f"File does not hold at least one epoch, only {file_info['file_duration']:.2f} seconds, skipping file.")
+                return
+
             file_data["file_duration"] = file_info["file_duration"]
             self.logger.info(f"File duration: {file_data['file_duration']} sec, {file_data['file_duration']/3600:.2f} h")
 
@@ -218,10 +225,7 @@ class FileProcessor:
                 if isinstance(ann_Startdatetime, datetime):
                     ann_Startdatetime = ann_Startdatetime.replace(tzinfo=None)
                 file_data["ann_start_datetime"] = ann_Startdatetime
-                file_data.update({
-                    "lights_off": lights_off,
-                    "lights_on": lights_on
-                })
+                file_data.update({"lights_off": lights_off, "lights_on": lights_on})
 
                 if ann_stage_events == []:
                     self.logger.warning(f"No sleep stage annotations found in {os.path.basename(self.ann_fname)}, skipping file.")
@@ -712,10 +716,6 @@ class ChannelProcessor:
 
         # Check signal length (at least one epoch required)
         n_epochs, remainder = divmod(len(signal), n_epoch_samples)
-        if n_epochs < 1:
-            self.logger.warning(
-                f"{os.path.basename(data['psg_fname'])}: Channel {data['ch_name_orig']} does not hold at least one epoch, only {len(signal)} samples.")
-            return None
 
         if remainder > 0:
             self.logger.info(f"Signal is cropped to full epochs ({remainder / fs:.2f} sec cropped).")
