@@ -89,12 +89,10 @@ def compute_metrics(h5_path):
     sleep_epoch_indices = np.where(np.isin(labels, list(SLEEP_STAGES)))[0]
     if len(sleep_epoch_indices) >= 1:
         first_sleep_idx = sleep_epoch_indices[0]
-        last_sleep_idx  = sleep_epoch_indices[-1]
         sol_min = round(first_sleep_idx * epoch_dur_min, 2)
     else:
         # No sleep detected: SOL equals the full recording duration
         first_sleep_idx = None
-        last_sleep_idx  = None
         sol_min = round(recording_min, 2)
 
     se_pct  = (tst_min / recording_min * 100.0) if recording_min > 0 else np.nan
@@ -105,7 +103,7 @@ def compute_metrics(h5_path):
     #  WASO: ALL wake epochs from sleep onset to final awakening (end of recording)
     # includes the final awakening period
     if first_sleep_idx is not None:
-        post_onset_labels = labels[first_sleep_idx:last_sleep_idx]
+        post_onset_labels = labels[first_sleep_idx:]
         n_waso  = int(np.sum(post_onset_labels == STAGE_DICT["W"]))
         waso_min = round(n_waso * epoch_dur_min, 2)
     else:
