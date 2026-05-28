@@ -96,7 +96,7 @@ class BOAS(BaseDataset):
             raise ValueError(f"Channel {channel} not found in either PSG or Headband channel list")
     
     def get_file_info(self, logger, filepath):
-        """Get start datetime of file."""
+        """Get start datetime and file duration."""
         psg_info = self._file_handler.get_file_info(logger, filepath)
         psg_start_datetime = psg_info["start_datetime"].replace(tzinfo=None)
         psg_duration = psg_info["file_duration"]

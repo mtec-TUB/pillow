@@ -35,7 +35,7 @@ class WFDBHandler:
             raise
 
     def get_file_info(self, logger, filepath):
-        """Get information about the file."""
+        """Get start datetime and file duration."""
         try:
             psg_fname_no_ext, _ = os.path.splitext(filepath)
             record = wfdb.rdheader(psg_fname_no_ext)

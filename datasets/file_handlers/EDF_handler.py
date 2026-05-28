@@ -82,7 +82,7 @@ class EDFHandler:
         return None     # channel was not found in this file
         
     def get_file_info(self, logger, filepath):
-        """Get information about the file."""
+        """Get start datetime and file duration."""
         try:
             raw = read_raw_edf(filepath, preload=False, verbose='WARNING')                
             start_datetime = raw.info['meas_date']

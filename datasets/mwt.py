@@ -75,7 +75,7 @@ class MWT(BaseDataset):
         return None
     
     def get_file_info(self, logger, filepath):
-        """Get information about the file."""
+        """Get start datetime and file duration."""
         start_datetime = None
         psg_f = loadmat(filepath)['Data']
         file_duration = psg_f[0,0]['num_Labels'][0,0] / psg_f[0,0]['fs'][0,0]

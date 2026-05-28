@@ -109,6 +109,8 @@ class SIEFERT(BaseDataset):
                                 'ann_ext': '*stages'} # no annotations, just for consistency
         
     def get_file_info(self, logger, filepath):
+        """Get start datetime and file duration."""
+        
         run_02_psg = filepath.replace("run-01_eeg.vhdr", "run-02_eeg.vhdr")
         if os.path.exists(run_02_psg):
             run_01_info = self._file_handler.get_file_info(logger, filepath)

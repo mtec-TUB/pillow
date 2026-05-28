@@ -133,7 +133,7 @@ class DREAMT(BaseDataset):
         return None
     
     def get_file_info(self, logger, filepath):
-        """Get information about the file."""
+        """Get start datetime and file duration."""
         start_datetime = None
         num_lines = sum(1 for _ in open(filepath)) - 1  # subtract 1 for header
         file_duration = num_lines / self.use_sample_rate

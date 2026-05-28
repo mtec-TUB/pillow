@@ -26,7 +26,7 @@ class BRAINVISIONHandler:
             return None
         
     def get_file_info(self, logger, filepath):
-        """Get information about the file."""
+        """Get start datetime and file duration."""
         try:
             raw_data = read_raw_brainvision(filepath, verbose='WARNING', preload=False)
             info = raw_data.info

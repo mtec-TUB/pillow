@@ -47,7 +47,7 @@ class BaseDataset(ABC):
         return self._file_handler.read_signal(logger, filepath, channel)
     
     def get_file_info(self, logger, filepath):
-        """Get information about the file."""
+        """Get start datetime and file duration."""
         return self._file_handler.get_file_info(logger, filepath)
     
     def get_signal_data(self, logger, filepath, channel):

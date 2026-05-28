@@ -36,7 +36,7 @@ class DOD_H5Handler:
             raise
 
     def get_file_info(self, logger, filepath):
-        """Get information about the file."""
+        """Get start datetime and file duration."""
         try:
             with h5py.File(filepath, "r") as f:
 
