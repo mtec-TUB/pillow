@@ -202,6 +202,8 @@ class FileProcessor:
 
             # Get Start datetime of polysomnography data
             file_info = self.dataset.get_file_info(self.logger, self.psg_fname)
+            if file_info == {}:
+                return
             start_datetime = file_info["start_datetime"]
             if isinstance(start_datetime, datetime):
                 start_datetime = start_datetime.replace(tzinfo=None)
