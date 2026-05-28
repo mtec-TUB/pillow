@@ -120,7 +120,7 @@ class SIEFERT(BaseDataset):
 
             missing_time = run_02_starttime - (run_01_starttime + timedelta(seconds=run_01_duration))
             missing_samples = int(missing_time.total_seconds() * run_01_signal["sampling_rate"])
-            logger.warning(f"Channel data is splitted over two files (run-01 and run-02). They will be combined using {missing_time.minutes} minutes of NaN values.")
+            logger.warning(f"Channel data is splitted over two files (run-01 and run-02). They will be combined using {(missing_time.total_seconds() / 60):.2f} minutes of NaN values.")
 
             return {
                 "signal": np.concatenate([run_01_signal["signal"], np.full(missing_samples, np.nan), run_02_signal["signal"]]),
