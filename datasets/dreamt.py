@@ -132,9 +132,12 @@ class DREAMT(BaseDataset):
             logger.error(f"Error reading DREAMT CSV signal from {filepath}: {e}")
         return None
     
-    def get_start_datetime(self, logger, filepath):
-        """Get start datetime of file."""
-        return None  # DREAMT CSV files do not contain start datetime information
+    def get_file_info(self, logger, filepath):
+        """Get information about the file."""
+        start_datetime = None
+        num_lines = sum(1 for _ in open(filepath)) - 1  # subtract 1 for header
+        file_duration = num_lines / self.use_sample_rate
+        return {"start_datetime": start_datetime, "file_duration": file_duration}
 
     def get_signal_data(self, logger, filepath, channel):
         """Get complete DREAMT CSV signal information for processing."""

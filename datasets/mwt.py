@@ -74,9 +74,12 @@ class MWT(BaseDataset):
             logger.error(f"Error reading mat signal: {e}")
         return None
     
-    def get_start_datetime(self, logger, filepath):
-        """Get start datetime of file."""
-        return None  # MWT does not contain start datetime information
+    def get_file_info(self, logger, filepath):
+        """Get information about the file."""
+        start_datetime = None
+        psg_f = loadmat(filepath)['Data']
+        file_duration = psg_f[0,0]['num_Labels'][0,0] / psg_f[0,0]['fs'][0,0]
+        return {"start_datetime": start_datetime, "file_duration": file_duration}
 
     def get_signal_data(self, logger, filepath, channel):
         """Get complete EDF signal information for processing."""
@@ -93,8 +96,7 @@ class MWT(BaseDataset):
 
             return {
                 "signal": signal,
-                "sampling_rate": float(sampling_rate),
-                "file_duration": file_duration,
+                "sampling_rate": float(sampling_rate)
             }
         except Exception as e:
             logger.error(f"Error processing mat file: {e}")

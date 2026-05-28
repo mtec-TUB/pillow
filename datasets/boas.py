@@ -95,17 +95,26 @@ class BOAS(BaseDataset):
         else:
             raise ValueError(f"Channel {channel} not found in either PSG or Headband channel list")
     
-    def get_start_datetime(self, logger, filepath):
+    def get_file_info(self, logger, filepath):
         """Get start datetime of file."""
-        start_datetime_psg = self._file_handler.get_start_datetime(logger, filepath).replace(tzinfo=None)
+        psg_info = self._file_handler.get_file_info(logger, filepath)
+        psg_start_datetime = psg_info["start_datetime"].replace(tzinfo=None)
+        psg_duration = psg_info["file_duration"]
 
         headband_filepath = filepath.replace('psg_eeg.edf', 'headband_eeg.edf')
-        start_datetime_hb = self._file_handler.get_start_datetime(logger, headband_filepath).replace(tzinfo=None)
-        if start_datetime_psg != start_datetime_hb:
-            logger.error(f"Start datetimes of PSG ({start_datetime_psg}) and Headband ({start_datetime_hb}) files do not match.")
-            raise ValueError(f"Start datetimes of PSG ({start_datetime_psg}) and Headband ({start_datetime_hb}) files do not match.")
+        headband_info = self._file_handler.get_file_info(logger, headband_filepath)
+        hb_start_datetime = headband_info["start_datetime"].replace(tzinfo=None)
+        hb_duration = headband_info["file_duration"]
+        
+        if psg_duration != hb_duration:
+            logger.warning(f"Duration of PSG file ({psg_duration} sec) and Headband file ({hb_duration} sec) do not match. They will be aligned using the shorter duration.")
+            psg_info["file_duration"] = min(psg_duration, hb_duration)
+
+        if psg_start_datetime != hb_start_datetime:
+            logger.error(f"Start datetimes of PSG ({psg_start_datetime}) and Headband ({hb_start_datetime}) files do not match.")
+            raise ValueError(f"Start datetimes of PSG ({psg_start_datetime}) and Headband ({hb_start_datetime}) files do not match.")
         else:
-            return start_datetime_psg            
+            return psg_info            
     
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for processing."""

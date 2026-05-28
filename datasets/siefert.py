@@ -108,25 +108,46 @@ class SIEFERT(BaseDataset):
         self.file_extensions = {'psg_ext': '**/*run-01_eeg.vhdr',
                                 'ann_ext': '*stages'} # no annotations, just for consistency
         
+    def get_file_info(self, logger, filepath):
+        run_02_psg = filepath.replace("run-01_eeg.vhdr", "run-02_eeg.vhdr")
+        if os.path.exists(run_02_psg):
+            run_01_info = self._file_handler.get_file_info(logger, filepath)
+            run_01_starttime = run_01_info["start_datetime"]
+            run_01_duration = run_01_info["file_duration"]
+
+            run_02_info = self._file_handler.get_file_info(logger, run_02_psg)
+            run_02_starttime = run_02_info["start_datetime"]
+            run_02_duration = run_02_info["file_duration"]
+
+            missing_time = run_02_starttime - (run_01_starttime + timedelta(seconds=run_01_duration))
+            logger.warning(f"Recording is splitted over two files (run-01 and run-02). They will be combined using {(missing_time.total_seconds() / 60):.2f} minutes of NaN values.")
+
+            return {
+                "start_datetime": run_01_starttime,
+                "file_duration": run_01_duration + missing_time.total_seconds() + run_02_duration
+            }
+        else:
+            return self._file_handler.get_file_info(logger, filepath)
+    
     def get_signal_data(self, logger, filepath, channel):
         run_02_psg = filepath.replace("run-01_eeg.vhdr", "run-02_eeg.vhdr")
         if os.path.exists(run_02_psg):
             run_01_signal = self._file_handler.get_signal_data(logger, filepath, channel)
-            run_01_starttime = self._file_handler.get_start_datetime(logger, filepath)
-            run_01_duration = run_01_signal["file_duration"]
+            run_01_info = self._file_handler.get_file_info(logger, filepath)
+            run_01_starttime = run_01_info["start_datetime"]
+            run_01_duration = run_01_info["file_duration"]
 
             run_02_signal = self._file_handler.get_signal_data(logger, run_02_psg, channel)
-            run_02_starttime = self._file_handler.get_start_datetime(logger, run_02_psg)
+            run_02_info = self._file_handler.get_file_info(logger, run_02_psg)
+            run_02_starttime = run_02_info["start_datetime"]
 
             missing_time = run_02_starttime - (run_01_starttime + timedelta(seconds=run_01_duration))
             missing_samples = int(missing_time.total_seconds() * run_01_signal["sampling_rate"])
-            logger.warning(f"Channel data is splitted over two files (run-01 and run-02). They will be combined using {(missing_time.total_seconds() / 60):.2f} minutes of NaN values.")
 
             return {
                 "signal": np.concatenate([run_01_signal["signal"], np.full(missing_samples, np.nan), run_02_signal["signal"]]),
                 "sampling_rate": run_01_signal["sampling_rate"],
                 "unit": run_01_signal["unit"],
-                "file_duration": run_01_signal["file_duration"] + missing_time.total_seconds() + run_02_signal["file_duration"]
             }
         else:
             return self._file_handler.get_signal_data(logger, filepath, channel)
