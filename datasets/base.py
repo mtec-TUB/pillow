@@ -363,7 +363,7 @@ class BaseDataset(ABC):
 
     def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
         """ Align front part of signals and labels, in some datasets annotations start after signal recording"""
-        logger.error("Signal and Annotations do not start at the same time. TODO: implement alignment function")
+        logger.error(f"Signal and Annotations do not start at the same time ({delay_sec} sec). TODO: implement alignment function")
         raise NotImplementedError("Subclass has no front alignment implemented")
 
     def base_align_front(self, logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels, fs):
@@ -396,7 +396,7 @@ class BaseDataset(ABC):
                 if delay_sec % epoch_duration != 0:
                     logger.info(f"Partial epoch detected at start, signal will be shortened at the front to match")
                     signal = signal[int((delay_sec % epoch_duration)*fs):]
-                    start_time_shift = delay_sec - n_pad*epoch_duration
+                    start_time_shift = delay_sec % epoch_duration
         return start_time_shift, signal, labels
 
     def align_end(
