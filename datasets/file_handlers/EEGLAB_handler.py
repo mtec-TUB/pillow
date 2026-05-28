@@ -66,18 +66,31 @@ class EEGLABHandler:
             raw_data = read_raw_eeglab(filepath, verbose='WARNING', preload=True)
             info = raw_data.info
 
+            file_duration = raw_data.duration
+
         except TypeError as e:
             raw_data = read_epochs_eeglab(filepath, verbose="WARNING")
             info = raw_data.info
+            file_duration = raw_data.duration
+
         except RuntimeError as e:
-            logger.error(f"Runtime error during data retrieval: {e}")
-            return {}  # probably because the file is empty or corrupted, return empty dict to skip this channel
+            try:
+                logger.warning(f"File is truncated, reconstructing it from .fdt file.")
+                raw_data = read_raw_eeglab(filepath, verbose='WARNING', preload=False)
+                info = raw_data.info
+                fs = info["sfreq"]
+                n_channels = info['nchan']
+                fdt_file = filepath.replace('.set', '.fdt')
+                eeg_data = np.fromfile(fdt_file, dtype=np.float32)
+                file_duration = (len(eeg_data) // n_channels) / fs
+            except Exception as e:
+                logger.error(f"Runtime error during file info retrieval: {e} \n Skipping file.")
+                return {}
         except Exception as e:
             logger.error(f"Error during file info retrieval: {e}")
             raise
 
         start_datetime = info["meas_date"]
-        file_duration = raw_data.duration
         return {"start_datetime": start_datetime, "file_duration": file_duration}
 
     def get_signal_data(self, logger, filepath, channel):
@@ -109,8 +122,22 @@ class EEGLABHandler:
             signal = epoched_data.flatten()
             info = raw_epoched_data.info
         except RuntimeError as e:
-            logger.warning(f"Runtime error during data retrieval: {e}")
-            return {}  # probably because the file is empty or corrupted, return empty dict to skip this channel
+            try:
+                # File is truncated, try to reconstruct signal from .fdt file
+                raw_data = read_raw_eeglab(filepath, verbose='WARNING', preload=False)
+                info = raw_data.info
+                n_channels = info['nchan']
+                channel_idx = raw_data.ch_names.index(channel)
+                fdt_file = filepath.replace('.set', '.fdt')
+                eeg_data = np.fromfile(fdt_file, dtype=np.float32)
+                eeg_data = eeg_data[:(len(eeg_data) // n_channels) * n_channels]  #  ensure it's divisible by n_channels
+
+                eeg_data = eeg_data.reshape((n_channels,-1), order='F')  # shape: (n_channels, n_samples)
+
+                signal = eeg_data[channel_idx,:]
+            except Exception as e:
+                logger.error(f"Runtime error during data retrieval: {e} \n Skipping file.")
+                return {}
         except Exception as e:
             logger.error(f"Error during data retrieval: {e}")
             raise
