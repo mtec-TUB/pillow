@@ -801,12 +801,12 @@ class ChannelProcessor:
 
             # Check for lights_off marker epoch
             if lights_off_epoch is not None:
-                lights_off_epoch += start_time_shift // self.config.epoch_duration  # adjust lights off epoch based on start time shift if applied
+                lights_off_epoch += int(start_time_shift // self.config.epoch_duration)  # adjust lights off epoch based on start time shift if applied
                 start_idx = lights_off_epoch
 
             # Check for lights_on marker epoch
             if lights_on_epoch is not None:
-                lights_on_epoch += start_time_shift // self.config.epoch_duration  # adjust lights on epoch based on start time shift if applied
+                lights_on_epoch += int(start_time_shift // self.config.epoch_duration)  # adjust lights on epoch based on start time shift if applied
                 if lights_on_epoch <= len(signal_epoched):
                     # valid lights on
                     end_idx = lights_on_epoch 
