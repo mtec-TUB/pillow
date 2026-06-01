@@ -6,6 +6,8 @@ from decimal import Decimal
 from mne.io import read_raw_eeglab
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from psg_processing.core import Dataset_Explorer
 from datasets.base import BaseDataset
@@ -230,8 +232,25 @@ class EESM_Preprocessor:
         execute_preprocess = input("Do you want to interpolate over these NaN values now (as recommended from the dataset authors)? (Y/N) ")
         
         if str(execute_preprocess).lower() == "y":
+            
+            explorer = Dataset_Explorer(
+                logger=None,
+                dataset = self.dataset,
+                data_dir=data_dir,
+                ann_dir=ann_dir
+            )
+            psg_fnames, _ = explorer.get_files()
 
-            self.interpolate_files(data_dir, ann_dir)
+            try:
+                with ProcessPoolExecutor(max_workers=n_workers) as executor:
+                    futures = [executor.submit(self.interpolate_file, psg_fname) for psg_fname in psg_fnames]
+
+                    for future in tqdm(as_completed(futures), total=len(psg_fnames), desc="Preprocessing EESM19"):
+                        future.result()
+
+            except KeyboardInterrupt:
+                print("Preprocessing interrupted by user. Shutting down...")
+                executor.shutdown(cancel_futures=True)
             
             if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
                 return False
@@ -241,31 +260,20 @@ class EESM_Preprocessor:
         return True
     
 
-    def interpolate_files(self, data_dir, ann_dir):
+    def interpolate_file(self, psg_fname):
         # Get files using dataset-specific extensions
-        explorer = Dataset_Explorer(
-            logger=None,
-            dataset = self.dataset,
-            data_dir=data_dir,
-            ann_dir=ann_dir
-        )
-        psg_fnames, _ = explorer.get_files()
-
-        # Process each file
-        for psg_idx, psg_fname in enumerate(psg_fnames):
-            print(f"\n--- Preprocessing file {psg_idx+1}/{len(psg_fnames)} ---")
 
             path,ext = os.path.splitext(psg_fname)
             output_path = os.path.join(path + '_interpolated' + ext)
             if os.path.exists(output_path):
-                print(f"Interpolated file already exists: {output_path}, skipping interpolation for this file.")
-                continue
+                # print(f"Interpolated file already exists: {output_path}, skipping interpolation for this file.")
+                return
             
             try:
                 raw_data = read_raw_eeglab(psg_fname, verbose=False, preload=True)
             except Exception as e:
                 print(f"Error reading {psg_fname} with MNE: {e}. Skipping interpolation for this file.")
-                continue
+                return
 
             signals = raw_data.get_data()
             fs = raw_data.info['sfreq']
@@ -274,7 +282,7 @@ class EESM_Preprocessor:
                 
             raw_data._data= signals_interpolated
             raw_data.export(output_path, fmt='eeglab', verbose=False,overwrite=True)
-            print(f"Interpolated file saved as {output_path}")
+            # print(f"Interpolated file saved as {output_path}")
 
 
     def findRuns(self,input,noWarning=False):

@@ -191,7 +191,7 @@ class FDCSR(BaseDataset):
             unscored_files = splitter.process_sleep_scores(n_workers)
             if unscored_files:
                 print(f"{len(unscored_files)} unscored files were found.")
-                
+
             print("Successfully ended preprocessing")
             
             if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
@@ -223,11 +223,15 @@ class FDCSRSleepScoreSplitter:
 
         print(f"Processing {len(start_times_df)} EDF files...")
 
-        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+        try:
+            with ProcessPoolExecutor(max_workers=n_workers) as executor:
 
-            futures = [executor.submit(self._process_single_edf, edf_info) for i, edf_info in start_times_df.iterrows()]
-            for future in tqdm(as_completed(futures), total=len(start_times_df), desc="Preprocessing FDCSR"):
-                future.result()
+                futures = [executor.submit(self._process_single_edf, edf_info) for i, edf_info in start_times_df.iterrows()]
+                for future in tqdm(as_completed(futures), total=len(start_times_df), desc="Preprocessing FDCSR"):
+                    future.result()
+        except KeyboardInterrupt:
+            print("Preprocessing interrupted by user. Shutting down...")
+            executor.shutdown(cancel_futures=True)
 
         print(f"\nProcessing complete. Unscored files: {len(self.not_scored)}")
         if self.not_scored:

@@ -1,12 +1,12 @@
 import os
-import pathlib
 import numpy as np
 import pandas as pd
 import shutil
 import glob
 from pathlib import Path
-from datetime import datetime
 from typing import Dict, List, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm import tqdm
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -233,7 +233,7 @@ class ISRUC(BaseDataset):
         
         if str(execute_preprocess).lower() == "y":
             organizer = ISRUCFileOrganizer(data_dir)
-            organizer.organize_files()
+            organizer.organize_files(n_workers)
         
             if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
                 return False
@@ -252,7 +252,7 @@ class ISRUCFileOrganizer:
         """
         self.base_dir = Path(base_dir)
 
-    def organize_files(self):
+    def organize_files(self, n_workers):
         """Reorganize all files from group subfolders.
             Instead of nested folders, store the files with unique filenames all directly inside the subgroup folders
         """
@@ -261,13 +261,23 @@ class ISRUCFileOrganizer:
         subgroups_folders = [str(f) for f in self.base_dir.iterdir() if f.is_dir()]
 
         for subgroup_folder in subgroups_folders:
-            print(subgroup_folder)
+
             files = glob.glob(subgroup_folder+"/*/**/*.*", recursive=True)
-            
-            for file in files:
-                new_filename = os.path.basename(subgroup_folder)+'_'+str(Path(file).relative_to(Path(subgroup_folder))).replace('/','_')
-                print(f"Copy file {file} to {subgroup_folder+'/'+new_filename}")
-                shutil.copy(file,subgroup_folder+'/'+new_filename)
+
+            try:
+                with ThreadPoolExecutor(max_workers=n_workers) as executor:
+
+                    futures = [executor.submit(self._copy_file, file, subgroup_folder) for file in files]
+                    for future in tqdm(as_completed(futures), total=len(files), desc=f"Resorting files in {subgroup_folder}"):
+                        future.result()  
+            except KeyboardInterrupt:
+                print("Preprocessing interrupted by user. Shutting down...")
+                executor.shutdown(cancel_futures=True)            
                 
         print('Resorting done, if you want you can delete the duplicates at their original location.')
 
+    def _copy_file(self, file, subgroup_folder):
+        new_filename = os.path.basename(subgroup_folder)+'_'+str(Path(file).relative_to(Path(subgroup_folder))).replace('/','_') 
+        if not os.path.exists(subgroup_folder+'/'+new_filename):  
+            # print(f"Copy file {file} to {subgroup_folder+'/'+new_filename}")
+            shutil.copy2(file,subgroup_folder+'/'+new_filename) 

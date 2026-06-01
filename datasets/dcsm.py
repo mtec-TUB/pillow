@@ -164,24 +164,14 @@ class DCSMFileOrganizer:
 
         try:
             with ThreadPoolExecutor(max_workers=self.n_workers) as executor:
-                future_to_subject = {
-                    executor.submit(self._process_subject_folder, subject_folder): subject_folder
+                futures = [executor.submit(self._process_subject_folder, subject_folder)
                     for subject_folder in subject_folders
-                }
+                ]
+                for future in tqdm(as_completed(futures), total=len(subject_folders), desc="Preprocessing DCSM"):
+                    subject_stats = future.result()
+                    for key, value in subject_stats.items():
+                        stats[key] += value
 
-                # Progress Bar
-                with tqdm(total=len(subject_folders), desc="Preprocessing files") as pbar:
-
-                    for future in as_completed(future_to_subject):
-                        subject_folder = future_to_subject[future]
-                        try:
-                            subject_stats = future.result()
-                            for key, value in subject_stats.items():
-                                stats[key] += value
-                            pbar.update(1)
-                        except Exception as e:
-                            print(f"ERROR processing {subject_folder.name}: {e}")
-                            stats["errors"] += 1
         except KeyboardInterrupt:
             print("Processing interrupted by user. Shutting down...")
             executor.shutdown(cancel_futures=True)

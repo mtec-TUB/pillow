@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 import pandas as pd
 import glob
+from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -127,7 +129,7 @@ class SEF(BaseDataset):
         
         if str(execute_preprocess).lower() == "y":
             organizer = SEFFileOrganizer(data_dir, self.file_extensions)
-            organizer.organize_files()
+            organizer.organize_files(n_workers)
 
             if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
                 return False
@@ -138,39 +140,49 @@ class SEFFileOrganizer:
         self.base_dir = base_dir
         self.file_extensions = file_extensions
 
-    def organize_files(self):
-        # annot_files = glob.glob(os.path.join(self.base_dir, 'sourcedata/*_sleep-stage.tsv'))
-        print(os.path.join(self.base_dir, self.file_extensions['psg_ext']))
+    def organize_files(self, n_workers):
         psg_files = glob.glob(os.path.join(self.base_dir, self.file_extensions['psg_ext']), recursive=True)
 
         print(f"Found {len(psg_files)} PSG files to organize.")
 
-        for psg_file in psg_files:
-            if "sub-16_task-rest_run-1_eeg.vhdr" in psg_file or "sub-24_task-rest_run-2_eeg.vhdr" in psg_file:
-                print(f"File {os.path.basename(psg_file)} is known to have a wrong filename stored inside. It will be modified to match the .eeg file.")
-                with open(psg_file, "r", encoding="utf-8") as f:
-                    content = f.read()
-
-                old_value = "File=rsub-"
-                new_value = "File=sub-"
-
-                if old_value in content:
-                    content = content.replace(old_value, new_value)
-                    with open(psg_file, "w", encoding="utf-8") as f:
-                        f.write(content)
-                    print("Fixed: DataFile entry updated successfully.")
-
-            psg_parts = Path(psg_file).stem.split("_")
-            psg_id = "_".join(psg_parts[:3])
-            task_id = "_".join(psg_parts[1:3])
-            annot_file = os.path.join(self.base_dir, "sourcedata", Path(psg_file).stem.split("_task")[0] + "-sleep-stage.tsv")
-            target_annot_path = os.path.join(Path(psg_file).parent, f"{psg_id}_stages.tsv")
-
-            if os.path.exists(annot_file):
-                all_annot_subj = pd.read_csv(annot_file, sep='\t', header=0)
-                annot_task = all_annot_subj[all_annot_subj['session'] == task_id]
-                annot_task.to_csv(target_annot_path, sep='\t', index=False)
+        try:
+            with ProcessPoolExecutor(max_workers=n_workers) as executor:
+                futures = [executor.submit(self._process_single_file, psg_file) for psg_file in psg_files]
+                for future in tqdm(as_completed(futures), total=len(psg_files), desc="Preprocess SEF"):
+                    future.result()
+        except KeyboardInterrupt:
+            print("Preprocessing interrupted by user. Shutting down...")
+            executor.shutdown(cancel_futures=True)
+        
         print("Finished organizing files.")
+
+    def _process_single_file(self, psg_file):
+
+        if "sub-16_task-rest_run-1_eeg.vhdr" in psg_file or "sub-24_task-rest_run-2_eeg.vhdr" in psg_file:
+            print(f"File {os.path.basename(psg_file)} is known to have a wrong filename stored inside. It will be modified to match the .eeg file.")
+            with open(psg_file, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            old_value = "File=rsub-"
+            new_value = "File=sub-"
+
+            if old_value in content:
+                content = content.replace(old_value, new_value)
+                with open(psg_file, "w", encoding="utf-8") as f:
+                    f.write(content)
+                print("Fixed: DataFile entry updated successfully.")
+
+        psg_parts = Path(psg_file).stem.split("_")
+        psg_id = "_".join(psg_parts[:3])
+        task_id = "_".join(psg_parts[1:3])
+        annot_file = os.path.join(self.base_dir, "sourcedata", Path(psg_file).stem.split("_task")[0] + "-sleep-stage.tsv")
+        target_annot_path = os.path.join(Path(psg_file).parent, f"{psg_id}_stages.tsv")
+
+        if os.path.exists(annot_file):
+            all_annot_subj = pd.read_csv(annot_file, sep='\t', header=0)
+            annot_task = all_annot_subj[all_annot_subj['session'] == task_id]
+            annot_task.to_csv(target_annot_path, sep='\t', index=False)
+
 
 
 
