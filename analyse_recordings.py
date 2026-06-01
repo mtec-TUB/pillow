@@ -51,104 +51,102 @@ def compute_metrics(h5_path):
         recording_min, n_epochs, epoch_dur_s,
         n_wake, n_n1, n_n2, n_n3, n_rem, n_move, n_unk
     """
+    # Initialize everything as NaN/Empty
+    res = {
+        "file": Path(h5_path).name, "tib_min": np.nan, "tst_min": np.nan, "sol_min": np.nan,
+        "se_pct": np.nan, "waso_min": np.nan, "n1_pct": np.nan, "n2_pct": np.nan,
+        "n3_pct": np.nan, "rem_pct": np.nan, "recording_min": np.nan, "n_epochs": np.nan,
+        "epoch_dur_s": np.nan, "n_wake": np.nan, "n_n1": np.nan, "n_n2": np.nan,
+        "n_n3": np.nan, "n_rem": np.nan, "n_move": np.nan, "n_unk": np.nan,
+        "n_waso": np.nan, "channels": []
+    }
+
     with h5py.File(h5_path, "r") as h5f:
+        # Channels
+        res["channels"] = extract_channels(h5f)
+
+        # Epoch duration
+        if "epoch_duration" not in h5f.attrs:
+            return res
+        res["epoch_dur_s"] = float(h5f.attrs["epoch_duration"])
 
         # Hypnogram
         if "y" not in h5f:
-            raise KeyError(f"No hypnogram ('y') found in {h5_path}")
-        labels = h5f["y"][:]  # integer array, shape (n_epochs,)
+            return res
+        labels = h5f["y"][:]
+        epoch_dur_s = res["epoch_dur_s"]
+        epoch_dur_min = epoch_dur_s / 60.0
 
-        # Epoch duration (seconds)
-        if "epoch_duration" not in h5f.attrs:
-            raise KeyError(f"'epoch_duration' attribute missing in {h5_path}")
-        epoch_dur_s = float(h5f.attrs["epoch_duration"])
-
-        #  Channels 
+        #  Channels
         channels = extract_channels(h5f)
 
-    epoch_dur_min = epoch_dur_s / 60.0
+        # Per-stage epoch counts
+        n_wake  = int(np.sum(labels == STAGE_DICT["W"]))
+        n_n1    = int(np.sum(labels == STAGE_DICT["N1"]))
+        n_n2    = int(np.sum(labels == STAGE_DICT["N2"]))
+        n_n3    = int(np.sum(labels == STAGE_DICT["N3"]))
+        n_rem   = int(np.sum(labels == STAGE_DICT["REM"]))
+        n_move  = int(np.sum(labels == STAGE_DICT["MOVE"]))
+        n_unk   = int(np.sum(labels == STAGE_DICT["UNK"]))
+        n_sleep = n_n1 + n_n2 + n_n3 + n_rem  # MOVE and UNK excluded from TST
 
-    # Per-stage epoch counts
-    n_wake  = int(np.sum(labels == STAGE_DICT["W"]))
-    n_n1    = int(np.sum(labels == STAGE_DICT["N1"]))
-    n_n2    = int(np.sum(labels == STAGE_DICT["N2"]))
-    n_n3    = int(np.sum(labels == STAGE_DICT["N3"]))
-    n_rem   = int(np.sum(labels == STAGE_DICT["REM"]))
-    n_move  = int(np.sum(labels == STAGE_DICT["MOVE"]))
-    n_unk   = int(np.sum(labels == STAGE_DICT["UNK"]))
-    n_sleep = n_n1 + n_n2 + n_n3 + n_rem  # MOVE and UNK excluded from TST
+        n_epochs      = len(labels)
+        recording_min = n_epochs * epoch_dur_min
 
-    n_epochs      = len(labels)
-    recording_min = n_epochs * epoch_dur_min
+        # Total Sleep Time
+        tst_min = n_sleep * epoch_dur_min
 
-    # Total Sleep Time
-    tst_min = n_sleep * epoch_dur_min
+        # SOL: time from lights-out (epoch 0) to the FIRST sleep epoch
+        # lights-out to first epoch scored as sleep
+        sleep_epoch_indices = np.where(np.isin(labels, list(SLEEP_STAGES)))[0]
+        if len(sleep_epoch_indices) >= 1:
+            first_sleep_idx = sleep_epoch_indices[0]
+            sol_min = round(first_sleep_idx * epoch_dur_min, 2)
+        else:
+            # No sleep detected: SOL equals the full recording duration
+            first_sleep_idx = None
+            sol_min = round(recording_min, 2)
 
-    # SOL: time from lights-out (epoch 0) to the FIRST sleep epoch
-    # lights-out to first epoch scored as sleep
-    sleep_epoch_indices = np.where(np.isin(labels, list(SLEEP_STAGES)))[0]
-    if len(sleep_epoch_indices) >= 1:
-        first_sleep_idx = sleep_epoch_indices[0]
-        sol_min = round(first_sleep_idx * epoch_dur_min, 2)
-    else:
-        # No sleep detected: SOL equals the full recording duration
-        first_sleep_idx = None
-        sol_min = round(recording_min, 2)
+        se_pct  = (tst_min / recording_min * 100.0) if recording_min > 0 else np.nan
 
-    se_pct  = (tst_min / recording_min * 100.0) if recording_min > 0 else np.nan
+        # TIB: lights-off = recording start, lights-on = recording end
+        tib_min = recording_min
 
-    # TIB: lights-off = recording start, lights-on = recording end
-    tib_min = recording_min
+        #  WASO: ALL wake epochs from sleep onset to final awakening (end of recording)
+        # includes the final awakening period
+        if first_sleep_idx is not None:
+            post_onset_labels = labels[first_sleep_idx:]
+            n_waso  = int(np.sum(post_onset_labels == STAGE_DICT["W"]))
+            waso_min = round(n_waso * epoch_dur_min, 2)
+        else:
+            n_waso   = 0
+            waso_min = 0.0
 
-    #  WASO: ALL wake epochs from sleep onset to final awakening (end of recording)
-    # includes the final awakening period
-    if first_sleep_idx is not None:
-        post_onset_labels = labels[first_sleep_idx:]
-        n_waso  = int(np.sum(post_onset_labels == STAGE_DICT["W"]))
-        waso_min = round(n_waso * epoch_dur_min, 2)
-    else:
-        n_waso   = 0
-        waso_min = 0.0
+        # Stage percentages (relative to TST; NaN if TST == 0)
+        def stage_pct(n_stage):
+            return round(n_stage / n_sleep * 100.0, 2) if n_sleep > 0 else np.nan
 
-    # Stage percentages (relative to TST; NaN if TST == 0)
-    def stage_pct(n_stage):
-        return round(n_stage / n_sleep * 100.0, 2) if n_sleep > 0 else np.nan
+        res.update({
+            "tib_min": round(tib_min, 2), "tst_min": round(tst_min, 2), "sol_min": sol_min,
+            "se_pct": round(se_pct, 2), "waso_min": waso_min, "n1_pct": stage_pct(n_n1),
+            "n2_pct": stage_pct(n_n2), "n3_pct": stage_pct(n_n3), "rem_pct": stage_pct(n_rem),
+            "recording_min": round(recording_min, 2), "n_epochs": n_epochs,
+            "n_wake": n_wake, "n_n1": n_n1, "n_n2": n_n2, "n_n3": n_n3,
+            "n_rem": n_rem, "n_move": n_move, "n_unk": n_unk, "n_waso": n_waso
+        })
 
-    n1_pct  = stage_pct(n_n1)
-    n2_pct  = stage_pct(n_n2)
-    n3_pct  = stage_pct(n_n3)
-    rem_pct = stage_pct(n_rem)
-
-    return {
-        "file":           Path(h5_path).name,
-        "tib_min":        round(tib_min, 2),
-        "tst_min":        round(tst_min, 2),
-        "sol_min":        sol_min,
-        "se_pct":         round(se_pct, 2),
-        "waso_min":       waso_min,
-        "n1_pct":         n1_pct,
-        "n2_pct":         n2_pct,
-        "n3_pct":         n3_pct,
-        "rem_pct":        rem_pct,
-        "recording_min":  round(recording_min, 2),
-        "n_epochs":       n_epochs,
-        "epoch_dur_s":    epoch_dur_s,
-        "n_wake":         n_wake,
-        "n_n1":           n_n1,
-        "n_n2":           n_n2,
-        "n_n3":           n_n3,
-        "n_rem":          n_rem,
-        "n_move":         n_move,
-        "n_unk":          n_unk,
-        "n_waso":         n_waso,
-        "channels":       channels,
-    }
+        return res
 
 
 def summarize(df):
     """Compute aggregate statistics over per-file metric columns."""
     metric_cols = ["tib_min", "tst_min", "se_pct", "sol_min", "waso_min",
                    "n1_pct", "n2_pct", "n3_pct", "rem_pct"]
+    # Only attempt to summarize columns that exist in the dataframe
+    existing_cols = [c for c in metric_cols if c in df.columns]
+    if not existing_cols:
+        return pd.DataFrame()
+
     stats = df[metric_cols].agg(
         ["mean", "std", "min",
          lambda x: x.quantile(0.25),
@@ -186,6 +184,10 @@ def print_channel_summary(records):
     print(f"{'='*76}\n")
 
 def print_summary(df, stats):
+    if stats.empty:
+        print("\n[INFO] No numeric sleep metrics could be calculated (missing hypnograms in all files).")
+        return
+
     print(f"\n{'='*76}")
     print(f"  Files processed: {len(df)}")
     print(f"{'='*76}")
