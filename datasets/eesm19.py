@@ -216,15 +216,15 @@ class EESM19(BaseDataset):
         
         raise Exception(f"Unexpected case during end alignment: {psg_fname}, len(signals)={len(signals)}, len(labels)={len(labels)}")
 
-    def preprocess(self, data_dir, ann_dir):
-        return EESM_Preprocessor(self).preprocess(data_dir, ann_dir)
+    def preprocess(self, n_workers, data_dir, ann_dir):
+        return EESM_Preprocessor(self).preprocess(n_workers, data_dir, ann_dir)
 
 class EESM_Preprocessor:
 
     def __init__(self, dataset):
         self.dataset = dataset
 
-    def preprocess(self, data_dir, ann_dir):
+    def preprocess(self, n_workers, data_dir, ann_dir):
         print("\n Files originally contain NaN values in signals. \n")
         
         execute_preprocess = input("Do you want to interpolate over these NaN values now (as recommended from the dataset authors)? (Y/N) ")

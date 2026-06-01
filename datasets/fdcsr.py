@@ -179,7 +179,7 @@ class FDCSR(BaseDataset):
         if len(signals) == len(labels) + 1:
             return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
     
-    def preprocess(self, data_dir, ann_dir):
+    def preprocess(self, n_workers, data_dir, ann_dir):
         print("\n FDCSR files originally are stored in an unsupported format and therefor need to be preprocessed/resorted \n")
         
         execute_preprocess = input("Do you want to perform the preprocessing now? (Y/N) ")

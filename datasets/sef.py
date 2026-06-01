@@ -119,7 +119,7 @@ class SEF(BaseDataset):
         if len(signals) > len(labels):
             return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
         
-    def preprocess(self, data_dir, ann_dir):
+    def preprocess(self, n_workers, data_dir, ann_dir):
         print("\n SEF annotation files originally are stored in an unsupported way and therefor need to be preprocessed/splitted ... \n \
               This will not modify the original file content")
         

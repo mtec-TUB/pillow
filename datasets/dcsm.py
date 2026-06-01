@@ -2,8 +2,10 @@ import os
 import pandas as pd
 import shutil
 from pathlib import Path
-from datetime import datetime
 from typing import Dict, List, Optional, Tuple
+from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
@@ -108,14 +110,14 @@ class DCSM(BaseDataset):
         # Return None for start_datetime, lights_off and lights_on
         return ann_stage_events, None, None, None
     
-    def preprocess(self, data_dir, ann_dir):
+    def preprocess(self, n_workers, data_dir, ann_dir):
         print("\n DCSM files originally are stored in an unsupported way and therefor need to be preprocessed/resorted ... \n \
               This will not modify the original file content")
         
         execute_preprocess = input("Do you want to perform the preprocessing now? (Y/N) ")
         
         if str(execute_preprocess).lower() == "y":
-            organizer = DCSMFileOrganizer(os.path.split(data_dir)[0])
+            organizer = DCSMFileOrganizer(n_workers, os.path.split(data_dir)[0])
             organizer.organize_files()
 
             if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
@@ -125,13 +127,15 @@ class DCSM(BaseDataset):
 class DCSMFileOrganizer:
     """Handles reorganization of DCSM dataset files."""
 
-    def __init__(self, base_dir: str):
+    def __init__(self, n_workers: int, base_dir: str):
         """
         Initialize the organizer.
 
         Args:
+            n_workers: Number of worker processes to use
             base_dir: Path to DCSM dataset root directory
         """
+        self.n_workers = n_workers
         self.base_dir = Path(base_dir)
         self.target_dirs = {
             "annot": self.base_dir / "annot",
@@ -156,14 +160,31 @@ class DCSMFileOrganizer:
 
         print(f"Found {len(subject_folders)} subject folders to process...")
 
-        stats = {"moved": 0, "skipped": 0, "errors": 0}
+        stats = {"copied": 0, "skipped": 0, "errors": 0}
 
-        for subject_folder in subject_folders:
-            try:
-                self._process_subject_folder(subject_folder, stats)
-            except Exception as e:
-                print(f"ERROR processing {subject_folder.name}: {e}")
-                stats["errors"] += 1
+        try:
+            with ThreadPoolExecutor(max_workers=self.n_workers) as executor:
+                future_to_subject = {
+                    executor.submit(self._process_subject_folder, subject_folder): subject_folder
+                    for subject_folder in subject_folders
+                }
+
+                # Progress Bar
+                with tqdm(total=len(subject_folders), desc="Preprocessing files") as pbar:
+
+                    for future in as_completed(future_to_subject):
+                        subject_folder = future_to_subject[future]
+                        try:
+                            subject_stats = future.result()
+                            for key, value in subject_stats.items():
+                                stats[key] += value
+                            pbar.update(1)
+                        except Exception as e:
+                            print(f"ERROR processing {subject_folder.name}: {e}")
+                            stats["errors"] += 1
+        except KeyboardInterrupt:
+            print("Processing interrupted by user. Shutting down...")
+            executor.shutdown(cancel_futures=True)
 
         self._print_summary(stats)
 
@@ -172,10 +193,11 @@ class DCSMFileOrganizer:
         for dir_name, dir_path in self.target_dirs.items():
             dir_path.mkdir(exist_ok=True)
 
-    def _process_subject_folder(self, subject_folder: Path, stats: Dict[str, int]):
+    def _process_subject_folder(self, subject_folder: Path):
         """Process files in a single subject folder."""
         subject_id = subject_folder.name
-        print(f"\nProcessing subject: {subject_id}")
+
+        stats = {"copied": 0, "skipped": 0, "errors": 0}
 
         for source_filename, target_dir_name in self.file_mapping.items():
             source_file = subject_folder / source_filename
@@ -191,23 +213,24 @@ class DCSMFileOrganizer:
 
                 target_file = self.target_dirs[target_dir_name] / new_filename
 
-                # Copy file (preserve original)
-                try:
-                    shutil.copy2(source_file, target_file)
-                    print(f" Copied {source_filename} -> {new_filename}")
-                    stats["moved"] += 1
-                except Exception as e:
-                    print(f" Failed to copy {source_filename}: {e}")
-                    stats["errors"] += 1
+                if not target_file.exists():
+                    # Copy file (preserve original)
+                    try:
+                        shutil.copy2(source_file, target_file)
+                        # print(f" Copied {source_filename} -> {new_filename}")
+                        stats["copied"] += 1
+                    except Exception as e:
+                        # print(f" Failed to copy {source_filename}: {e}")
+                        stats["errors"] += 1
             else:
-                print(f" - Missing: {source_filename}")
+                # print(f" - Missing: {source_filename}")
                 stats["skipped"] += 1
+
+        return stats
 
     def _print_summary(self, stats: Dict[str, int]):
         """Print processing summary."""
-        print("\n" + "=" * 50)
-        print("DCSM File Organization Summary")
-        print("=" * 50)
-        print(f"Files successfully moved: {stats['moved']}")
+        print("DCSM File Organization Summary:")
+        print(f"Files successfully copied: {stats['copied']}")
         print(f"Files skipped (missing): {stats['skipped']}")
         print(f"Errors encountered: {stats['errors']}")

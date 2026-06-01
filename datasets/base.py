@@ -433,7 +433,7 @@ class BaseDataset(ABC):
         return signals, labels
 
 
-    def preprocess(self, data_dir, ann_dir):
+    def preprocess(self, n_workers,data_dir, ann_dir):
         """
         Preprocess files before they can be processed
         Can include new sorting and copying/renaming
