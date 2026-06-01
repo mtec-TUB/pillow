@@ -6,6 +6,8 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import pyedflib
 from typing import Dict, List, Optional, Tuple
+from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
@@ -186,13 +188,14 @@ class FDCSR(BaseDataset):
         
         if str(execute_preprocess).lower() == "y":
             splitter = FDCSRSleepScoreSplitter(data_dir)
-            unscored_files = splitter.process_sleep_scores()
+            unscored_files = splitter.process_sleep_scores(n_workers)
             if unscored_files:
                 print(f"{len(unscored_files)} unscored files were found.")
-                print("Successfully ended preprocessing")
                 
-                if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
-                    return False
+            print("Successfully ended preprocessing")
+            
+            if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
+                return False
         return True
             
 
@@ -211,14 +214,20 @@ class FDCSRSleepScoreSplitter:
         self.start_times_file = os.path.join(base_folder,"fdcsr_edf_start_times.csv")
         self.not_scored = []
 
-    def process_sleep_scores(self):
+    def process_sleep_scores(self, n_workers):
         """Process all sleep score files based on EDF timing information."""
-        start_times_df = pd.read_csv(self.start_times_file, sep=",", header=0)
+        if os.path.exists(self.start_times_file):
+            start_times_df = pd.read_csv(self.start_times_file, sep=",", header=0)
+        else:
+            raise FileNotFoundError(f"Start times file not found: {self.start_times_file}")
 
         print(f"Processing {len(start_times_df)} EDF files...")
 
-        for i, edf_info in start_times_df.iterrows():
-            self._process_single_edf(edf_info)
+        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+
+            futures = [executor.submit(self._process_single_edf, edf_info) for i, edf_info in start_times_df.iterrows()]
+            for future in tqdm(as_completed(futures), total=len(start_times_df), desc="Preprocessing FDCSR"):
+                future.result()
 
         print(f"\nProcessing complete. Unscored files: {len(self.not_scored)}")
         if self.not_scored:
