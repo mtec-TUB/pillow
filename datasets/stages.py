@@ -263,9 +263,9 @@ class STAGES(BaseDataset):
                 start = int((start - ann_Startdatetime).seconds)
                 duration = row['Duration (seconds)']
 
-                # In some subfolder are some epochs with duration of 0 that do not fit into the timeline -> exclude them
-                if any(subfolder in os.path.basename(ann_fname) for subfolder in ['GSLH', 'GSSW', 'MSQW','MSTR']) and len(ann_stage_events) > 0:
-                    if duration == 0 and start != (ann_stage_events[-1]['Start'] + ann_stage_events[-1]['Duration']):
+                # In some subfolders are some epochs with duration of 0 that do not fit into the timeline -> exclude them
+                if any(subfolder in os.path.basename(ann_fname) for subfolder in ['GSLH', 'GSSW', 'MSQW','MSTR']):
+                    if duration == 0:
                         continue
                 
                 # In MSTR and MSNF some epochs missing -> fill with unknown
