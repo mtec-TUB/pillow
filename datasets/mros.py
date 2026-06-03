@@ -1,3 +1,4 @@
+import os
 from typing import Dict, List, Tuple, Union
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -90,6 +91,6 @@ class MROS(BaseDataset):
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
-        if ann_fname == "mros-visit1-aa2931-nsrr.xml" and len(signals) > len(labels):
+        if os.path.basename(ann_fname) == "mros-visit1-aa2931-nsrr.xml" and len(signals) > len(labels):
             return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)        
     
