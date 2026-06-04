@@ -157,7 +157,7 @@ def summarize(df):
     stats.index = ["mean", "std", "min", "q1", "median", "q3", "max"]
     return stats.round(2)
 
-def print_channel_summary(records):
+def print_channel_summary(records, num_files):
     """
     Print channel occurrence statistics across all recordings.
     """
@@ -175,11 +175,11 @@ def print_channel_summary(records):
         print("No channel information found.")
         return
 
-    print(f"{'Channel':<30} {'Files Present In':>20}")
+    print(f"{'Channel':<30} {'%':>20}")
     print("-" * 52)
 
     for ch, count in sorted(counter.items(), key=lambda x: (-x[1], x[0])):
-        print(f"{ch:<30} {count:>20}")
+        print(f"{ch:<30} {100*count/num_files:>20.1f}")
 
     print(f"{'='*76}\n")
 
@@ -260,7 +260,7 @@ def main():
     df = pd.DataFrame(records)
 
     stats = summarize(df)
-    print_channel_summary(records)
+    print_channel_summary(records, len(h5_files))
     print_summary(df, stats)
 
     output_csv = args.output_csv or os.path.join(args.input_dir, "sleep_metrics.csv")
