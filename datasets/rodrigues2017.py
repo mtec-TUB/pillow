@@ -1,6 +1,7 @@
 import os
 import shutil
 import moabb
+from mne.io import read_raw_edf
 from moabb.datasets import Rodrigues2017
 from pathlib import Path
 
@@ -17,7 +18,9 @@ class RODRIGUES2017(BaseDataset):
         super().__init__("RODRIGUES2017","MNE-BIDS-rodrigues2017", keep_folder_structure=False)
   
     def _setup_dataset_config(self):
-        self.ann2label = {} # no annotations
+        self.ann2label = {
+            "W": "W",
+        } # no annotations, but we know all epochs are Wake
 
         # https://hal.science/hal-02086581
         self.inter_dataset_mapping = {
@@ -53,13 +56,26 @@ class RODRIGUES2017(BaseDataset):
         }        
         
         self.file_extensions = {'psg_ext': '**/*_eeg.edf',
-                                'ann_ext': '**/*_stages.tsv'} # no annotations
+                                'ann_ext': '**/*_eeg.edf'} # no annotations, but we know all epochs are Wake
 
     def dataset_paths(self):
         return [
             "",
             ""
         ]
+    
+    def ann_parse(self, ann_fname):
+        # Not a real parsing function since there are no annotations, but we know all epochs are Wake
+        
+        file_duration = read_raw_edf(ann_fname, preload=False, verbose=False).duration
+
+        epoch_duration = 30
+        n_epochs = int(file_duration // epoch_duration)
+
+        ann_stage_events = [{"Stage": "W", "Start": i * epoch_duration, "Duration": epoch_duration} for i in range(n_epochs)]
+
+        return ann_stage_events, None, None, None
+
 
     def preprocess(self, n_workers, data_dir, ann_dir):
         
