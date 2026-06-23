@@ -170,11 +170,15 @@ class WSC(BaseDataset):
             
             start_idx = df[df['Info'] == 'START RECORDING'].index
             if len(start_idx) > 1:
-                raise Exception
+                raise Exception("Multiple START RECORDING entries found in annotation file.")
             elif len(start_idx) == 0:
-                start_idx = df[df['Info'] == 'STAGE - NO STAGE'].index[0].astype(int)
+                # Fallback to STAGE - NO STAGE if START RECORDING is not found
+                fallback_idx = df[df['Info'] == 'STAGE - NO STAGE'].index
+                if len(fallback_idx) == 0:
+                    raise Exception("Neither START RECORDING nor STAGE - NO STAGE found in annotation file.")
+                start_idx = int(fallback_idx[0])
             else:
-                start_idx = start_idx[0].astype(int)
+                start_idx = int(start_idx_series[0])
                 
             df = df.iloc[start_idx:].reset_index()
             

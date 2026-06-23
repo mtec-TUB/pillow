@@ -105,8 +105,8 @@ We do not provide any data. Please request the data from the original authors an
 | REDSD       | 1.0.8                 | https://doi.org/10.18112/openneuro.ds004902.v1.0.8                 |
 | Rodrigues2017 | v3                  | https://doi.org/10.5281/zenodo.2348891                             |
 | SEF         | 1.0.13                | https://openneuro.org/datasets/ds003768/versions/1.0.13            |
-| SHHS        | 0.21.0                | https://doi.org/10.25822/ghy8-ks59                                 |
 | SIEFERT     | 1.0.2                 | https://doi.org/10.18112/openneuro.ds005121.v1.0.2                 |
+| SHHS        | 0.21.0                | https://doi.org/10.25822/ghy8-ks59                                 |
 | SLEEPBRL    | 1.0.0                 | https://doi.org/10.13026/C29H4K                                    |
 | Sleep-EDF   | 1.0.0                 | https://doi.org/10.13026/C2X676                                    |
 | SOF         | 0.8.0                 | https://doi.org/10.25822/e1cf-rx65                                 |
