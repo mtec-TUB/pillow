@@ -311,11 +311,11 @@ class FileProcessor:
             # Save all channel data (output format handled inside _save_processed_data)
             if len(all_channel_data) > 0:
                 self._save_processed_data(all_channel_data)
-                self.logger.info(f"Successfully processed: {Path(self.psg_fname).name}")
+                self.logger.info(f"Successfully processed")
         
         except Exception as e:
             # Log the exception
-            self.logger.error(f"Error processing file {Path(self.psg_fname).name}: {str(e)}", exc_info=True)
+            self.logger.error(f"Error processing file: {str(e)}", exc_info=True)
             raise  # Re-raise after logging        
         finally:
 
@@ -476,7 +476,7 @@ class FileProcessor:
                 else:
                     self.logger.info("Lights Off time is at the start of the signal, no need of epoch selection based on lights Off time.")
             else:
-                raise Exception(f"Lights Off time has unsupported format: {lights_off}.")
+                raise Exception(f"Lights Off time has unsupported format: {lights_off}")
         
         else:
             self.logger.warning(f"Lights Off time not available, keeping all wake epochs at start.")
@@ -509,7 +509,7 @@ class FileProcessor:
                 lights_on_epoch = self._round_marker_time("lights_on", lights_on_sec, self.config.epoch_duration)
                 self.logger.info(f"Select only epochs before lights On at second {lights_on_sec} (epoch {lights_on_epoch})")
             else:
-                raise Exception(f"Lights On time has unsupported format: {lights_on}.")
+                raise Exception(f"Lights On time has unsupported format: {lights_on}")
         else:
             self.logger.warning(f"Lights On time not available.")
 
