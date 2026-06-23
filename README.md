@@ -94,6 +94,7 @@ We do not provide any data. Please request the data from the original authors an
 | ISRUC       | (accessed May 3, 2024)| https://sleeptight.isr.uc.pt/                                      |
 | MESA        | 0.7.0                 | https://doi.org/10.25822/n7hq-c406                                 |
 | MIT-BIH     | 1.0.0                 | https://doi.org/10.13026/C23K5S                                    |
+| MMASH       | 1.0.0                 | https://doi.org/10.13026/cerq-fc86                                 |
 | MNC         | Jan 22, 2021          | https://doi.org/10.25822/00tc-zz78                                 |
 | MrOS        | 0.6.0                 | https://doi.org/10.25822/kc27-0425                                 |
 | MSP         | 0.1.1                 | https://doi.org/10.25822/gc7q-g526                                 |
@@ -102,7 +103,7 @@ We do not provide any data. Please request the data from the original authors an
 | Physio2018  | 1.0.0                 | https://doi.org/10.13026/1q9b-ge17                                 |
 | PSG-IPA     | 1.0.0                 | https://doi.org/10.13026/esx0-nw71                                 |
 | REDSD       | 1.0.8                 | https://doi.org/10.18112/openneuro.ds004902.v1.0.8                 |
-| Rodrigues2017 | v3                  | https://doi.org/10.5281/zenodo.2348891
+| Rodrigues2017 | v3                  | https://doi.org/10.5281/zenodo.2348891                             |
 | SEF         | 1.0.13                | https://openneuro.org/datasets/ds003768/versions/1.0.13            |
 | SHHS        | 0.21.0                | https://doi.org/10.25822/ghy8-ks59                                 |
 | SIEFERT     | 1.0.2                 | https://doi.org/10.18112/openneuro.ds005121.v1.0.2                 |
