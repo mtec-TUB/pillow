@@ -168,7 +168,7 @@ class MMASH(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {"W": "W",
-                          "UNK": "UNK"}
+                          "Sleep": "SLEEP"}
 
         
         self.channel_names =  ['Axis1', 'Axis2', 'Axis3', 'Steps', 'HR', 'Inclinometer Off', 'Inclinometer Standing', 
@@ -215,13 +215,13 @@ class MMASH(BaseDataset):
         n_epochs_pre_sleep = int((end_time - start_time).total_seconds() // 30)
         ann_stage_events.extend([{'Stage': 'W', 'Start': idx*30, 'Duration': 30} for idx in range(0,n_epochs_pre_sleep)])
         
-        # annotate sleep phases with UNK
+        # annotate sleep phases with label 'Sleep'
         for _, row in sleep_df.iterrows():
             phase_start = datetime.strptime(row['Onset Time'], '%H:%M') + pd.Timedelta(days=0 if row['Onset Date'] == 1 else 1)
             phase_end = phase_start + pd.Timedelta(minutes=row['Total Minutes in Bed'])
             start_epoch = int((phase_start - start_time).total_seconds() // 30)
             end_epoch = int((phase_end - start_time).total_seconds() // 30)
-            ann_stage_events[start_epoch:end_epoch] = [{'Stage': 'UNK', 'Start': idx*30, 'Duration': 30} for idx in range(start_epoch, end_epoch)]
+            ann_stage_events[start_epoch:end_epoch] = [{'Stage': 'Sleep', 'Start': idx*30, 'Duration': 30} for idx in range(start_epoch, end_epoch)]
 
         return ann_stage_events, start_time, lights_off, lights_on
     

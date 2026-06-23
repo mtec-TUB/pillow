@@ -25,7 +25,7 @@ logging.captureWarnings(True)
 
 # Final sleep stage labels mapping (did not yet find a better place for this, maybe in config?)
 # labels will appear like this in output 
-STAGE_DICT = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "MOVE": 5, "UNK": 6}
+STAGE_DICT = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "MOVE": 5, "UNK": 6, "SLEEP": 7}
 
 SLEEP_STAGES = [STAGE_DICT["N1"],STAGE_DICT["N2"],STAGE_DICT["N3"],STAGE_DICT["REM"]]
 
