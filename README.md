@@ -93,6 +93,7 @@ We do not provide any data. Please request the data from the original authors an
 | HOMEPAP     | 0.2.0                 | https://doi.org/10.25822/xmwv-yz91                                 |
 | ISRUC       | (accessed May 3, 2024)| https://sleeptight.isr.uc.pt/                                      |
 | MESA        | 0.7.0                 | https://doi.org/10.25822/n7hq-c406                                 |
+| MHRW        | 1.0.0                 | https://doi.org/10.13026/hmhs-py35                                 |
 | MIT-BIH     | 1.0.0                 | https://doi.org/10.13026/C23K5S                                    |
 | MMASH       | 1.0.0                 | https://doi.org/10.13026/cerq-fc86                                 |
 | MNC         | Jan 22, 2021          | https://doi.org/10.25822/00tc-zz78                                 |
