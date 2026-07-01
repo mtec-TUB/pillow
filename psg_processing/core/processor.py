@@ -243,23 +243,29 @@ class FileProcessor:
                 file_data["start_delay"] = start_delay
 
                 if start_delay != 0:
+                    if not self.dataset.has_front_alignment:
+                        raise Exception(
+                            f"Signal/annotation start-time mismatch ({start_delay:.1f}s) but "
+                            f"dataset {self.dataset.dset_name} has has_front_alignment=False. "
+                            f"Please verify."
+                        )
                     front_params = self.dataset.compute_front_alignment(
                         self.logger, self.config.alignment, self.config.pad_values,
                         self.config.epoch_duration, start_delay,
                     )
                     labels = self._apply_front_label_adjustment(labels, front_params["label_adjust_front"])
-                    partial_epoch_sec = front_params["partial_epoch_sec"]
-                    start_time_shift  = front_params["start_time_shift"]
+                    signal_adjust_front_sec = front_params["signal_adjust_front_sec"]
+                    start_time_shift = -signal_adjust_front_sec
                     if start_time_shift and isinstance(start_datetime, datetime):
                         start_datetime = start_datetime + timedelta(seconds=start_time_shift)
                         file_data["start_datetime"] = start_datetime
                         self.logger.info(f"Adjusted start datetime after front alignment: {start_datetime}")
                 else:
-                    partial_epoch_sec = 0.0
-                    start_time_shift  = 0.0
+                    signal_adjust_front_sec = 0.0
+                    start_time_shift        = 0.0
 
-                file_data["partial_epoch_sec"] = partial_epoch_sec
-                file_data["start_time_shift"]  = start_time_shift
+                file_data["signal_adjust_front_sec"] = signal_adjust_front_sec
+                file_data["start_time_shift"]        = start_time_shift
                 file_data["labels"] = labels  # adjusted labels, not yet epoch-selected
 
             else:
@@ -269,8 +275,8 @@ class FileProcessor:
                     "lights_off":        None,
                     "lights_on":         None,
                     "start_delay":       0,
-                    "partial_epoch_sec": 0.0,
-                    "start_time_shift":  0.0,
+                    "signal_adjust_front_sec": 0.0,
+                    "start_time_shift":        0.0,
                 })
 
             # ── Lights markers → epoch indices (uses possibly updated start_datetime) ─
@@ -335,6 +341,12 @@ class FileProcessor:
                 n_signal_epochs = len(next(iter(all_channel_data.values()))["signal_epoched"])
                 target_n_epochs = len(labels)
                 if n_signal_epochs != target_n_epochs:
+                    if not self.dataset.has_end_alignment:
+                        raise Exception(
+                            f"Signal ({n_signal_epochs} epochs) and labels ({target_n_epochs} epochs) "
+                            f"do not match. Dataset {self.dataset.dset_name} has no end alignment "
+                            f"defined (has_end_alignment=False). Please verify."
+                        )
                     labels = self._end_align(labels, all_channel_data, n_signal_epochs, target_n_epochs)
 
                 # 2. Compute epoch selection on post-end_align labels, then apply.
@@ -445,7 +457,8 @@ class FileProcessor:
                 elif lights_on_epoch == n_epochs + 1:
                     pass  # lights on fell in the last cropped partial epoch → keep all
                 else:
-                    self.logger.warning(f"Lights On is {lights_on_epoch - n_epochs} epochs after signal ends.")
+                    # Maybe padding both signal and annotations until Lights On ??
+                    self.logger.warning(f"Lights On is {lights_on_epoch - n_epochs} epochs after recording ends (no selection applied).")
             else:
                 if self.config.truncate_non_sleep_end and len(sleep_idx) > 0:
                     end_idx = sleep_idx[-1] + 1
@@ -490,11 +503,12 @@ class FileProcessor:
             f"End alignment needed: signal has {n_signal_epochs} epochs, labels have {target_n_epochs} epochs."
         )
         if n_signal_epochs > target_n_epochs:
-            if self.config.alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_SIGNAL.value):
+            if self.config.alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_ANNOT.value):
                 self.logger.info(f"End alignment: cropping signal to {target_n_epochs} epochs.")
+                # in-place modification
                 for ch in all_channel_data.values():
                     ch["signal_epoched"] = ch["signal_epoched"][:target_n_epochs]
-            else:  # MATCH_LONGER / MATCH_ANNOT → pad labels
+            elif self.config.alignment in (Alignment.MATCH_LONGER.value, Alignment.MATCH_SIGNAL.value): #pad labels
                 n_pad   = n_signal_epochs - target_n_epochs
                 pad_val = self.config.pad_values["label"]
                 self.logger.info(f"End alignment: padding labels by {n_pad} epochs.")
@@ -503,13 +517,14 @@ class FileProcessor:
                 else:
                     labels = np.vstack([labels, np.full((n_pad, labels.shape[1]), pad_val, dtype=labels.dtype)])
         else:
-            if self.config.alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_ANNOT.value):
+            if self.config.alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_SIGNAL.value):
                 self.logger.info(f"End alignment: cropping labels to {n_signal_epochs} epochs.")
                 labels = labels[:n_signal_epochs]
-            else:  # MATCH_LONGER / MATCH_SIGNAL → pad signal
+            elif self.config.alignment in (Alignment.MATCH_LONGER.value, Alignment.MATCH_ANNOT.value):  # pad signal
                 n_pad   = target_n_epochs - n_signal_epochs
                 pad_val = np.float64(self.config.pad_values["signal"])
                 self.logger.info(f"End alignment: padding signal by {n_pad} epochs.")
+                # in-place modification
                 for ch in all_channel_data.values():
                     sig = ch["signal_epoched"]
                     ch["signal_epoched"] = np.vstack(
@@ -591,6 +606,8 @@ class FileProcessor:
                 sig_dt = signal_start_datetime
                 if ann_dt.time() != sig_dt.time():
                     delay = (ann_dt - sig_dt).total_seconds()
+                    if abs(delay) >= 24*3600:
+                        raise Exception(f"Annotation start datetime {ann_dt} is more than 24h after signal start datetime {sig_dt}. Check implementation!")
                     
             # If annotation start datetime is given as a numeric value, it indicates a delay in seconds or samples (depending on dataset)
             elif isinstance(ann_start_datetime, (int, float, Decimal)):
@@ -742,6 +759,11 @@ class FileProcessor:
             self.logger.error(f"All channels must have the same number of epochs after processing to be saved together, but got different number of epochs: {n_epochs}")
             raise ValueError(f"All channels must have the same number of epochs after processing to be saved together, but got different number of epochs: {n_epochs}")
 
+        # check if there is a signal with only NaN values
+        if any([np.isnan(channel_data["signal"]).all() for channel_data in channel_dicts]):
+            self.logger.warning(f"One or more channels contain only NaN values after processing. Skipping this file.")
+            return
+
         if output_format == "npz":
             for channel_data in channel_dicts:
                 save_dict = {
@@ -853,7 +875,7 @@ class ChannelProcessor:
     ----------------
     - Read raw signal and sampling rate from file.
     - Resample / filter / clip (all fs-dependent).
-    - Apply the per-channel raw-sample front offset (partial_epoch_sec × fs)
+    - Apply the per-channel raw-sample front offset (signal_adjust_front_sec × fs)
       AFTER resampling and filtering to avoid boundary artefacts.
     - Reshape into epochs.
 
@@ -903,9 +925,9 @@ class ChannelProcessor:
             signal = signal_processor.signal
 
         # 3. Apply raw-sample front offset AFTER resample/filter
-        partial_epoch_sec = data.get("partial_epoch_sec", 0.0)
-        if partial_epoch_sec != 0.0:
-            signal = self._apply_partial_epoch_offset(signal, fs, partial_epoch_sec)
+        signal_adjust_front_sec = data.get("signal_adjust_front_sec", 0.0)
+        if signal_adjust_front_sec != 0.0:
+            signal = self._apply_partial_epoch_offset(signal, fs, signal_adjust_front_sec)
 
         # 4. Reshape into epochs
         n_epoch_samples = self.config.epoch_duration * fs
@@ -934,22 +956,22 @@ class ChannelProcessor:
             "ch_name_orig":   self.channel,
         }
 
-    def _apply_partial_epoch_offset(self, signal, fs, partial_epoch_sec):
-        """Crop (positive) or prepend padding (negative) to the raw signal.
+    def _apply_partial_epoch_offset(self, signal, fs, signal_adjust_front_sec):
+        """Padding (positive) or crop (negative) at the raw signal front.
 
         Called after resampling/filtering so that filter edge effects are not
         introduced by padding, and the resampled fs is used for sample counting.
         """
-        n_samples = int(abs(partial_epoch_sec) * fs)
-        if partial_epoch_sec > 0:
+        n_samples = int(abs(signal_adjust_front_sec) * fs)
+        if signal_adjust_front_sec < 0:
             self.logger.info(
-                f"Front crop: removing {n_samples} samples ({partial_epoch_sec:.4f} sec) from signal start."
+                f"Front crop: removing {n_samples} samples ({-signal_adjust_front_sec:.4f} sec) from signal start."
             )
             return signal[n_samples:]
         else:
             pad_val = np.float64(self.config.pad_values["signal"])
             self.logger.info(
-                f"Front pad: prepending {n_samples} samples ({-partial_epoch_sec:.4f} sec) "
+                f"Front pad: prepending {n_samples} samples ({signal_adjust_front_sec:.4f} sec) "
                 f"of value {pad_val} to signal start."
             )
             return np.concatenate([np.full(n_samples, pad_val), signal])
