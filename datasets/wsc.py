@@ -178,7 +178,7 @@ class WSC(BaseDataset):
                     raise Exception("Neither START RECORDING nor STAGE - NO STAGE found in annotation file.")
                 start_idx = int(fallback_idx[0])
             else:
-                start_idx = int(start_idx_series[0])
+                start_idx = int(start_idx[0])
                 
             df = df.iloc[start_idx:].reset_index()
             
