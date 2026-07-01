@@ -99,13 +99,11 @@ class Physio2018(BaseDataset):
         for i, event in enumerate(ann_stage_events[:-1]):
             ann_stage_events[i]['Duration'] = ann_stage_events[i+1]['Start'] - event['Start']
 
-        return ann_stage_events, float(start_time_label), None, None
+        return ann_stage_events, float(start_time_label) / fs, None, None
     
-    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_samples, signal, labels, fs):
-    
-        start_seconds = delay_samples/fs
+    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
 
-        return self.base_align_front(logger, start_seconds, alignment, pad_values, epoch_duration, signal, labels, fs)
+        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)
 
     def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
 
