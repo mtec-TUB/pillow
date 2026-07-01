@@ -155,6 +155,9 @@ class WSC(BaseDataset):
 
         if 'stg.txt' in ann_fname:
             data = pd.read_csv(ann_fname, sep="\t", header=0, names=['Epoch','Stage', 'CAST_Stage'])
+
+            if data.iloc[0]['Epoch'] != 1:
+                raise Exception("First epoch in annotation file is not 1. Check the annotation file format.")
             
             for i,row in data.iterrows():
                 ann_stage_events.append({'Stage': row['Stage'],
@@ -205,6 +208,12 @@ class WSC(BaseDataset):
                                                 'Duration': duration})
                 
                 lights_df = df
+
+            # Adapt start date to be same with signal start date (always starting at 1985-01-01) to avoid issues with datetime subtraction
+            if (datetime.strptime(df.iloc[start_idx]['Timestamp'],'%H:%M:%S.%f') - ann_Startdatetime).total_seconds() > 12 * 3600:
+                ann_Startdatetime = datetime.combine(datetime(1985, 1, 2).date(), ann_Startdatetime.time())
+            else:
+                ann_Startdatetime = datetime.combine(datetime(1985, 1, 1).date(), ann_Startdatetime.time())
 
         lights_off, lights_on = None, None
         if lights_df is not None:
