@@ -1,3 +1,4 @@
+import mne
 from mne.io import read_raw_eeglab, read_epochs_eeglab
 from mne import _fiff
 import numpy as np
@@ -21,8 +22,13 @@ class EEGLABHandler:
                 raw_data = read_raw_eeglab(filepath, verbose="WARNING",preload=False)
                 return raw_data.ch_names
             except TypeError as e:
-                raw_epoched_data = read_epochs_eeglab(filepath, verbose="WARNING")
-                return raw_epoched_data.ch_names
+                try:
+                    raw_epoched_data = read_epochs_eeglab(filepath, verbose="WARNING")
+                    return raw_epoched_data.ch_names
+                except FileNotFoundError as e:
+                    logger.error(f"File not found: {e}")
+                    return []
+
             except OSError as e:
                 logger.error(f"Skipping corrupt/unreadable file: {e}")
                 return []
@@ -39,22 +45,26 @@ class EEGLABHandler:
             else:
                 return None # channel not found in this file
         except TypeError as e:
-            # Probably because its an epoched file -> reading as epochs and concatenating
-            # First load with mat to get channel names and n_epochs (needed to construct events for mne)
-            eeg = read_mat(filepath)
-            eeg = eeg.get("EEG", eeg)   # handle nested structure
-            chanlocs = eeg.get("chanlocs")
-            labels = chanlocs.get('labels',[]) 
-            if channel in labels:
-                n_epochs = eeg.get("trials")
-                events = np.vstack((np.arange(n_epochs,dtype=int), np.zeros(n_epochs,dtype=int), np.ones(n_epochs, dtype=int))).T
-                event_id=dict(unknown=1)
-                raw_epoched_data = read_epochs_eeglab(filepath, verbose="WARNING", events=events, event_id=event_id)
-            
-                epoched_data = raw_epoched_data.get_data(picks=channel)[:,0,:]  # shape (n_epochs, n_times)
-                continuous = epoched_data.flatten()
-                return continuous
-            else:
+            try:
+                # Probably because its an epoched file -> reading as epochs and concatenating
+                # First load with mat to get channel names and n_epochs (needed to construct events for mne)
+                eeg = read_mat(filepath)
+                eeg = eeg.get("EEG", eeg)   # handle nested structure
+                chanlocs = eeg.get("chanlocs")
+                labels = chanlocs.get('labels',[]) 
+                if channel in labels:
+                    n_epochs = eeg.get("trials")
+                    events = np.vstack((np.arange(n_epochs,dtype=int), np.zeros(n_epochs,dtype=int), np.ones(n_epochs, dtype=int))).T
+                    event_id=dict(unknown=1)
+                    raw_epoched_data = read_epochs_eeglab(filepath, verbose="WARNING", events=events, event_id=event_id)
+                
+                    epoched_data = raw_epoched_data.get_data(picks=channel)[:,0,:]  # shape (n_epochs, n_times)
+                    continuous = epoched_data.flatten()
+                    return continuous
+                else:
+                    return None
+            except FileNotFoundError as e:
+                logger.error(f"File not found: {e}")
                 return None
         except Exception as e:
             logger.error(f"Error reading signal: {e}")
@@ -71,7 +81,8 @@ class EEGLABHandler:
         except TypeError as e:
             raw_data = read_epochs_eeglab(filepath, verbose="WARNING")
             info = raw_data.info
-            file_duration = raw_data.duration
+
+            file_duration = len(raw_data.times) * len(raw_data) / info["sfreq"]  # n_times * n_epochs / sfreq
 
         except RuntimeError as e:
             try:
