@@ -18,6 +18,8 @@ class MHRW(BaseDataset):
     
     def __init__(self):
         super().__init__("MHRW","MHRW - Motion and heart rate from a wrist-worn wearable")
+        self.has_front_alignment = True
+        self.has_end_alignment = True
 
     unit_mapping = {
         'hr': 'bpm',
@@ -199,15 +201,4 @@ class MHRW(BaseDataset):
         return ann_stage_events, abs(start_time), lights_off, lights_on
     
 
-    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
-        """ Align front part of signals and labels, in some datasets annotations start after signal recording"""
 
-        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)
-
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(labels) > len(signals):
-            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
-
-        if len(signals) > len(labels):
-            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)   

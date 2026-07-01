@@ -16,6 +16,8 @@ class CPS(BaseDataset):
 
     def __init__(self):
         super().__init__("CPS","CPS - Comprehensive Polysomnography Dataset (A Resource for Sleep-Related Arousal Research)", keep_folder_structure=False)
+        self.has_front_alignment = True
+        self.has_end_alignment = True
 
         self._file_handler = WFDBHandler()
 
@@ -160,12 +162,3 @@ class CPS(BaseDataset):
         
         return ann_stage_events, ann_startdatetime, lights_off, lights_on
     
-    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
-
-        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)
-
-    
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(labels) == len(signals) +1:
-            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)

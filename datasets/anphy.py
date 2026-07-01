@@ -12,6 +12,8 @@ class ANPHY(BaseDataset):
     
     def __init__(self):
         super().__init__("ANPHY","ANPHY", keep_folder_structure=False)
+        self.has_front_alignment = True
+        self.has_end_alignment = True
 
     def _setup_dataset_config(self):
         self.ann2label = {
@@ -198,16 +200,3 @@ class ANPHY(BaseDataset):
                                         'Duration': duration})
 
         return ann_stage_events, start_time_label, lights_off_sec, lights_on_sec
-
-    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
-        """ Align front part of signals and labels, in some datasets annotations start after signal recording"""
-
-        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)
-
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(labels) > len(signals):
-            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
-
-        if len(signals) > len(labels):
-            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)

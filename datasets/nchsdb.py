@@ -17,6 +17,7 @@ class NCHSDB(BaseDataset):
     
     def __init__(self):
         super().__init__("NCHSDB","NCHSDB - NCH Sleep DataBank")
+        self.has_front_alignment = True
 
     def get_signal_data(self, logger, filepath, channel):
         signal_data = super().get_signal_data(logger, filepath, channel)
@@ -225,12 +226,3 @@ class NCHSDB(BaseDataset):
 
         return ann_stage_events, float(start_time_label), lights_off, lights_on
     
-    def align_front(self, logger, alignment, pad_values, epoch_duration,delay_sec,signal: np.ndarray, labels, fs
-                  ):
-
-        # if not (float(delay_sec*Decimal(str(fs)))).is_integer():
-        #     print(fs)
-        #     print(delay_sec%(1/Decimal(str(fs))))
-        #     raise Exception("Annotations start at timestamp outside of sample rate")
-
-        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)

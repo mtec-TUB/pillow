@@ -18,7 +18,8 @@ class ISRUC(BaseDataset):
     
     def __init__(self):
         super().__init__("ISRUC","ISRUC")
-        
+        self.has_end_alignment = True
+
     def _setup_dataset_config(self):
         self.ann2label =  {
             "W": "W",   # Wake
@@ -219,12 +220,6 @@ class ISRUC(BaseDataset):
         
         return labels
     
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(labels) > len(signals):
-            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
-        
-
     def preprocess(self, n_workers, data_dir, ann_dir):
         print("\n ISRUC files originally are stored in an inconvenient way and therefor should be preprocessed/resorted ... \n \
               This will not modify the original file content")
