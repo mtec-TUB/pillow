@@ -3,7 +3,7 @@ STAGES - Stanford Technology Analytics and Genomics in Sleep
 """
 import os
 import re
-import pandas as pd
+import csv
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, date
 from datasets.base import BaseDataset
@@ -241,27 +241,37 @@ class STAGES(BaseDataset):
         """
 
         ann_stage_events = []
-        ann_df = pd.read_csv(ann_fname,header = 0, sep=',', usecols=[0,1,2],engine="python", index_col=False)
         ann_Startdatetime = None
         lights_off, lights_on = [], []
-        ann_stage_events = []
 
-        for i,row in ann_df.iterrows():
-            if not pd.notna(row['Event']):
+        # Some rows carry extra trailing columns beyond
+        # Anchor with ^ so a field only counts when the keyword is the first thing written in it
+        lights_off_re = re.compile(r'^(?:LightsOff|Lights Off|Lights Out|L/O|LO)(?=\s|$)', re.IGNORECASE)
+        lights_on_re = re.compile(r'^(?:LightsOn|L/On|Lights On|scoring note: moved L/on)(?=\s|$)', re.IGNORECASE)
+
+        with open(ann_fname, newline='') as f:
+            ann_rows = list(csv.DictReader(f, restkey='_extra'))
+
+        for row in ann_rows:
+            event_raw = row.get('Event')
+            if event_raw is None:
                 continue
-            event = row['Event'].strip()
-            if re.search(r'(?:LightsOff|Lights Off|Lights Out|L/O|LO)(?=\s|$)', event):
+            fields = [event_raw, *row.get('_extra', [])]
+            fields = [field.strip() for field in fields if field is not None]
+
+            if any(lights_off_re.match(field) for field in fields):
                 lights_off.append(datetime.combine(date(1985,1,1),datetime.strptime(row['Start Time'],"%H:%M:%S").time()))
-            elif re.search(r'(?:LightsOn|L/On|Lights On|scoring note: moved L/on)(?=\s|$)', event):
+            elif any(lights_on_re.match(field) for field in fields):
                 lights_on.append(datetime.combine(date(1985,1,1),datetime.strptime(row['Start Time'],"%H:%M:%S").time()))
-            elif event in self.ann2label:
+            elif event_raw.strip() in self.ann2label:
+                event = event_raw.strip()
                 start = datetime.combine(date(1985,1,1),datetime.strptime(row['Start Time'],"%H:%M:%S").time())
 
                 if ann_Startdatetime == None:
                     ann_Startdatetime = start
 
                 start = int((start - ann_Startdatetime).seconds)
-                duration = row['Duration (seconds)']
+                duration = float(row['Duration (seconds)'])
 
                 # In some subfolders are some epochs with duration of 0 that do not fit into the timeline -> exclude them
                 if any(subfolder in os.path.basename(ann_fname) for subfolder in ['GSLH', 'GSSW', 'MSQW','MSTR']):
