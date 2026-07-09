@@ -1,8 +1,6 @@
 import os
-import numpy as np
 import pandas as pd
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
@@ -154,19 +152,37 @@ class WSC(BaseDataset):
         ann_Startdatetime = None
 
         if 'stg.txt' in ann_fname:
-            data = pd.read_csv(ann_fname, sep="\t", header=0, names=['Epoch','Stage', 'CAST_Stage'])
+            # Check if there is a header row or not and read
+            if open(ann_fname).readline().startswith("Epoch"):
+                data = pd.read_csv(ann_fname, sep="\t", header=0, names=['Epoch', 'Stage', 'CAST_Stage'])
+            else:
+                data = pd.read_csv(ann_fname, sep="\t", header=None, names=['Epoch', 'Stage', 'CAST_Stage'])
 
-            if data.iloc[0]['Epoch'] != 1:
-                raise Exception("First epoch in annotation file is not 1. Check the annotation file format.")
-            
             for i,row in data.iterrows():
                 ann_stage_events.append({'Stage': row['Stage'],
                                             'Start': i * epoch_duration,
                                             'Duration': epoch_duration})
                 
-            lights_file = ann_fname.replace('.stg.txt', '.log.txt')
-            if os.path.exists(lights_file):
-                lights_df = pd.read_csv(lights_file, sep="\t", names=['Timestamp', 'Info'], usecols=[1,2], header=None)
+            log_file = ann_fname.replace('.stg.txt', '.log.txt')
+            if os.path.exists(log_file):
+                log_df = pd.read_csv(log_file, sep="\t", names=['Timestamp', 'Info'], usecols=[1,2], header=None)
+                first_epoch_idx = log_df[log_df['Info'] == 'Recording Started'].index
+                if len(first_epoch_idx) > 1:
+                    if "wsc-visit1-67336-nsrr" in ann_fname:
+                       first_epoch_idx = first_epoch_idx[1]
+                    elif "wsc-visit1-80964-nsrr" in ann_fname:
+                        first_epoch_idx = first_epoch_idx[0]
+                    else:
+                        first_epoch_idx = first_epoch_idx[-1]  # Take last occurence (verified in multiple WSC log files)
+                elif len(first_epoch_idx) == 0:
+                    first_epoch_idx = 0
+                else:
+                    first_epoch_idx = int(first_epoch_idx[0])
+                
+                ann_Startdatetime = datetime.strptime(log_df.iloc[first_epoch_idx]['Timestamp'].split(' ')[0], '%H:%M:%S')
+                ann_Startdatetime = datetime.combine(datetime(1985, 1, 1).date(), ann_Startdatetime.time())
+
+                lights_df = log_df
             
         elif 'allscore.txt' in ann_fname:
             df = pd.read_csv(ann_fname, sep="\t", names=['Timestamp','Info'], encoding='latin',na_filter=False)
