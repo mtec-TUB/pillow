@@ -279,16 +279,6 @@ class FileProcessor:
                     "start_time_shift":        0.0,
                 })
 
-            # ── Lights markers → epoch indices (uses possibly updated start_datetime) ─
-            if self.config.select_epochs == "lights":
-                lights_off_ds, lights_on_ds = self.dataset.get_light_times(self.logger, self.psg_fname)
-                if lights_off_ds is not None:
-                    file_data["lights_off"] = lights_off_ds
-                if lights_on_ds is not None:
-                    file_data["lights_on"] = lights_on_ds
-                # Calculate the epochs to select later between lights off and lights on
-                file_data["lights_off"], file_data["lights_on"] = self._get_lights_epochs(file_data)
-
             # Intersection of available channels in psg file and configured channels to process
             channels = list(
                 set(self.config.channels) & set(self.dataset.get_channels(self.logger, self.psg_fname))
@@ -297,9 +287,7 @@ class FileProcessor:
                 self.logger.warning("No selected channels found in this file. Skipping.")
                 return
 
-            # ── Per-channel processing: raw signal → epoched signal ───────────────
-            # Each channel returns signal_epoched (n_epochs × n_samples), fs.
-            # No label handling, no epoch selection inside channel processor.
+            # Per-channel processing: raw signal -> filtered/resampled/epoched signal
             all_channel_data = {}
             for channel in sorted(channels):
                 # Set current channel for logging
@@ -308,12 +296,6 @@ class FileProcessor:
                 if self.config.output_format == "npz":
                     file_output_path, log_path = self._setup_channel_output(channel_harm)
                     log_paths[channel] = log_path
-
-                # all_channel_data["file_output_path"] = file_output_path
-                # if os.path.exists(file_output_path):
-                #     raise FileExistsError(f"Output file already exists: {file_output_path}.")
-                # np.savetxt(file_output_path, [])
-                # continue
 
                 # Skip if file already exists and overwrite is False (only for output format npz on this level)
                 if os.path.exists(file_output_path) and not self.config.overwrite:
@@ -334,52 +316,86 @@ class FileProcessor:
             if not all_channel_data:
                 return
 
-            # ── File-level post-processing ────────────────────────────────────────
-            # 1. End alignment: reconcile signal epoch count with label count.
-            #    All channels from the same file share the same n_epochs after reshaping.
-            if self.config.use_annot:
-                n_signal_epochs = len(next(iter(all_channel_data.values()))["signal_epoched"])
-                target_n_epochs = len(labels)
-                if n_signal_epochs != target_n_epochs:
-                    if not self.dataset.has_end_alignment:
-                        raise Exception(
-                            f"Signal ({n_signal_epochs} epochs) and labels ({target_n_epochs} epochs) "
-                            f"do not match. Dataset {self.dataset.dset_name} has no end alignment "
-                            f"defined (has_end_alignment=False). Please verify."
-                        )
-                    labels = self._end_align(labels, all_channel_data, n_signal_epochs, target_n_epochs)
+            # File-level post-processing
 
-                # 2. Compute epoch selection on post-end_align labels, then apply.
-                select_idx = self._compute_select_idx(
-                    labels, file_data.get("lights_off"), file_data.get("lights_on")
-                )
-                if select_idx is None:
-                    return
-                labels_out = labels[select_idx]
-                if isinstance(start_datetime, datetime) and len(select_idx) > 0:
-                    start_datetime = start_datetime + timedelta(
-                        seconds=float(select_idx[0] * self.config.epoch_duration)
-                    )
-                for ch_data in all_channel_data.values():
-                    ch_data["signal"]       = ch_data["signal_epoched"][select_idx]
-                    ch_data["labels"]       = labels_out
-                    ch_data["start_datetime"] = start_datetime
+            # If configured, use lights markers to get selection range
+            if self.config.select_epochs == "lights":
+                # In some datasets, lights markers are derived on dataset level, in others they were already extracted from the annotation file
+                lights_off_ds, lights_on_ds = self.dataset.get_light_times(self.logger, self.psg_fname)
+                if lights_off_ds is not None:
+                    file_data["lights_off"] = lights_off_ds
+                if lights_on_ds is not None:
+                    file_data["lights_on"] = lights_on_ds
+                # Compute epoch indices for lights markers
+                loff_epoch, lon_epoch = self._get_lights_epochs(file_data)
             else:
-                if self.config.select_epochs == "lights":
-                    n_sig = len(next(iter(all_channel_data.values()))["signal_epoched"])
-                    lo = file_data.get("lights_off") or 0
-                    li = file_data.get("lights_on")
-                    end_idx = min(li, n_sig) if li is not None else n_sig
-                    select_idx = np.arange(lo, end_idx) if lo < end_idx else np.arange(n_sig)
-                    for ch_data in all_channel_data.values():
-                        ch_data["signal"]         = ch_data["signal_epoched"][select_idx]
-                        ch_data["labels"]         = None
-                        ch_data["start_datetime"] = start_datetime
-                else:
-                    for ch_data in all_channel_data.values():
-                        ch_data["signal"]         = ch_data["signal_epoched"]
-                        ch_data["labels"]         = None
-                        ch_data["start_datetime"] = start_datetime
+                loff_epoch, lon_epoch = None, None
+
+            # End alignment: reconcile signal epoch count with label count.
+            # Skipped when lights selection is configured and lights-on falls within the range both arrays already cover
+            if self.config.use_annot:
+                n_signal_epochs      = len(next(iter(all_channel_data.values()))["signal_epoched"]) # get the first channel's epoch count
+                n_real_signal_epochs = n_signal_epochs  # epoch count before any end-alignment padding
+                n_label_epochs      = len(labels)
+                if n_signal_epochs != n_label_epochs:
+                    n_min = min(n_signal_epochs, n_label_epochs)
+                    if (self.config.select_epochs == "lights"
+                            and lon_epoch is not None
+                            and lon_epoch <= n_min):
+                        pass
+                    else:
+                        if not self.dataset.has_end_alignment:
+                            raise Exception(
+                                f"Signal ({n_signal_epochs} epochs) and labels ({n_label_epochs} epochs) "
+                                f"do not match. Dataset {self.dataset.dset_name} has no end alignment "
+                                f"defined (has_end_alignment=False). Please verify."
+                            )
+                        labels = self._end_align(labels, all_channel_data, n_signal_epochs, n_label_epochs)
+
+            # Compute epoch selection based on lights marker and/or MOVE/UNK removal and/or truncate_non_sleep_end
+            n_epochs   = len(labels) if self.config.use_annot else len(next(iter(all_channel_data.values()))["signal_epoched"])
+            labels_sel = labels if self.config.use_annot else None
+            select_idx = self._compute_select_idx(labels_sel, loff_epoch, lon_epoch, n_epochs)
+            if select_idx is None:
+                return
+
+            ## Guard: skip if selection falls entirely in a padded region with no real signal data.
+
+            # Front padding: signal_adjust_front_sec > 0 means N epochs of padding were prepended.
+            # Only full epochs that are entirely padding are counted (floor division).
+            signal_adjust_front_sec = file_data.get("signal_adjust_front_sec", 0.0)
+            n_front_pad_epochs = int(signal_adjust_front_sec // self.config.epoch_duration)
+            if (n_front_pad_epochs > 0
+                    and len(select_idx) > 0
+                    and select_idx[-1] < n_front_pad_epochs):
+                self.logger.warning(
+                    f"All selected epochs ({select_idx[0]}–{select_idx[-1]}) fall entirely "
+                    f"within the front-padded region ({n_front_pad_epochs} padding epochs). "
+                    f"Skipping file."
+                )
+                return
+
+            # End padding: signal was extended by end alignment and selection starts beyond real data.
+            if (self.config.use_annot
+                    and len(select_idx) > 0
+                    and select_idx[0] >= n_real_signal_epochs):
+                self.logger.warning(
+                    f"All selected epochs ({select_idx[0]}–{select_idx[-1]}) fall entirely "
+                    f"within the end-padded region (real signal: {n_real_signal_epochs} epochs). "
+                    f"Skipping file."
+                )
+                return
+
+            # Apply selection
+            labels_out = labels[select_idx] if self.config.use_annot else None
+            if isinstance(start_datetime, datetime) and len(select_idx) > 0:
+                start_datetime = start_datetime + timedelta(
+                    seconds=float(select_idx[0] * self.config.epoch_duration)
+                )
+            for ch_data in all_channel_data.values():
+                ch_data["signal"]         = ch_data["signal_epoched"][select_idx]
+                ch_data["labels"]         = labels_out
+                ch_data["start_datetime"] = start_datetime
 
             labels_shape = labels_out.shape if self.config.use_annot else None
             self.logger.info(
@@ -427,7 +443,7 @@ class FileProcessor:
                 pad = np.full((label_adjust_front, labels.shape[1]), pad_val, dtype=labels.dtype)
                 return np.vstack([pad, labels])
 
-    def _compute_select_idx(self, labels, lights_off_epoch, lights_on_epoch):
+    def _compute_select_idx(self, labels, lights_off_epoch, lights_on_epoch, n_epochs):
         """Compute the epoch indices to keep based on lights markers and MOVE/UNK removal.
 
         labels    : 1-D or 2-D label array, or None when use_annot=False.
@@ -437,13 +453,17 @@ class FileProcessor:
         Uses the first scorer column when labels are 2-D.
         Returns None if no epochs survive.
         """
-        label_1d = labels if labels.ndim == 1 else labels[:, 0]
-        n_epochs  = len(label_1d)
+        if labels is not None:
+            label_1d  = labels if labels.ndim == 1 else labels[:, 0]
+            n_epochs  = len(label_1d)
+            sleep_mask = np.isin(label_1d, SLEEP_STAGES)
+            sleep_idx  = np.where(sleep_mask)[0]
+        else:
+            label_1d  = None
+            sleep_idx = np.array([], dtype=int)
+
         start_idx = 0
         end_idx   = n_epochs
-
-        sleep_mask = np.isin(label_1d, SLEEP_STAGES)
-        sleep_idx  = np.where(sleep_mask)[0]
 
         if self.config.select_epochs == "all":
             pass
@@ -459,30 +479,36 @@ class FileProcessor:
                     pass  # lights on fell in the last cropped partial epoch -> keep all
                 else:
                     # Maybe padding both signal and annotations until Lights On ??
-                    self.logger.warning(f"Lights On is {lights_on_epoch - n_epochs} epochs after recording ends (no selection applied).")
+                    self.logger.warning(f"Lights On is {lights_on_epoch - n_epochs} epochs after recording ends.")
             else:
                 if self.config.truncate_non_sleep_end and len(sleep_idx) > 0:
                     end_idx = sleep_idx[-1] + 1
                     self.logger.info(f"Removed {n_epochs - end_idx} Non-Sleep epochs at end of night.")
 
         elif isinstance(self.config.select_epochs, int):
-            n_select  = self.config.select_epochs
-            start_idx = max(0, sleep_idx[0] - n_select)
-            end_idx   = min(n_epochs, sleep_idx[-1] + n_select + 1)
-            if start_idx > 0 or end_idx != n_epochs:
-                n_crop = n_epochs - (end_idx - start_idx)
-                self.logger.info(
-                    f"Cropped {n_crop} epochs ({n_crop * self.config.epoch_duration / 60:.1f} min) of extensive wake"
-                )
+            if label_1d is None:
+                self.logger.warning("select_epochs config is an integer but use_annot=False — no labels available to identify sleep stages, keeping all epochs.")
+            elif len(sleep_idx) > 0:
+                n_select  = self.config.select_epochs
+                start_idx = max(0, sleep_idx[0] - n_select)
+                end_idx   = min(n_epochs, sleep_idx[-1] + n_select + 1)
+                if start_idx > 0 or end_idx != n_epochs:
+                    n_crop = n_epochs - (end_idx - start_idx)
+                    self.logger.info(
+                        f"Cropped {n_crop} epochs ({n_crop * self.config.epoch_duration / 60:.1f} min) of extensive wake"
+                    )
 
-        move_idx   = np.where(label_1d == STAGE_DICT["MOVE"])[0] if self.config.rm_move else []
-        unk_idx    = np.where(label_1d == STAGE_DICT["UNK"])[0]  if self.config.rm_unk  else []
-        if len(move_idx) > 0:
-            self.logger.info(f"Removing {len(move_idx)} Movement epochs")
-        if len(unk_idx) > 0:
-            self.logger.info(f"Removing {len(unk_idx)} Unknown epochs")
+        if label_1d is not None:
+            move_idx = np.where(label_1d == STAGE_DICT["MOVE"])[0] if self.config.rm_move else []
+            unk_idx  = np.where(label_1d == STAGE_DICT["UNK"])[0]  if self.config.rm_unk  else []
+            if len(move_idx) > 0:
+                self.logger.info(f"Removing {len(move_idx)} Movement epochs")
+            if len(unk_idx) > 0:
+                self.logger.info(f"Removing {len(unk_idx)} Unknown epochs")
+            remove_idx = np.union1d(move_idx, unk_idx)
+        else:
+            remove_idx = np.array([], dtype=int)
 
-        remove_idx = np.union1d(move_idx, unk_idx)
         select_idx = np.setdiff1d(np.arange(start_idx, end_idx), remove_idx)
 
         if len(select_idx) == 0:
@@ -493,7 +519,7 @@ class FileProcessor:
             return None
         return select_idx
 
-    def _end_align(self, labels, all_channel_data, n_signal_epochs, target_n_epochs):
+    def _end_align(self, labels, all_channel_data, n_signal_epochs, n_labels_epochs):
         """Reconcile signal epoch count vs label epoch count using the alignment config.
 
         All channels share the same n_signal_epochs (same file, same duration).
@@ -503,14 +529,14 @@ class FileProcessor:
         self.logger.info(
             f"End alignment needed: signal has {n_signal_epochs} epochs, labels have {n_labels_epochs} epochs."
         )
-        if n_signal_epochs > target_n_epochs:
+        if n_signal_epochs > n_labels_epochs:
             if self.config.alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_ANNOT.value):
                 self.logger.info(f"End alignment: cropping signal to {n_labels_epochs} epochs.")
                 # in-place modification
                 for ch in all_channel_data.values():
-                    ch["signal_epoched"] = ch["signal_epoched"][:target_n_epochs]
+                    ch["signal_epoched"] = ch["signal_epoched"][:n_labels_epochs]
             elif self.config.alignment in (Alignment.MATCH_LONGER.value, Alignment.MATCH_SIGNAL.value): #pad labels
-                n_pad   = n_signal_epochs - target_n_epochs
+                n_pad   = n_signal_epochs - n_labels_epochs
                 pad_val = self.config.pad_values["label"]
                 self.logger.info(f"End alignment: padding labels by {n_pad} epochs.")
                 if labels.ndim == 1:
@@ -522,7 +548,7 @@ class FileProcessor:
                 self.logger.info(f"End alignment: cropping labels to {n_signal_epochs} epochs.")
                 labels = labels[:n_signal_epochs]
             elif self.config.alignment in (Alignment.MATCH_LONGER.value, Alignment.MATCH_ANNOT.value):  # pad signal
-                n_pad   = target_n_epochs - n_signal_epochs
+                n_pad   = n_labels_epochs - n_signal_epochs
                 pad_val = np.float64(self.config.pad_values["signal"])
                 self.logger.info(f"End alignment: padding signal by {n_pad} epochs.")
                 # in-place modification
