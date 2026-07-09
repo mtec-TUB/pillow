@@ -120,8 +120,7 @@ class EDFHandler:
             
             signal = raw.get_data(picks=channel)[0]
             sampling_rate = raw.info['sfreq']
-            unit = raw.info['chs'][0]['unit']
-            unit = _fiff.meas_info._unit2human[unit]
+            unit = raw._orig_units.get(channel, "n/a")
         except NotImplementedError as e:
             # This can happen for some EDF files which e.g. do not have the standard .edf extension, but are still internally in EDF format (.rec)
             try:
@@ -129,8 +128,7 @@ class EDFHandler:
                     raw = read_raw_edf(f, include=[channel], preload=True, verbose="WARNING")   # only supported for mne version >= 1.10
                     signal = raw.get_data(picks=channel)[0]
                     sampling_rate = raw.info['sfreq']
-                    unit = raw.info['chs'][0]['unit']
-                    unit = _fiff.meas_info._unit2human[unit]
+                    unit = raw._orig_units.get(channel, "n/a")
             except Exception as e:
                 raise
         except KeyboardInterrupt:
