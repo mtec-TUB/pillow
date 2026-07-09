@@ -408,9 +408,6 @@ class FileProcessor:
                 # For edf/hdf5, flush all channels' logs to single file
                 buffer_handler.flush_to_console_and_file(log_path)
 
-    # ------------------------------------------------------------------
-    # File-level annotation / alignment helpers
-    # ------------------------------------------------------------------
 
     def _apply_front_label_adjustment(self, labels, label_adjust_front):
         """Crop (negative) or pad (positive) the front of the label array.
@@ -433,6 +430,10 @@ class FileProcessor:
     def _compute_select_idx(self, labels, lights_off_epoch, lights_on_epoch):
         """Compute the epoch indices to keep based on lights markers and MOVE/UNK removal.
 
+        labels    : 1-D or 2-D label array, or None when use_annot=False.
+                    When None, label-dependent modes (integer wake buffer, rm_move/rm_unk,
+                    truncate_non_sleep_end) are skipped.
+        n_epochs  : total epoch count; derived from labels when labels is not None.
         Uses the first scorer column when labels are 2-D.
         Returns None if no epochs survive.
         """
@@ -455,7 +456,7 @@ class FileProcessor:
                 if lights_on_epoch <= n_epochs:
                     end_idx = lights_on_epoch
                 elif lights_on_epoch == n_epochs + 1:
-                    pass  # lights on fell in the last cropped partial epoch → keep all
+                    pass  # lights on fell in the last cropped partial epoch -> keep all
                 else:
                     # Maybe padding both signal and annotations until Lights On ??
                     self.logger.warning(f"Lights On is {lights_on_epoch - n_epochs} epochs after recording ends (no selection applied).")
@@ -619,8 +620,6 @@ class FileProcessor:
 
         return delay
     
-
-
     def _get_lights_epochs(self, channel_data):
         """Get the epochs where lights off and lights on happen based on the configured lights marker in annotation or PSG data.
         - The epoch in which lights off event happens is return as lights_off_epoch
@@ -725,7 +724,7 @@ class FileProcessor:
         return lights_off_epoch, lights_on_epoch
    
     def _round_marker_time(self, marker, marker_sec, epoch_duration, marker_time=None):
-        """Helper function to round lights Off/On time to the next (or previous) epoch if it is not exactly at the end of an epoch and log this behavior.
+        """Helper function to round lights Off/On time to the next (or previous) epoch if it is not exactly at the start/end of an epoch and log this behavior.
         
         Args:
             marker (_type_): Type of marker which is processed ("lights_off" or "lights_on")
@@ -869,21 +868,13 @@ class FileProcessor:
 
 
 class ChannelProcessor:
-    """Process a single channel: raw signal → epoched signal array.
+    """Process a single channel: raw signal-> epoched signal array.
 
-    Responsibilities
-    ----------------
     - Read raw signal and sampling rate from file.
     - Resample / filter / clip (all fs-dependent).
     - Apply the per-channel raw-sample front offset (signal_adjust_front_sec × fs)
       AFTER resampling and filtering to avoid boundary artefacts.
     - Reshape into epochs.
-
-    NOT responsible for
-    -------------------
-    - Any label handling.
-    - End alignment (done at file level after all channels return).
-    - Epoch selection (done at file level after all channels return).
     """
 
     def __init__(self, logger, config, dataset, channel):
