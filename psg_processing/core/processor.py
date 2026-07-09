@@ -238,7 +238,7 @@ class FileProcessor:
                     self.logger.warning("File contains less sleep epochs than required, skipping file.")
                     return
 
-                # ── Front alignment (file level) ─────────────────────────────────
+                # Front alignment (file level)
                 start_delay = self._get_start_delay(ann_startdatetime, start_datetime)
                 file_data["start_delay"] = start_delay
 
@@ -359,31 +359,8 @@ class FileProcessor:
             if select_idx is None:
                 return
 
-            ## Guard: skip if selection falls entirely in a padded region with no real signal data.
-
-            # Front padding: signal_adjust_front_sec > 0 means N epochs of padding were prepended.
-            # Only full epochs that are entirely padding are counted (floor division).
-            signal_adjust_front_sec = file_data.get("signal_adjust_front_sec", 0.0)
-            n_front_pad_epochs = int(signal_adjust_front_sec // self.config.epoch_duration)
-            if (n_front_pad_epochs > 0
-                    and len(select_idx) > 0
-                    and select_idx[-1] < n_front_pad_epochs):
-                self.logger.warning(
-                    f"All selected epochs ({select_idx[0]}–{select_idx[-1]}) fall entirely "
-                    f"within the front-padded region ({n_front_pad_epochs} padding epochs). "
-                    f"Skipping file."
-                )
-                return
-
-            # End padding: signal was extended by end alignment and selection starts beyond real data.
-            if (self.config.use_annot
-                    and len(select_idx) > 0
-                    and select_idx[0] >= n_real_signal_epochs):
-                self.logger.warning(
-                    f"All selected epochs ({select_idx[0]}–{select_idx[-1]}) fall entirely "
-                    f"within the end-padded region (real signal: {n_real_signal_epochs} epochs). "
-                    f"Skipping file."
-                )
+            # Skip file if selection falls entirely in a padded region with no real signal data.
+            if not self._valid_selection_range(file_data, select_idx, n_real_signal_epochs):
                 return
 
             # Apply selection
@@ -424,7 +401,7 @@ class FileProcessor:
                 # For edf/hdf5, flush all channels' logs to single file
                 buffer_handler.flush_to_console_and_file(log_path)
 
-
+            
     def _apply_front_label_adjustment(self, labels, label_adjust_front):
         """Crop (negative) or pad (positive) the front of the label array.
 
@@ -519,6 +496,35 @@ class FileProcessor:
             return None
         return select_idx
 
+    def _valid_selection_range(self, file_data, select_idx, n_real_signal_epochs):
+        """Check if the selected epochs are within the valid real signal range and not entirely in the padded region.""" 
+
+        # Front padding: signal_adjust_front_sec > 0 means N epochs of padding were prepended.
+        # Only full epochs that are entirely padding are counted (floor division).
+        signal_adjust_front_sec = file_data.get("signal_adjust_front_sec", 0.0)
+        n_front_pad_epochs = int(signal_adjust_front_sec // self.config.epoch_duration)
+        if (n_front_pad_epochs > 0
+                and len(select_idx) > 0
+                and select_idx[-1] < n_front_pad_epochs):
+            self.logger.warning(
+                f"All selected epochs ({select_idx[0]}–{select_idx[-1]}) fall entirely "
+                f"within the front-padded region ({n_front_pad_epochs} padding epochs). "
+                f"Skipping file."
+            )
+            return False
+
+        # End padding: signal was extended by end alignment and selection starts beyond real data.
+        if (self.config.use_annot
+                and len(select_idx) > 0
+                and select_idx[0] >= n_real_signal_epochs):
+            self.logger.warning(
+                f"All selected epochs ({select_idx[0]}–{select_idx[-1]}) fall entirely "
+                f"within the end-padded region (real signal: {n_real_signal_epochs} epochs). "
+                f"Skipping file."
+            )
+            return False
+        return True
+    
     def _end_align(self, labels, all_channel_data, n_signal_epochs, n_labels_epochs):
         """Reconcile signal epoch count vs label epoch count using the alignment config.
 
@@ -916,7 +922,7 @@ class ChannelProcessor:
         """
         data["ch_name_orig"] = self.channel
 
-        # 1. Read raw signal
+        # Read raw signal
         psg_data = self.dataset.get_signal_data(self.logger, data["psg_fname"], data["ch_name_orig"])
         if psg_data == {}:
             return None
@@ -927,7 +933,7 @@ class ChannelProcessor:
 
         self.logger.info(f" Channel {data['ch_name_orig']} has {len(signal)} samples ({fs:.2f} Hz)")
 
-        # 2. Resample / filter / clip (fs-dependent, must come before raw-sample crop)
+        # Resample / filter / clip (fs-dependent, must come before raw-sample crop)
         if self.config.resample is not None or self.config.filter:
             signal_processor = SignalProcessor(
                 self.logger, signal, data["ch_name_orig"], self.config, self.dataset.channel_types
@@ -940,12 +946,12 @@ class ChannelProcessor:
             signal_processor.clip_signal()
             signal = signal_processor.signal
 
-        # 3. Apply raw-sample front offset AFTER resample/filter
+        # Apply raw-sample front offset
         signal_adjust_front_sec = data.get("signal_adjust_front_sec", 0.0)
         if signal_adjust_front_sec != 0.0:
             signal = self._apply_partial_epoch_offset(signal, fs, signal_adjust_front_sec)
 
-        # 4. Reshape into epochs
+        # Reshape into epochs
         n_epoch_samples = self.config.epoch_duration * fs
         if not n_epoch_samples.is_integer():
             raise ValueError(
