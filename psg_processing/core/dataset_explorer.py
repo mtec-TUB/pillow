@@ -104,10 +104,6 @@ class Dataset_Explorer:
 
         self.logger.info(f"Total annotation files: {len(self.ann_fnames)}")
 
-        # Convert to numpy arrays for consistency
-        self.psg_fnames = np.asarray(self.psg_fnames)
-        self.ann_fnames = np.asarray(self.ann_fnames)
-
         # # Validate that we have matching numbers of files
         # if ann_ext != "" and len(self.ann_fnames) != len(self.psg_fnames):
         #     self.logger.warning(
