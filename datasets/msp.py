@@ -14,7 +14,8 @@ class MSP(BaseDataset):
     
     def __init__(self):
         super().__init__("MSP","MSP - Maternal Sleep in Pregnancy and the Fetus")
-    
+        self.has_end_alignment = True
+
     def _setup_dataset_config(self):
         self.ann2label = {
                 'W': "W",
@@ -112,8 +113,3 @@ class MSP(BaseDataset):
 
         return ann_stage_events, ann_Startdatetime, lights_off, lights_on
         
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(labels) > len(signals):
-            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)    
-    

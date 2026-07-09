@@ -17,6 +17,7 @@ class FDCSR(BaseDataset):
     
     def __init__(self):
         super().__init__("FDCSR","FDCSR - Forced Desynchrony with and without Chronic Sleep Restriction", keep_folder_structure = False)
+        self.has_end_alignment = True
 
     def _setup_dataset_config(self):
         self.ann2label =  {
@@ -173,14 +174,6 @@ class FDCSR(BaseDataset):
 
         return ann_stage_events, ann_Startdatetime, lights_off, lights_on
 
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(labels) == len(signals) + 1:
-            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
-
-        if len(signals) == len(labels) + 1:
-            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
-    
     def preprocess(self, n_workers, data_dir, ann_dir):
         print("\n FDCSR files originally are stored in an unsupported format and therefor need to be preprocessed/resorted \n")
         

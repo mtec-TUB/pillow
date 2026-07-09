@@ -10,6 +10,7 @@ class UCSD(BaseDataset):
 
     def __init__(self):
         super().__init__("UCSD","UCSD - Forehead Patch Sleep Validation Dataset (ds006695)", keep_folder_structure=False)
+        self.has_end_alignment = True
 
         self._file_handler = EEGLABHandler()
     
@@ -65,8 +66,3 @@ class UCSD(BaseDataset):
             ann_stage_events.append(ann)
 
         return ann_stage_events, None, None, None
-
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(labels) == len(signals) + 1:
-            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)

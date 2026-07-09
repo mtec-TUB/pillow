@@ -16,9 +16,11 @@ class EESM17(BaseDataset):
     
     def __init__(self):
         super().__init__("EESM17","Ear-EEG Sleep Monitoring 2017 (EESM17)", keep_folder_structure=False)
+        self.has_front_alignment = True
+        self.has_end_alignment = True
 
         self._file_handler = EEGLABHandler()
-    
+
     def _setup_dataset_config(self):
         self.ann2label = {
                         1: "W",   # Wake
@@ -112,13 +114,3 @@ class EESM17(BaseDataset):
 
         return ann_stage_events, start_time, lights_off, lights_on
     
-    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
-
-        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs) 
-    
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(signals) > len(labels):
-            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
-        elif len(labels) == len(signals) + 1:
-            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)

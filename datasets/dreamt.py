@@ -16,6 +16,7 @@ class DREAMT(BaseDataset):
     
     def __init__(self):
         super().__init__("DREAMT","DREAMT - Dataset for Real-time sleep stage EstimAtion using Multisensor wearable Technology")
+        self.has_end_alignment = True
 
         self.use_sample_rate = 100
 
@@ -40,7 +41,7 @@ class DREAMT(BaseDataset):
             'THORAX': 'uV',
             'ABDOMEN': 'uV',
             'SAO2': '%',
-            'BVP': 'a.u.',
+            'BVP': 'n/a',
             'IBI': 'ms',
             'ACC_X': '1/64g',
             'ACC_Y': '1/64g',
@@ -158,7 +159,7 @@ class DREAMT(BaseDataset):
             return {
                 "signal": signal,
                 "sampling_rate": sampling_rate,
-                "unit": self.unit_dict.get(channel,'a.u.'),
+                "unit": self.unit_dict.get(channel,'n/a'),
                 "file_duration": file_duration,
             }
 
@@ -205,6 +206,3 @@ class DREAMT(BaseDataset):
         lights_off, lights_on = None, None
         return ann_stage_events, start_time, lights_off, lights_on
     
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-        # Labels can be one epoch longer than signal because signal gets cropped to full epochs and label exist for the last partial epoch
-        return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)

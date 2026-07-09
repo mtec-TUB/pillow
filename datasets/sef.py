@@ -15,6 +15,7 @@ class SEF(BaseDataset):
 
     def __init__(self):
         super().__init__("SEF","SEF - Simultaneous EEG and fMRI signals during sleep from humans (ds003768)", keep_folder_structure=False)
+        self.has_end_alignment = True
 
         self._file_handler = BRAINVISIONHandler()
     
@@ -113,14 +114,6 @@ class SEF(BaseDataset):
 
         return ann_stage_events, start_time, None, None
     
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(labels) > len(signals):
-            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
-
-        if len(signals) > len(labels):
-            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
-        
     def preprocess(self, n_workers, data_dir, ann_dir):
         print("\n SEF annotation files originally are stored in an unsupported way and therefor need to be preprocessed/splitted ... \n \
               This will not modify the original file content")

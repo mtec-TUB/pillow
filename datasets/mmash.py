@@ -18,6 +18,7 @@ class MMASH(BaseDataset):
     
     def __init__(self):
         super().__init__("MMASH","MMASH - Multilevel Monitoring of Activity and Sleep in Healthy People")
+        self.has_end_alignment = True
 
     unit_mapping = {
         'ibi_s': 's',
@@ -26,10 +27,10 @@ class MMASH(BaseDataset):
         'Axis3': 'Nm',
         'Steps': 'count',
         'HR': 'bpm',
-        'Inclinometer Off': 'a.u.',
-        'Inclinometer Standing': 'a.u.',
-        'Inclinometer Sitting': 'a.u.',
-        'Inclinometer Lying': 'a.u.',
+        'Inclinometer Off': 'n/a',
+        'Inclinometer Standing': 'n/a',
+        'Inclinometer Sitting': 'n/a',
+        'Inclinometer Lying': 'n/a',
         'Vector Magnitude': 'Nm'}
 
 
@@ -157,7 +158,7 @@ class MMASH(BaseDataset):
             signal = df[channel].values
             f = interp1d(times, signal, kind='nearest', fill_value='extrapolate')
             signal_interpl = f(np.arange(start_timestamp, end_timestamp, 1))
-            unit = self.unit_mapping.get(channel, 'a.u.')
+            unit = self.unit_mapping.get(channel, 'n/a')
 
         return {
             "signal": signal_interpl,
@@ -225,13 +226,6 @@ class MMASH(BaseDataset):
 
         return ann_stage_events, start_time, lights_off, lights_on
     
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(labels) > len(signals):
-            # happens at least once (user_9) where time out of bed is after the end of recording
-            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
-
-
     def preprocess(self, n_workers, data_dir, ann_dir):
         print("\n MMASH files do not have unique filenames ... \n")
         

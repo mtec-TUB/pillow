@@ -13,7 +13,8 @@ class PSG_IPA(BaseDataset):
     
     def __init__(self):
         super().__init__("PSG_IPA","PSG-IPA - A PolySomnoGraphic Inter-scorer Performance Assessment database", keep_folder_structure=False)
-  
+        self.has_end_alignment = True
+
     def _setup_dataset_config(self):
         self.ann2label = {
             "Sleep stage W": "W",
@@ -98,7 +99,3 @@ class PSG_IPA(BaseDataset):
 
         return ann_stage_events, ann_Startdatetime, lights_off, lights_on
     
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(signals) > len(labels):
-            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)

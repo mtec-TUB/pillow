@@ -22,9 +22,11 @@ class EESM19(BaseDataset):
     
     def __init__(self):
         super().__init__("EESM19","Ear-EEG Sleep Monitoring 2019 (EESM19)", keep_folder_structure=False)
+        self.has_front_alignment = True
+        self.has_end_alignment = True
 
         self._file_handler = EEGLABHandler()
-    
+
     def _setup_dataset_config(self):
         self.ann2label = {
                         1: "W",   # Wake
@@ -185,39 +187,6 @@ class EESM19(BaseDataset):
         
         return labels
     
-    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
-        logger.info("Alignment of scorer 1")
-        start_time_shift, signal1, labels1 = self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels[:,0],fs) 
-        logger.info("Alignment of scorer 2")
-        start_time_shift, signal2, labels2 = self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels[:,1],fs)
-
-        assert len(signal1) == len(signal2), f"Length mismatch after front alignment: signal1={len(signal1)}, signal2={len(signal2)}"
-        assert len(labels1) == len(labels2), f"Length mismatch after front alignment: labels1={len(labels1)}, labels2={len(labels2)}"
-        
-        return start_time_shift, signal1, np.array([labels1, labels2]).T  # Return (signal, (n_epochs, n_scorers))
-    
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(labels) > len(signals):
-            logger.info("Alignment of scorer 1")
-            signals1, labels1 = self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels[:,0])
-            logger.info("Alignment of scorer 2")
-            signals2, labels2 = self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels[:,1])
-            assert len(signals1) == len(signals2), f"Length mismatch after end alignment: signals1={len(signals1)}, signals2={len(signals2)}"
-            assert len(labels1) == len(labels2), f"Length mismatch after end alignment: labels1={len(labels1)}, labels2={len(labels2)}"
-            return signals1, np.array([labels1, labels2]).T  # Return (signals, (n_epochs, n_scorers))
-
-        if len(signals) > len(labels):
-            logger.info("Alignment of scorer 1")
-            signals1, labels1 = self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels[:,0])
-            logger.info("Alignment of scorer 2")
-            signals2, labels2 = self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels[:,1])
-            assert len(signals1) == len(signals2), f"Length mismatch after end alignment: signals1={len(signals1)}, signals2={len(signals2)}"
-            assert len(labels1) == len(labels2), f"Length mismatch after end alignment: labels1={len(labels1)}, labels2={len(labels2)}"
-            return signals1, np.array([labels1, labels2]).T  # Return (signals, (n_epochs, n_scorers))
-        
-        raise Exception(f"Unexpected case during end alignment: {psg_fname}, len(signals)={len(signals)}, len(labels)={len(labels)}")
-
     def preprocess(self, n_workers, data_dir, ann_dir):
         return EESM_Preprocessor(self).preprocess(n_workers, data_dir, ann_dir)
 

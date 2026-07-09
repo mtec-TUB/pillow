@@ -9,6 +9,7 @@ class BOAS(BaseDataset):
 
     def __init__(self):
         super().__init__("BOAS","BOAS - Bitbrain Open Access Sleep (ds005555)", keep_folder_structure=False)
+        self.has_end_alignment = True
 
         # File "sub-72_task-Sleep_acq-psg_eeg.edf" is shorter than the corresponding headband file
         # We will truncate all channels to the shortest signal length to ensure alignment across channels
@@ -159,8 +160,3 @@ class BOAS(BaseDataset):
 
 
         return ann_stage_events, start_time, None, None
-
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(labels) > len(signals):
-            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)

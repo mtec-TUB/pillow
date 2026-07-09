@@ -17,9 +17,11 @@ class EESM23(BaseDataset):
     
     def __init__(self):
         super().__init__("EESM23","Ear-EEG Sleep Monitoring 2023 (EESM23)", keep_folder_structure=False)
+        self.has_front_alignment = True
+        self.has_end_alignment = True
 
         self._file_handler = EEGLABHandler()
-    
+
     def _setup_dataset_config(self):
         self.ann2label = {
                         "Wake": "W",   # Wake
@@ -97,25 +99,6 @@ class EESM23(BaseDataset):
         lights_off = float(start_time_label)        # see EESM23/code/dataset_preparation/BIDS_unittests_EESM23.py
 
         return ann_stage_events, float(start_time_label), lights_off, None
-    
-    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
-        
-        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs) 
-
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(labels) > len(signals):
-            if len(labels) > len(signals) + 1:
-                logger.warning(
-                    f"Labels longer than signals by {len(labels) - len(signals)} epochs in {psg_fname}, truncating.")
-            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
-
-        if len(signals) > len(labels):
-            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
-
-        logger.error(
-            f"Unexpected alignment case in {psg_fname}: len(signals)={len(signals)}, len(labels)={len(labels)}")
-        raise ValueError(f"Unexpected signal/label length combination: {len(signals)} signals, {len(labels)} labels")
     
     def preprocess(self, n_workers, data_dir, ann_dir):
         return EESM_Preprocessor(self).preprocess(n_workers, data_dir, ann_dir)

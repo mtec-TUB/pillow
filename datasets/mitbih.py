@@ -14,6 +14,7 @@ class MITBIH(BaseDataset):
     
     def __init__(self):
         super().__init__("MIT-BIH","MIT-BIH - Polysomnographic Database")
+        self.has_end_alignment = True
 
         self._file_handler = WFDBHandler()
   
@@ -115,9 +116,4 @@ class MITBIH(BaseDataset):
             ann_stage_events[i]['Duration'] = ann_stage_events[i+1]['Start'] - event['Start']
 
         return ann_stage_events, float(start_time_label)/fs, None, None
-    
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(signals) > len(labels):
-            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
     

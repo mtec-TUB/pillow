@@ -11,7 +11,8 @@ class MROS(BaseDataset):
     
     def __init__(self):
         super().__init__("MROS","MROS - MrOS Sleep Study")
-  
+        self.has_end_alignment = True
+
     def _setup_dataset_config(self):
         self.ann2label = {
             "Wake": "W",
@@ -88,9 +89,3 @@ class MROS(BaseDataset):
             'psg_ext': '**/*.edf',
             'ann_ext': '**/*-nsrr.xml'
         }
-
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if os.path.basename(ann_fname) == "mros-visit1-aa2931-nsrr.xml" and len(signals) > len(labels):
-            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)        
-    

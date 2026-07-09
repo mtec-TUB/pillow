@@ -12,7 +12,9 @@ class CAP(BaseDataset):
     
     def __init__(self):
         super().__init__("CAP","CAPSLPDB - CAP Sleep Database")
-  
+        self.has_front_alignment = True
+        self.has_end_alignment = True
+
     def _setup_dataset_config(self):
         self.ann2label = {
                             "W": "W",
@@ -198,16 +200,3 @@ class CAP(BaseDataset):
         return ann_stage_events, ann_start_datetime, None, None
     
         
-    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal: np.ndarray, labels, fs
-                  ):
-
-        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs)
-
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(labels) > len(signals):
-            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
-
-        if len(signals) > len(labels):
-            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)        
-    

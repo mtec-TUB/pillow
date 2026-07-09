@@ -15,7 +15,8 @@ class APOE(BaseDataset):
 
     def __init__(self):
         super().__init__("APOE","APOE - Sleep Disordered Breathing, ApoE and Lipid Metabolism")
-        
+        self.has_end_alignment = True
+
     def _setup_dataset_config(self):
         self.ann2label = {  0: "W",
                             1: "N1",
@@ -210,8 +211,3 @@ class APOE(BaseDataset):
                     })
             
         return ann_stage_events, None, None, None  # APOE doesn't provide start datetime in STA files
-
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(labels) == len(signals) + 1:
-            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)

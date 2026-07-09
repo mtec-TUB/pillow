@@ -10,7 +10,9 @@ class HFO(BaseDataset):
 
     def __init__(self):
         super().__init__("HFO","HFO - Dataset of EEG recordings containing HFO markings for 30 pediatric patients with epilepsy (ds003555)", keep_folder_structure=False)
-    
+        self.has_front_alignment = True
+        self.has_end_alignment = True
+
     def _setup_dataset_config(self):
         self.ann2label = {"N2": "N2",
                           "N3": "N3",
@@ -89,18 +91,6 @@ class HFO(BaseDataset):
 
         return ann_stage_events, start_time, None, None
     
-    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
-
-        return self.base_align_front(logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels,fs) 
-    
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        # if len(signals) > len(labels):
-        #     return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)
-        if len(labels) > len(signals):
-            return self.base_align_end_labels_longer(logger, alignment, pad_values, signals, labels)
-
-
 #####
 # DateInterval hat keine aneinandergereihten Scorings
 # Entweder nur Run files nehmen oder raw files ohne Annotations?

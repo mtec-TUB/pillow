@@ -12,7 +12,8 @@ class UCDDB(BaseDataset):
     
     def __init__(self):
         super().__init__("UCDDB","UCDDB - St. Vincent's University Hospital, University College Dublin Sleep Apnea Database")
-        
+        self.has_end_alignment = True
+
     def _setup_dataset_config(self):
         self.ann2label =  {
             0: "W",   # Wake
@@ -92,10 +93,3 @@ class UCDDB(BaseDataset):
             })
         
         return ann_stage_events, None, None, None
-
-    def align_end(self, logger, alignment, pad_values, psg_fname, ann_fname, signals, labels):
-
-        if len(signals) == len(labels) + 1:
-            return self.base_align_end_signals_longer(logger, alignment, pad_values, signals, labels)        
-    
-        

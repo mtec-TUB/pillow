@@ -21,6 +21,12 @@ class BaseDataset(ABC):
         self.dataset_name = dataset_name_long
         self.keep_folder_structure = keep_folder_structure  # save files in the same subfolder structure as they were found
 
+        # Alignment flags — set to True in subclass __init__ for datasets that are known to
+        # have signal/label length mismatches at the front or end.  If False (default) and a
+        # mismatch is detected, the processor warns and skips the file.
+        self.has_front_alignment = False
+        self.has_end_alignment   = False
+
         # Dataset-specific configurations - to be set by subclasses (in _setup_dataset_config)
         self.ann2label = {}
         self.intra_dataset_mapping = {}
@@ -361,77 +367,57 @@ class BaseDataset(ABC):
 
         return np.concatenate(labels)
 
-    def align_front(self, logger, alignment, pad_values, epoch_duration, delay_sec, signal, labels, fs):
-        """ Align front part of signals and labels, in some datasets annotations start after signal recording"""
-        logger.error(f"Signal and Annotations do not start at the same time ({delay_sec} sec). TODO: implement alignment function")
-        raise NotImplementedError("Subclass has no front alignment implemented")
+    def compute_front_alignment(self, logger, alignment, pad_values, epoch_duration, delay_sec):
+        """Compute front-alignment parameters at file level without touching any arrays.
 
-    def base_align_front(self, logger, delay_sec, alignment, pad_values, epoch_duration, signal, labels, fs):
-        start_time_shift = 0
+        Mirrors the logic of base_align_front but returns scalars only, so the result
+        can be derived once at file level and applied independently per channel.
+
+        Returns a dict with:
+            label_adjust_front      : int   – epochs to crop (negative) or pad (positive) at front of label array
+            signal_adjust_front_sec : float – seconds to crop (negative) or pad (positive) from each
+                                              channel's raw signal AFTER resampling/filtering.
+
+        """
+        label_adjust_front      = 0
+        signal_adjust_front_sec = 0.0
+
         if delay_sec < 0:
             advance_sec = -delay_sec
-            if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_SIGNAL.value:
+            if alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_SIGNAL.value):
                 logger.info(f"Signal started {advance_sec:.2f} sec after label start, labels will be shortened at the front to match")
-                n_crop = int(advance_sec//epoch_duration)
-                labels = labels[n_crop:]
+                n_crop = int(advance_sec // epoch_duration)
+                label_adjust_front = -n_crop
                 if advance_sec % epoch_duration != 0:
-                    logger.info(f"Partial epoch detected at start, signal ({epoch_duration-advance_sec} sec) and labels (one epoch) will be shortened at the front to match")
-                    labels = labels[1:]
-                    signal = signal[int((epoch_duration-(advance_sec % epoch_duration))*fs):]
-                    start_time_shift = epoch_duration - (advance_sec % epoch_duration) 
-            elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_ANNOT.value:
-                logger.info(f"Signal started {advance_sec:.2f} sec after label start, signal will be padded with constant value:{np.float64(pad_values["signal"])} at the front to match")
-                n_pad_samples = int(advance_sec*fs)
-                signal = np.hstack((np.full((n_pad_samples,), np.float64(pad_values["signal"])), signal))
-                start_time_shift = delay_sec
+                    label_adjust_front -= 1
+                    signal_adjust_front_sec = -(epoch_duration - (advance_sec % epoch_duration))  # negative = crop
+            elif alignment in (Alignment.MATCH_LONGER.value, Alignment.MATCH_ANNOT.value):
+                logger.info(f"Signal started {advance_sec:.2f} sec after label start, signal will be padded with constant value:{pad_values['signal']} at the front to match")
+                signal_adjust_front_sec = advance_sec   # positive = prepend padding
         else:
-            if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_ANNOT.value:
-                logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, signal will be shortened at the front to match")
-                signal = signal[int(delay_sec*fs):]
-                start_time_shift = delay_sec
-            elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_SIGNAL.value:
+            if alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_ANNOT.value):
+                logger.info(f"Labeling started {delay_sec / 60:.2f} min after signal start, signal will be shortened at the front to match")
+                signal_adjust_front_sec = -delay_sec   # negative = crop signal from front
+            elif alignment in (Alignment.MATCH_LONGER.value, Alignment.MATCH_SIGNAL.value):
                 n_pad = int(delay_sec // epoch_duration)
-                logger.info(f"Labeling started {delay_sec/60:.2f} min after signal start, labels will be padded at the front with {n_pad} epochs of value:{pad_values["label"]} to match")
-                labels = np.hstack((np.full((n_pad,), pad_values["label"]), labels))
+                logger.info(f"Labeling started {delay_sec / 60:.2f} min after signal start, labels will be padded at the front with {n_pad} epochs of value:{pad_values['label']} to match")
+                label_adjust_front = n_pad
                 if delay_sec % epoch_duration != 0:
-                    logger.info(f"Partial epoch detected at start, signal will be shortened at the front to match")
-                    signal = signal[int((delay_sec % epoch_duration)*fs):]
-                    start_time_shift = delay_sec % epoch_duration
-        return start_time_shift, signal, labels
+                    signal_adjust_front_sec = -(delay_sec % epoch_duration)   # negative = crop
 
-    def align_end(
-        self,
-        logger,
-        alignment,
-        pad_values,
-        psg_fname: str,
-        ann_fname: str,
-        signals: np.ndarray,
-        labels: np.ndarray,
-    ):
-        logger.error(f"Length mismatch: signal ({os.path.basename(psg_fname)})={len(signals)}, labels({os.path.basename(ann_fname)})={len(labels)}")
-        raise NotImplementedError("Subclass has no end alignment implemented but is required")
-    
-    def base_align_end_labels_longer(self, logger, alignment, pad_values, signals, labels):
-        if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_SIGNAL.value:
-            logger.info(f"Labels (len:{len(labels)}) are shortend to match signal (len:{len(signals)})")
-            labels = labels[:len(signals)]
-        elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_ANNOT.value:
-            n_pad = (len(labels) - len(signals))
-            logger.info(f"Signal (len:{len(signals)}) will be padded at the end with {n_pad} epochs of constant value:{np.float64(pad_values["signal"])} to match labels length (len:{len(labels)})")
-            signals = np.vstack((signals, np.full((n_pad, signals.shape[1]), np.float64(pad_values["signal"]))))
-        return signals,labels
+        if signal_adjust_front_sec < 0:
+            logger.info(
+                f"Signal front crop: removing {-signal_adjust_front_sec:.4f} sec from signal start to align with labels."
+            )
+        elif signal_adjust_front_sec > 0:
+            logger.info(
+                f"Signal front pad: prepending {signal_adjust_front_sec:.4f} sec of value {pad_values['signal']} to signal start to align with labels."
+            )
 
-    def base_align_end_signals_longer(self, logger, alignment, pad_values, signals, labels):
-        if alignment == Alignment.MATCH_SHORTER.value or alignment == Alignment.MATCH_ANNOT.value:
-            logger.info(f"Signal (len:{len(signals)}) is shortend to match label (len:{len(labels)})")
-            signals = signals[:len(labels)]
-        elif alignment == Alignment.MATCH_LONGER.value or alignment == Alignment.MATCH_SIGNAL.value:
-            n_pad = int((len(signals) - len(labels)))
-            logger.info(f"Labels (len:{len(labels)}) will be padded at the end with {n_pad} epochs of value:{pad_values["label"]} to match signals (len:{len(signals)}))")
-            labels = np.hstack((labels, np.full((n_pad,),pad_values["label"])))
-        return signals, labels
-
+        return {
+            "label_adjust_front":      label_adjust_front,
+            "signal_adjust_front_sec": signal_adjust_front_sec,
+        }
 
     def preprocess(self, n_workers,data_dir, ann_dir):
         """
