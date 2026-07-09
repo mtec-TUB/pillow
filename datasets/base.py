@@ -389,9 +389,8 @@ class BaseDataset(ABC):
                 n_crop = int(advance_sec // epoch_duration)
                 label_adjust_front = -n_crop
                 if advance_sec % epoch_duration != 0:
-                    logger.info(f"Partial epoch detected at start, signal ({epoch_duration - (advance_sec % epoch_duration):.2f} sec) and labels (one epoch) will be shortened at the front to match")
-                    label_adjust_front      -= 1
-                    signal_adjust_front_sec  = -(epoch_duration - (advance_sec % epoch_duration))  # negative = crop
+                    label_adjust_front -= 1
+                    signal_adjust_front_sec = -(epoch_duration - (advance_sec % epoch_duration))  # negative = crop
             elif alignment in (Alignment.MATCH_LONGER.value, Alignment.MATCH_ANNOT.value):
                 logger.info(f"Signal started {advance_sec:.2f} sec after label start, signal will be padded with constant value:{pad_values['signal']} at the front to match")
                 signal_adjust_front_sec = advance_sec   # positive = prepend padding
@@ -404,8 +403,16 @@ class BaseDataset(ABC):
                 logger.info(f"Labeling started {delay_sec / 60:.2f} min after signal start, labels will be padded at the front with {n_pad} epochs of value:{pad_values['label']} to match")
                 label_adjust_front = n_pad
                 if delay_sec % epoch_duration != 0:
-                    logger.info(f"Partial epoch detected at start, signal will be shortened at the front to match")
                     signal_adjust_front_sec = -(delay_sec % epoch_duration)   # negative = crop
+
+        if signal_adjust_front_sec < 0:
+            logger.info(
+                f"Signal front crop: removing {-signal_adjust_front_sec:.4f} sec from signal start to align with labels."
+            )
+        elif signal_adjust_front_sec > 0:
+            logger.info(
+                f"Signal front pad: prepending {signal_adjust_front_sec:.4f} sec of value {pad_values['signal']} to signal start to align with labels."
+            )
 
         return {
             "label_adjust_front":      label_adjust_front,

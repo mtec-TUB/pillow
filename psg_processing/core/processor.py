@@ -317,7 +317,7 @@ class FileProcessor:
 
                 # Skip if file already exists and overwrite is False (only for output format npz on this level)
                 if os.path.exists(file_output_path) and not self.config.overwrite:
-                    self.logger.info(f"File already exists: {file_output_path}, skipping channel {channel}.")
+                    self.logger.info(f" File already exists: {file_output_path}, skipping channel {channel}.")
                     continue
 
                 channel_processor = ChannelProcessor(self.logger, self.config, self.dataset, channel)
@@ -500,11 +500,11 @@ class FileProcessor:
         Returns the (possibly updated) labels array.
         """
         self.logger.info(
-            f"End alignment needed: signal has {n_signal_epochs} epochs, labels have {target_n_epochs} epochs."
+            f"End alignment needed: signal has {n_signal_epochs} epochs, labels have {n_labels_epochs} epochs."
         )
         if n_signal_epochs > target_n_epochs:
             if self.config.alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_ANNOT.value):
-                self.logger.info(f"End alignment: cropping signal to {target_n_epochs} epochs.")
+                self.logger.info(f"End alignment: cropping signal to {n_labels_epochs} epochs.")
                 # in-place modification
                 for ch in all_channel_data.values():
                     ch["signal_epoched"] = ch["signal_epoched"][:target_n_epochs]
@@ -536,7 +536,7 @@ class FileProcessor:
         """Harmonize channel name based on dataset-specific mapping."""
         if self.config.map_channel_names:
             channel_harm = self.dataset.map_channel(channel)
-            self.logger.info(f"Mapped channel name {channel} to {channel_harm}")
+            self.logger.info(f" Mapped channel name {channel} to {channel_harm}")
             return channel_harm
         else:
             return channel
@@ -661,7 +661,7 @@ class FileProcessor:
                         # Round to full epoch
                         lights_off_epoch = self._round_marker_time("lights_off", lights_off_sec, self.config.epoch_duration, lights_off.time())
                         
-                        self.logger.info(f"Select only epochs after lights Off at {(startdatetime + timedelta(seconds=lights_off_sec)).time()} (epoch {lights_off_epoch})")
+                        self.logger.info(f"Select only epochs after {(startdatetime + timedelta(seconds=lights_off_epoch * self.config.epoch_duration)).time()} (based on Lights Off marker in epoch {lights_off_epoch})")
                  
                 else:
                     self.logger.info("Lights Off time is at the start of the signal, no need of epoch selection based on lights Off time.")
@@ -705,7 +705,7 @@ class FileProcessor:
                     lights_on_sec += 24 * 3600  # add 24h
 
                 lights_on_epoch = self._round_marker_time("lights_on", lights_on_sec, self.config.epoch_duration, lights_on.time())
-                self.logger.info(f"Select only epochs before lights On at {(startdatetime + timedelta(seconds=lights_on_sec)).time()} (epoch {lights_on_epoch})")
+                self.logger.info(f"Select only epochs before {(startdatetime + timedelta(seconds=lights_on_epoch*self.config.epoch_duration)).time()} (based on Lights On marker in epoch {lights_on_epoch})")
 
             elif isinstance(lights_on, (int,float)):
                 # int/float is seconds from the ORIGINAL signal start; subtract start_time_shift
@@ -741,10 +741,10 @@ class FileProcessor:
         if marker_sec % epoch_duration != 0:              
             if marker == "lights_off":
                 round_marker_epoch = floor(marker_sec / epoch_duration)
-                self.logger.info(f"Lights Off time {marker_time} is not exactly at the start of an epoch. Keep data from second {round_marker_epoch * epoch_duration} (epoch {round_marker_epoch}) on to avoid cutting epochs.")
+                self.logger.info(f"Lights Off time {marker_time} is floored to {round_marker_epoch * epoch_duration}sec from signal start.")
             elif marker == "lights_on":
                 round_marker_epoch = ceil(marker_sec / epoch_duration)
-                self.logger.info(f"Lights On time {marker_time} is not exactly at the end of an epoch. Keep data until second {round_marker_epoch * epoch_duration} (epoch {round_marker_epoch}) to avoid cutting epochs.")
+                self.logger.info(f"Lights On time {marker_time} is ceiled to  {round_marker_epoch * epoch_duration}sec from signal start.")
         else:
             round_marker_epoch = marker_sec / epoch_duration
         return int(round_marker_epoch)
@@ -898,7 +898,6 @@ class ChannelProcessor:
         Returns None if the channel cannot be processed (missing signal, etc.).
         """
         data["ch_name_orig"] = self.channel
-        self.logger.info(f"Channel selected: {data['ch_name_orig']}")
 
         # 1. Read raw signal
         psg_data = self.dataset.get_signal_data(self.logger, data["psg_fname"], data["ch_name_orig"])
@@ -909,7 +908,7 @@ class ChannelProcessor:
         unit   = psg_data.get("unit", "a.u.")
         del psg_data
 
-        self.logger.info(f"Channel samples: {len(signal)}")
+        self.logger.info(f" Channel {data['ch_name_orig']} has {len(signal)} samples ({fs:.2f} Hz)")
 
         # 2. Resample / filter / clip (fs-dependent, must come before raw-sample crop)
         if self.config.resample is not None or self.config.filter:
@@ -945,7 +944,7 @@ class ChannelProcessor:
             )
             return None
         if remainder > 0:
-            self.logger.info(f"Signal cropped to full epochs ({remainder / fs:.2f} sec removed).")
+            self.logger.info(f" Signal cropped to full epochs ({remainder / fs:.2f} sec removed).")
 
         signal_epoched = signal[:n_epochs * n_epoch_samples].reshape(n_epochs, -1)
 
@@ -964,15 +963,9 @@ class ChannelProcessor:
         """
         n_samples = int(abs(signal_adjust_front_sec) * fs)
         if signal_adjust_front_sec < 0:
-            self.logger.info(
-                f"Front crop: removing {n_samples} samples ({-signal_adjust_front_sec:.4f} sec) from signal start."
-            )
+
             return signal[n_samples:]
         else:
             pad_val = np.float64(self.config.pad_values["signal"])
-            self.logger.info(
-                f"Front pad: prepending {n_samples} samples ({signal_adjust_front_sec:.4f} sec) "
-                f"of value {pad_val} to signal start."
-            )
             return np.concatenate([np.full(n_samples, pad_val), signal])
 
