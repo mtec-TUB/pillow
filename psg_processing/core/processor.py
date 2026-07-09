@@ -810,7 +810,7 @@ class FileProcessor:
                     elif labels.ndim == 2:
                         save_dict["y"] = labels[:, 0]
                         save_dict["y2"] = labels[:, 1]
-                save_dict["unit"] = channel_data.get("unit", "a.u.")
+                save_dict["unit"] = channel_data.get("unit", "n/a")
                 np.savez(channel_data["file_output_path"], **save_dict)
 
         elif output_format == "edf":
@@ -826,7 +826,7 @@ class FileProcessor:
                         phys_max += 1.0
                     channel_info = {
                         "label": channel_data["ch_name"],
-                        "dimension": channel_data.get("unit", "a.u."),
+                        "dimension": channel_data.get("unit", "n/a"),
                         "sample_frequency": float(channel_data["sampling_rate"]),
                         "physical_min": phys_min,
                         "physical_max": phys_max,
@@ -880,7 +880,7 @@ class FileProcessor:
                     ch_grp.create_dataset("data", data=signal, compression="gzip", shuffle=True)
                     ch_grp.attrs["ch_label"] = channel_data["ch_name"]
                     ch_grp.attrs["ch_label_orig"] = channel_data["ch_name_orig"]
-                    ch_grp.attrs["unit"] = channel_data.get("unit", "a.u.")
+                    ch_grp.attrs["unit"] = channel_data.get("unit", "n/a")
                     ch_grp.attrs["sampling_rate"] = channel_data["sampling_rate"]
 
                 # Annotations
@@ -922,7 +922,7 @@ class ChannelProcessor:
             return None
         signal = psg_data["signal"].astype(np.float64)
         fs     = psg_data["sampling_rate"]
-        unit   = psg_data.get("unit", "a.u.")
+        unit   = psg_data.get("unit", "n/a")
         del psg_data
 
         self.logger.info(f" Channel {data['ch_name_orig']} has {len(signal)} samples ({fs:.2f} Hz)")

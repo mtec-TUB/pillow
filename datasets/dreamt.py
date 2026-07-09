@@ -41,7 +41,7 @@ class DREAMT(BaseDataset):
             'THORAX': 'uV',
             'ABDOMEN': 'uV',
             'SAO2': '%',
-            'BVP': 'a.u.',
+            'BVP': 'n/a',
             'IBI': 'ms',
             'ACC_X': '1/64g',
             'ACC_Y': '1/64g',
@@ -159,7 +159,7 @@ class DREAMT(BaseDataset):
             return {
                 "signal": signal,
                 "sampling_rate": sampling_rate,
-                "unit": self.unit_dict.get(channel,'a.u.'),
+                "unit": self.unit_dict.get(channel,'n/a'),
                 "file_duration": file_duration,
             }
 

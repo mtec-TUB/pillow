@@ -27,10 +27,10 @@ class MMASH(BaseDataset):
         'Axis3': 'Nm',
         'Steps': 'count',
         'HR': 'bpm',
-        'Inclinometer Off': 'a.u.',
-        'Inclinometer Standing': 'a.u.',
-        'Inclinometer Sitting': 'a.u.',
-        'Inclinometer Lying': 'a.u.',
+        'Inclinometer Off': 'n/a',
+        'Inclinometer Standing': 'n/a',
+        'Inclinometer Sitting': 'n/a',
+        'Inclinometer Lying': 'n/a',
         'Vector Magnitude': 'Nm'}
 
 
@@ -158,7 +158,7 @@ class MMASH(BaseDataset):
             signal = df[channel].values
             f = interp1d(times, signal, kind='nearest', fill_value='extrapolate')
             signal_interpl = f(np.arange(start_timestamp, end_timestamp, 1))
-            unit = self.unit_mapping.get(channel, 'a.u.')
+            unit = self.unit_mapping.get(channel, 'n/a')
 
         return {
             "signal": signal_interpl,
