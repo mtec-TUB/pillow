@@ -5,7 +5,7 @@ import os
 import re
 import csv
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
@@ -295,8 +295,7 @@ class STAGES(BaseDataset):
                 ann_stage_events.append({'Stage': event,
                                         'Start': start,
                                         'Duration': duration})
-                
-
+            
         # In some subfolders/files the duration column is empty for all sleep stages -> calc manually
         # In some STNF files all REM epochs have a duration of 2592000 -> calc manually
         if any(part in os.path.basename(ann_fname) for part in ['BOGN', 'STNF00191', 'STNF00233','STNF00261']):
@@ -311,6 +310,13 @@ class STAGES(BaseDataset):
         # Do not check for Lights off/on if no sleep stages were found
         if len(ann_stage_events) == 0:
             return ann_stage_events, ann_Startdatetime, None, None
+        
+        first_time = datetime.combine(date(1985,1,1),datetime.strptime(ann_rows[0]['Start Time'],"%H:%M:%S").time())
+        if ann_Startdatetime.hour < 12 and first_time.hour > 12:
+            # if the first STAGED epoch is after midnight but the first epoch is before midnight
+            # add one day to the start datetime because signal recording probably started before midnight
+            ann_Startdatetime = ann_Startdatetime + timedelta(days=1)  
+
 
         # Lights Off/On handling
         if len(lights_off) == 1:
@@ -322,9 +328,9 @@ class STAGES(BaseDataset):
                 lights_off = lights_off[0]
             elif lights_off[0] == lights_off[1]:
                 lights_off = lights_off[0]
-            elif any(name in ann_fname for name in ["GSDV00160","MSQW00075",'STLK00093','STLK00027','STLK00108','STLK00064','MSQW00092']):
+            elif any(name in ann_fname for name in ["GSDV00160","MSQW00075",'STLK00093','STLK00027','STLK00108','STLK00064','MSQW00092','MSQW00002']):
                 lights_off = lights_off[0]  # manually checked these files and first lights Off event seems to be the correct one
-            elif any(name in ann_fname for name in ["MSQW00102","MSQW00024",'MSQW00071', 'MSTR00163','MSTR00003']):
+            elif any(name in ann_fname for name in ["MSQW00102","MSQW00024",'MSQW00071', 'MSTR00163','MSTR00003','MSMI00055']):
                 lights_off = lights_off[1]  # manually checked these files and second lights Off event seems to be the correct one
             elif any(name in ann_fname for name in ['MSMI00059','MSQW00057','MSTR00282','MSTR00139','MSTR00160']):
                 lights_on.append(lights_off[1])  # second lights Off event is actually a lights On event
@@ -348,7 +354,7 @@ class STAGES(BaseDataset):
             elif any(name in ann_fname for name in ['GSDV00173_1','GSSW00071_2','MSMI00056','MSMI00043','MSQW00117']):   
                 lights_off = lights_on[0]    # first lights On event is actually a lights Off event
                 lights_on = lights_on[1]
-            elif any(name in ann_fname for name in ["GSSW00077_3",'MSTR00022','MSTR00037','MSTR00066','STLK00165','STLK00085','STLK00031','STNF00050_1']):
+            elif any(name in ann_fname for name in ["GSSW00077_3",'MSTR00022','MSTR00037','MSTR00066','STLK00165','STLK00085','STLK00031','STNF00050_1','MSQW00002']):
                 lights_on = lights_on[0]    # manually checked these files and first lights On event seems to be the correct one
             else:
                 raise Exception(f"Multiple lights On events found in annotation file {ann_fname}")  # should not occure

@@ -641,6 +641,8 @@ class FileProcessor:
                     delay = (ann_dt - sig_dt).total_seconds()
                     if abs(delay) >= 24*3600:
                         raise Exception(f"Annotation start datetime {ann_dt} is more than 24h after signal start datetime {sig_dt}. Check implementation!")
+                    if abs(delay) > 20*3600:
+                        delay = delay % (-np.sign(delay)*24*3600)  # Wrap around to next day
                     
             # If annotation start datetime is given as a numeric value, it indicates a delay in seconds or samples (depending on dataset)
             elif isinstance(ann_start_datetime, (int, float, Decimal)):
