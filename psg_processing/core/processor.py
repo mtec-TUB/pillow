@@ -46,6 +46,8 @@ class DatasetProcessor:
     def process_files(self):
 
         try:
+            tasks = []
+
             if self.config.overwrite:
                 log_files = glob.glob(os.path.join(self.config.output_dir, "**", "*.log"), recursive=True)
                 for f in log_files:
@@ -75,7 +77,6 @@ class DatasetProcessor:
             # Process psg files in parallel
             max_workers = self.config.num_workers or os.cpu_count() or 1
             with ProcessPoolExecutor(max_workers=max_workers) as executor:
-                tasks = []
                 psg_iter = iter(psg_fnames)
 
                 # Progress Bar
@@ -118,7 +119,7 @@ class DatasetProcessor:
                                 future.result()  # Check for exceptions
                                 pbar.update(1)
                             except Exception as e:
-                                # self.pipeline_logger.error(f"Processing failed: {e}")
+                                self.pipeline_logger.error(f"Processing failed: {e}")
                                 executor.shutdown(cancel_futures=True)
                                 break
                             finally:
@@ -131,9 +132,10 @@ class DatasetProcessor:
             self.pipeline_logger.info("=" * 60)
             self.pipeline_logger.info("DATASET PROCESSING COMPLETED")
         except KeyboardInterrupt:
-            for task in tasks:
-                task.cancel()
-            executor.shutdown(cancel_futures=True)
+            if tasks:
+                for task in tasks:
+                    task.cancel()
+                executor.shutdown(cancel_futures=True)
             self.pipeline_logger.info("=" * 60)
             self.pipeline_logger.info("Stopped processing")
 
