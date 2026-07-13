@@ -359,6 +359,12 @@ class STAGES(BaseDataset):
             else:
                 raise Exception(f"Multiple lights On events found in annotation file {ann_fname}")  # should not occure
 
+        if "STNF00373" in ann_fname:
+            # Annotations start before midnight and signal after midnight at 6am
+            lights_off -= timedelta(days=1)
+            lights_on -= timedelta(days=1)
+            ann_Startdatetime -= timedelta(days=1)
+
         return ann_stage_events, ann_Startdatetime, lights_off, lights_on
     
 
