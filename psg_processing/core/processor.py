@@ -458,7 +458,7 @@ class FileProcessor:
                     pass  # lights on fell in the last cropped partial epoch -> keep all
                 else:
                     # Maybe padding both signal and annotations until Lights On ??
-                    self.logger.warning(f"Lights On is {lights_on_epoch - n_epochs} epochs after recording ends.")
+                    self.logger.warning(f"Lights On is {lights_on_epoch - n_epochs} epochs after recording ends (marker is ignored for epoch selection).")
             else:
                 if self.config.truncate_non_sleep_end and len(sleep_idx) > 0:
                     end_idx = sleep_idx[-1] + 1
@@ -686,7 +686,7 @@ class FileProcessor:
                 if lights_off_sec != 0:
                     if lights_off_sec < 0 and lights_off_sec > -3600:       
                         # Between -3600 and 0, before signal start but in 1 hour range
-                        self.logger.info(f"Lights Off time {lights_off} is before signal start time {startdatetime.time()}. No epoch selection applied.")
+                        self.logger.info(f"Lights Off time {lights_off} is before signal start time {startdatetime.time()} (marker is ignored for epoch selection).")
                         # maybe padding with wake epochs until lights Off time is reached? For now, just keep all epochs and do not select (keep lights_off_epoch at 0)
                     else:
                         if lights_off_sec < 0:
@@ -707,7 +707,7 @@ class FileProcessor:
                 lights_off_sec = lights_off - start_time_shift
                 if lights_off_sec != 0:
                     if lights_off_sec < 0 and lights_off_sec > -3600:   # Lights Off probably starts before PSG Data (1 hour range before signal start)
-                        self.logger.warning(f"Lights Off time {lights_off_sec} is before signal start time {startdatetime.time()}. No epoch selection applied.")
+                        self.logger.warning(f"Lights Off time {lights_off_sec} is before signal start time {startdatetime.time()} (marker is ignored for epoch selection).")
                         # front_padding = 
                         # maybe padding with wake epochs until lights Off time is reached? For now, just keep all epochs and do not select
                     elif lights_off_sec < 0:
