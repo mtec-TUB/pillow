@@ -115,6 +115,8 @@ class EDFHandler:
                 if w:
                     if w[0].message.args[0].startswith("Channel names are not unique"):
                         channel = raw.ch_names[0]    # take only the first of the duplicate channels
+                    elif w[0].message.args[0].startswith("Highpass cutoff frequency"):
+                        pass
                     else:
                         logger.warning("Warning during data retrieval with mne library: " + str(w[0].message))
             
