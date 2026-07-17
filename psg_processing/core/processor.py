@@ -333,11 +333,12 @@ class FileProcessor:
             else:
                 loff_epoch, lon_epoch = None, None
 
+            n_signal_epochs      = len(next(iter(all_channel_data.values()))["signal_epoched"]) # get the first channel's epoch count
+            n_real_signal_epochs = n_signal_epochs  # epoch count before any end-alignment padding
+
             # End alignment: reconcile signal epoch count with label count.
             # Skipped when lights selection is configured and lights-on falls within the range both arrays already cover
             if self.config.use_annot:
-                n_signal_epochs      = len(next(iter(all_channel_data.values()))["signal_epoched"]) # get the first channel's epoch count
-                n_real_signal_epochs = n_signal_epochs  # epoch count before any end-alignment padding
                 n_label_epochs      = len(labels)
                 if n_signal_epochs != n_label_epochs:
                     n_min = min(n_signal_epochs, n_label_epochs)
