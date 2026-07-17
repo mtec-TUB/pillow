@@ -112,8 +112,8 @@ class Physio2026(BaseDataset):
             'emg': ['CHIN', 'LAT', 'RAT','Right Leg', 'Left Leg','ChinA', 'ChinR', 'ChinL', 'R EMG', 'L EMG', 'CHIN1-CHIN2', 'CHIN2', 'RLEG+','RLEG-', 'LLEG+', 
                     'LLEG-', 'Chin1-Chin2', 'CHIN1-CHIN3', 'Chin1-Chin3', 'CHIN1','Chin2', 'R LEG', 'L LEG', 'EMG', 'LAT-E1', 'RAT-E1',],
             'ecg': ['EKG', 'ECG-LA', 'ECG-RA', 'ECG-LL', 'ECG-V1', 'ECG-V2','EKG-E1', 'ECG',],
-            'nasal_pressure':  ['Nasal Pressure'],
-            'thoraco_abdo_resp': ['THORACIC', 'ABDOMINAL','CHEST','Thorax', 'Abdomen','ABD','AirFlow', 'Airflow2', 'Chest',  'AIRFLOW-E1', 'CHEST-E1', 'ABD-E1',
+            'nasal_pressure':  ['Nasal Pressure','PTAF','NPT'],
+            'thoraco_abdo_resp': ['THORACIC', 'ABDOMINAL','CHEST','Thorax', 'Abdomen','ABD','AirFlow', 'Airflow2', 'Chest', 'AIRFLOW-E1', 'CHEST-E1', 'ABD-E1',
                                     'ABDOMEN', 'THORAX']
         }
         
