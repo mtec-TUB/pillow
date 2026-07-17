@@ -102,6 +102,7 @@ We do not provide any data. Please request the data from the original authors an
 | MWT         | v1                    | https://doi.org/10.5281/zenodo.3251716                             |
 | NCHSDB      | 0.3.0                 | https://doi.org/10.25822/jpdr-vz50                                 |
 | Physio2018  | 1.0.0                 | https://doi.org/10.13026/1q9b-ge17                                 |
+| Physio2026  | LargeVersion          | https://moody-challenge.physionet.org/2026/                        |
 | PSG-IPA     | 1.0.0                 | https://doi.org/10.13026/esx0-nw71                                 |
 | RCEEG       | 1.0.1                 | https://doi.org/10.18112/openneuro.ds004148.v1.0.1                 |
 | REDSD       | 1.0.8                 | https://doi.org/10.18112/openneuro.ds004902.v1.0.8                 |
