@@ -1,18 +1,23 @@
 """
-Import all Dataset modules to auto-register them.
+Discover Dataset modules without importing them.
+
+Each dataset script is only imported (and its own imports checked) once it is
+actually requested via `datasets.registry.get_dataset()`, e.g. because it is
+the dataset chosen in config.yaml. This avoids requiring every dataset's
+dependencies to be installed just to run one of them.
 """
 
-import pkgutil
-import importlib
-import inspect
+import re
+from pathlib import Path
 
-__all__ = []
+from datasets.registry import DatasetRegistry
 
-for loader, module_name, is_pkg in pkgutil.walk_packages(__path__):
-    module = importlib.import_module(f"{__name__}.{module_name}")
+_REGISTER_RE = re.compile(r'@register_dataset\(\s*["\']([^"\']+)["\']\s*\)')
+_SKIP_MODULES = {"__init__", "base", "registry"}
 
-    for name, obj in inspect.getmembers(module, inspect.isclass):
-        # Only include classes defined in this module
-        if obj.__module__ == module.__name__:
-            globals()[name] = obj
-            __all__.append(name)
+for _path in sorted(Path(__path__[0]).glob("*.py")):
+    if _path.stem in _SKIP_MODULES:
+        continue
+    _match = _REGISTER_RE.search(_path.read_text())
+    if _match:
+        DatasetRegistry.register_module(_match.group(1), _path.stem)
