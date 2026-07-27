@@ -60,6 +60,10 @@ class BDSP(BaseDataset):
         start_time = None
         epoch_duration = 30
 
+        if "sub-I0002150029658_ses-2_task-psg_sleep_annotations" in ann_fname:
+            ann_df.at[ann_df.index[101], 'Epoch'] = '102'
+            ann_df['Epoch'] = ann_df['Epoch'].astype('int64')
+
         for i, row in ann_df.iterrows():
 
             start = (row["Epoch"] - 1) * epoch_duration     # 1-based indexing
