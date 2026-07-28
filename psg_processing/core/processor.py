@@ -511,8 +511,7 @@ class FileProcessor:
                 and select_idx[-1] < n_front_pad_epochs):
             self.logger.warning(
                 f"All selected epochs ({select_idx[0]}–{select_idx[-1]}) fall entirely "
-                f"within the front-padded region ({n_front_pad_epochs} padding epochs). "
-                f"Skipping file."
+                f"outside the signal region. Skipping file."
             )
             return False
 
@@ -522,8 +521,7 @@ class FileProcessor:
                 and select_idx[0] >= n_real_signal_epochs):
             self.logger.warning(
                 f"All selected epochs ({select_idx[0]}–{select_idx[-1]}) fall entirely "
-                f"within the end-padded region (real signal: {n_real_signal_epochs} epochs). "
-                f"Skipping file."
+                f"outside the signal region. Skipping file."
             )
             return False
         return True
