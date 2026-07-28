@@ -22,6 +22,7 @@ class BDSP(BaseDataset):
                 "UNSCORED": "UNK",
                 "L": "UNK", # all epochs before lights off and after lights on
                 "X": "UNK",
+                "MT": "MOVE",
                 }
 
         self.intra_dataset_mapping = {
