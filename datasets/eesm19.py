@@ -206,7 +206,8 @@ class EESM_Preprocessor:
                 logger=None,
                 dataset = self.dataset,
                 data_dir=data_dir,
-                ann_dir=ann_dir
+                ann_dir=ann_dir,
+                num_workers=n_workers,
             )
             psg_fnames, _ = explorer.get_files()
 

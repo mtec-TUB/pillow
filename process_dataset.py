@@ -124,7 +124,8 @@ def main(config):
 
     elif config.action == "get_channel_names":
         explorer = Dataset_Explorer(
-            None, dataset, config.psg_dir, config.ann_dir, log_level=config.logging_level
+            None, dataset, config.psg_dir, config.ann_dir, log_level=config.logging_level,
+            num_workers=config.num_workers,
         )
         channels = explorer.get_all_channels()
         print(f"Available channels in {dataset.dset_name}:")
@@ -134,7 +135,8 @@ def main(config):
 
     elif config.action == "get_channel_types":
         explorer = Dataset_Explorer(
-            None, dataset, config.psg_dir, config.ann_dir,log_level=logging.INFO
+            None, dataset, config.psg_dir, config.ann_dir, log_level=logging.INFO,
+            num_workers=config.num_workers,
         )
         explorer.get_all_channels()
         channel_types = explorer.get_channel_type()

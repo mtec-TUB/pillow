@@ -64,6 +64,7 @@ class DatasetProcessor:
                 self.config.psg_dir,
                 self.config.ann_dir,
                 log_level=self.config.logging_level,
+                num_workers=self.config.num_workers,
             ).get_files()
 
             if self.config.use_annot:
