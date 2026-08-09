@@ -18,6 +18,5 @@ _SKIP_MODULES = {"__init__", "base", "registry"}
 for _path in sorted(Path(__path__[0]).glob("*.py")):
     if _path.stem in _SKIP_MODULES:
         continue
-    _match = _REGISTER_RE.search(_path.read_text())
-    if _match:
-        DatasetRegistry.register_module(_match.group(1), _path.stem)
+    for _name in _REGISTER_RE.findall(_path.read_text()):
+        DatasetRegistry.register_module(_name, _path.stem)
