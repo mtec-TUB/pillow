@@ -6,12 +6,12 @@ from datasets.registry import register_dataset
 
 @register_dataset("BDSP")
 class BDSP(BaseDataset):
-    """BDSP dataset. Contains multiple sub-cohorts (I0002, S0001, I0006) that share
+    """BDSP dataset. Contains multiple sub-cohorts (S0001, I0002, I0003, I0004, I0006) that share
     the same file structure and annotation layout. The subset is chosen
     interactively at construction time.
     """
 
-    SUBSETS = ("I0002", "S0001", "I0006")
+    SUBSETS = ("S0001", "I0002", "I0003", "I0004", "I0006")
 
     def __init__(self):
         self.subset = self._prompt_subset()
@@ -51,7 +51,7 @@ class BDSP(BaseDataset):
                 "SpO2": self.Mapping(self.TTRef.SPO2, None),
                 "Airflow": self.Mapping(self.TTRef.AIRFLOW, None),
                 "Abdominal": self.Mapping(self.TTRef.ABDOMINAL, None),
-                "Chest": self.Mapping(self.TTRef.THORACIC, None),
+                "Thoracic": self.Mapping(self.TTRef.THORACIC, None),
                 "Chin": self.Mapping(self.TTRef.EMG_CHIN, None),
                 "Snore": self.Mapping(self.TTRef.SNORE, None),
                 "LOC": self.Mapping(self.TTRef.EL, None),
@@ -103,7 +103,6 @@ class BDSP(BaseDataset):
                 "Nasal Pressure": ['NPT', 'npt'],
                 "Airflow": ["AIRFLOW", "Airflow"],
                 "Abdominal": ["ABDOMINAL", "Abdomen", "ABD"],
-                "Chest": ["CHEST", "Chest"],
                 "Snore": ["SNORE", "Snore"],
                 "Chin": ["CHIN", "Chin", "CHIN-1"],
                 "lArm": ["Left Arm", "Left arm"],
@@ -122,7 +121,7 @@ class BDSP(BaseDataset):
                 "Cpress": ["C PRESS", "CPREss",],
                 "Thermistor": ["THERM", "therm", "thnerm", "Term"], #"Therm" duplicate in at least one file
                 "Leak": ["LEAK", "leak", "Leak"],
-                "Thoracic": ["THORACIC", "THOR"],
+                "Thoracic": ["THORACIC", "THOR","CHEST", "Chest"],
                 "Fino": ["Fino", "FINO", "fino", "Finometer"],
                 "C3-M2": ["C3-M2", "C3-A2"],
                 "C4-M1": ["C4-M1", "C4-A1"],
@@ -130,7 +129,7 @@ class BDSP(BaseDataset):
                 "O2-M1": ["O2-M1", "O2-A1"],
                 "P3-O1": ["P3-01", "P3-O1"],
                 "P4-O2": ["P4-02", "P4-O2"],
-                "Rad": ["RAD", "Rad", "RAD-TC", "Rad Tc"],
+                "Rad": ["RAD", "Rad", "RAD-TC", "Rad Tc", "rad"],
                 "T3-M2": ["T3-M2", "T3-A2"],
                 "T4-M1": ["T4-M1", "T4-A1"],
                 "T5-M2": ["T5-M2", "T5-A2"],
@@ -141,9 +140,12 @@ class BDSP(BaseDataset):
                 "F8-M1": ["F8-M1", "F8-A1"],
                 "FP1-F3": ["FP1-F3", "Fp1-F3"],
                 "FP2-F8": ["FP2-F8", "Fp2-F8"],
-                "Tidal Volume": ["Tidal Volume", "Tidol Vol"],
+                "LAT": ["LAT","LEG-L"],
+                "RAT": ["RAT","LEG-R"],
+                "Tidal Volume": ["Tidal Volume", "Tidol Vol", "T Vol"],
                 "Deltoids": ["DELTS", "Deltoids", "DELTOIDS"],
                 "Brachioradials": ["BRACH", "Brachioradials", "BRACHIORADIALIS", "BRACHIORADIALS"],
+                "0V": ["0V", "OV"],
             },
 
             "channel_names": ['F3-M2', 'F4-M1', 'C3-M2', 'C4-M1', 'O1-M2', 'O2-M1', 'E1', 'E2', 'CHIN', 'SNORE', 'NPT', 'C-FLOW', 'CHEST', 'ABDOMINAL', 'LAT', 'RAT',
@@ -201,8 +203,8 @@ class BDSP(BaseDataset):
                                 'ann_ext': 'I0002/**/*-psg_sleep_annotations.csv'},
         }
 
-    def _config_s0001(self):
-        # TODO: fill in real ann2label/mappings/channel names/types/groups for S0001
+    def _config_i0003(self):
+        # TODO: fill in real ann2label/mappings/channel names/types/groups for I0003
         return {
             "ann2label": {},
             "inter_dataset_mapping": {},
@@ -213,10 +215,26 @@ class BDSP(BaseDataset):
                 'eeg_eog': [], 'emg': [], 'ecg': [],
                 'thoraco_abdo_resp': [], 'nasal_pressure': [], 'snoring': [],
             },
-            "file_extensions": {'psg_ext': 'S0001/**/*-PSG_eeg.edf',
-                                'ann_ext': 'S0001/**/*-psg_sleep_annotations.csv'},
+            "file_extensions": {'psg_ext': 'I0003/**/*-PSG_eeg.edf',
+                                'ann_ext': 'I0003/**/*-psg_sleep_annotations.csv'},
         }
 
+    def _config_i0004(self):
+        # TODO: fill in real ann2label/mappings/channel names/types/groups for I0004
+        return {
+            "ann2label": {},
+            "inter_dataset_mapping": {},
+            "intra_dataset_mapping": {},
+            "channel_names": [],
+            "channel_types": {'analog': [], 'digital': []},
+            "channel_groups": {
+                'eeg_eog': [], 'emg': [], 'ecg': [],
+                'thoraco_abdo_resp': [], 'nasal_pressure': [], 'snoring': [],
+            },
+            "file_extensions": {'psg_ext': 'I0004/**/*-PSG_eeg.edf',
+                                'ann_ext': 'I0004/**/*-psg_sleep_annotations.csv'},
+        }
+    
     def _config_i0006(self):
         # TODO: fill in real ann2label/mappings/channel names/types/groups for I0006
         return {
@@ -231,6 +249,22 @@ class BDSP(BaseDataset):
             },
             "file_extensions": {'psg_ext': 'I0006/**/*-PSG_eeg.edf',
                                 'ann_ext': 'I0006/**/*-psg_sleep_annotations.csv'},
+        }
+
+    def _config_s0001(self):
+        # TODO: fill in real ann2label/mappings/channel names/types/groups for S0001
+        return {
+            "ann2label": {},
+            "inter_dataset_mapping": {},
+            "intra_dataset_mapping": {},
+            "channel_names": [],
+            "channel_types": {'analog': [], 'digital': []},
+            "channel_groups": {
+                'eeg_eog': [], 'emg': [], 'ecg': [],
+                'thoraco_abdo_resp': [], 'nasal_pressure': [], 'snoring': [],
+            },
+            "file_extensions": {'psg_ext': 'S0001/**/*-PSG_eeg.edf',
+                                'ann_ext': 'S0001/**/*-psg_sleep_annotations.csv'},
         }
 
     def ann_parse(self, ann_fname):
