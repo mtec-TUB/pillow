@@ -108,7 +108,7 @@ rm_unk: false
 # - all: to keep all available epochs
 # - lights: to keep only epochs in between Lights off and on markers if available in this dataset
 #   - set alignment to "match_longer" for best results
-# - integer number: to determine how many epochs of WAKE (Non-Sleep) to keep at start and end (e.g., 60 to keep 30 minutes with epoch duration of 30s)
+# - integer number: to determine how many epochs of WAKE (Non-Sleep) to keep at start and end (e.g., 60 to keep 30 minutes with epoch duration of 30s). truncate_non_sleep_end must be set to false.
 select_epochs: lights
 
 # Truncate Non-Sleep epochs at end of recording if no Lights on marker is available (only if 'use_annot' is true and 'select_epochs' is set to "lights")
