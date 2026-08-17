@@ -1,4 +1,5 @@
 import os
+import pyedflib
 from mne.io import read_raw_edf
 from mne import _fiff
 from warnings import catch_warnings
@@ -144,6 +145,17 @@ class EDFHandler:
 
         unit = info['chs'][info['ch_names'].index(channel)]['unit']
         unit = _fiff.meas_info._unit2human[unit]
+
+        if raw._orig_units.get(channel, "n/a") == "n/a":
+            # mne only recognizes uV/mV/V; any other original unit (e.g. "%" for SpO2)
+            # gets silently replaced with "n/a" in raw._orig_units, so re-read the true
+            # unit straight from the EDF header.
+            try:
+                with pyedflib.EdfReader(filepath) as f:
+                    labels = f.getSignalLabels()
+                    unit = f.getPhysicalDimension(labels.index(channel))
+            except Exception as e:
+                logger.warning(f"Could not recover original unit for channel {channel} from EDF header: {e}")
 
         return {
             "signal": signal,

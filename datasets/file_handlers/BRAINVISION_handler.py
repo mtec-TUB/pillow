@@ -1,4 +1,5 @@
 from mne.io import read_raw_brainvision
+from mne.io.brainvision.brainvision import _get_hdr_info
 from mne import _fiff
 
 class BRAINVISIONHandler:
@@ -51,6 +52,21 @@ class BRAINVISIONHandler:
         sampling_rate = info["sfreq"]
         unit = info['chs'][info['ch_names'].index(channel)]['unit']
         unit = _fiff.meas_info._unit2human[unit]
+
+        if raw_data._orig_units.get(channel, "n/a") == "n/a":
+            # mne only recognizes uV/mV/V; any other original unit (e.g. "%") gets
+            # silently replaced with "n/a" in raw._orig_units, so re-parse the .vhdr
+            # header directly (before mne's sanitization step discards the real unit).
+            try:
+                # eog/misc only steer channel-kind classification, not unit parsing,
+                # so their values here don't need to match read_raw_brainvision's.
+                _, _, _, _, _, _, _, orig_units = _get_hdr_info(
+                    filepath, eog=(), misc="auto", scale=1.0
+                )
+                unit = orig_units.get(channel, unit)
+            except Exception as e:
+                logger.warning(f"Could not recover original unit for channel {channel} from BrainVision header: {e}")
+
         return {
             "signal": signal,
             "sampling_rate": sampling_rate,
