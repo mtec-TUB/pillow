@@ -937,6 +937,11 @@ class ChannelProcessor:
 
         self.logger.info(f" Channel {data['ch_name_orig']} has {len(signal)} samples ({fs:.2f} Hz)")
 
+        # Rescale amplitude
+        target_unit = self._get_target_unit(data["ch_name_orig"], self.dataset.channel_groups)
+        if target_unit is not None:
+            signal, unit = self._rescale_signal(signal, unit, target_unit, data["ch_name_orig"])
+
         # Resample / filter / clip (fs-dependent, must come before raw-sample crop)
         if self.config.resample is not None or self.config.filter:
             signal_processor = SignalProcessor(
@@ -981,6 +986,44 @@ class ChannelProcessor:
             "unit":           unit,
             "ch_name_orig":   self.channel,
         }
+    
+    # Multiplier to convert a value expressed in the given voltage unit to Volts
+    VOLT_FACTORS = {"V": 1.0, "mV": 1e-3, "uV": 1e-6}
+
+    def _get_target_unit(self, ch_name, channel_groups):
+        """Get the configured target rescale unit for a given channel using the centralized group mapping."""
+        for group_name, channels in channel_groups.items():
+            if ch_name in channels:
+                return self.config.rescale_unit.get(group_name)
+
+        return self.config.rescale_unit.get("default")
+
+    def _normalize_volt_unit(self, unit):
+        """Normalize a unit string to canonical 'V'/'mV'/'uV' if it represents a voltage unit
+        (case-insensitive; treats the unicode micro sign µ/μ the same as ascii 'u'), else None."""
+        if not isinstance(unit, str):
+            return None
+        normalized = unit.strip().replace("µ", "u").replace("μ", "u").lower()
+        return {"v": "V", "mv": "mV", "uv": "uV"}.get(normalized)
+
+    def _rescale_signal(self, signal, unit, target_unit, ch_name):
+        """Rescale signal amplitude to target_unit if both the channel's current unit
+        and target_unit are voltage units (V/mV/uV); otherwise warn and keep the signal as is."""
+        norm_unit = self._normalize_volt_unit(unit)
+        norm_target = self._normalize_volt_unit(target_unit)
+        if norm_unit is None or norm_target is None:
+            self.logger.warning(
+                f"Channel {ch_name}: cannot rescale from unit '{unit}' to '{target_unit}' "
+                "(both units must be one of V/mV/uV), keeping original unit."
+            )
+            return signal, unit
+
+        factor = self.VOLT_FACTORS[norm_unit] / self.VOLT_FACTORS[norm_target]
+        if factor != 1.0:
+            signal = signal * factor
+            self.logger.info(f"Channel {ch_name}: rescaled amplitude from {unit} to {target_unit}.")
+
+        return signal, target_unit
 
     def _apply_partial_epoch_offset(self, signal, fs, signal_adjust_front_sec):
         """Padding (positive) or crop (negative) at the raw signal front.

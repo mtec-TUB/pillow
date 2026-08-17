@@ -28,6 +28,7 @@ class ProcessorConfig:
         "thoraco_abdo_resp", "nasal_pressure",
         "snoring", "default"
     }
+    VALID_RESCALE_UNITS = {"uV", "mV", "V"}
 
     def __init__(self, **kwargs):
         # validate and set all required parameters
@@ -90,6 +91,7 @@ class ProcessorConfig:
         self.truncate_non_sleep_end: bool = self._validate_truncate_non_sleep_end(kwargs.get("truncate_non_sleep_end"), self.select_epochs)
         self.iir_filter_order: int = self._validate_iir_filter_order(kwargs.get("iir_filter_order"))
         self.filter_freq: Dict[str, List[Optional[float]]] = self._validate_filter_freq(kwargs.get("filter_freq"))
+        self.rescale_unit: Dict[str, Optional[str]] = self._validate_rescale_unit(kwargs.get("rescale_unit"))
         self.pad_values = self._validate_pad_values(kwargs.get("pad_values"))
 
         # ---------- Cross-checks ----------
@@ -200,6 +202,20 @@ class ProcessorConfig:
             if low and high and low >= high:
                 raise ConfigError(
                     f"{key}: low cutoff must be < high cutoff"
+                )
+
+        return value
+
+    def _validate_rescale_unit(self, value):
+        if not isinstance(value, dict):
+            raise ConfigError("rescale_unit must be a dictionary.")
+
+        for key, unit in value.items():
+            if key not in self.VALID_FILTER_GROUPS:
+                raise ConfigError(f"Invalid filter group: {key}")
+            if unit is not None and unit not in self.VALID_RESCALE_UNITS:
+                raise ConfigError(
+                    f"{key}: rescale_unit must be one of {self.VALID_RESCALE_UNITS} or null, got {unit}"
                 )
 
         return value

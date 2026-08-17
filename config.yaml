@@ -69,6 +69,18 @@ channels: []
 # Map channel names to standards names if possible (true = map names, false = use original names)
 map_channel_names: true
 
+# Rescale signal amplitude depending on the signal group (null = keep original amplitude)
+# Options: uV, mV, V
+rescale_unit:
+  eeg_eog: uV  # EEG and EOG channel
+  emg: mV  # EMG channel
+  ecg: mV  # ECG channel
+  thoraco_abdo_resp: null  # Thorax, Abdominal, Respiration signals
+  nasal_pressure: null  # Nasal pressure
+  snoring: null  # Snoring
+  default: null # All other channel
+
+
 # Epoch duration in seconds
 # Options: 1, 2, 3, 5, 6, 10, 15, 30
 epoch_duration: 30
