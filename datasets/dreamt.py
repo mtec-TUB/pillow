@@ -22,7 +22,7 @@ class DREAMT(BaseDataset):
 
         self._file_handler = None # DREAMT uses custom CSV handling directly implemented here
 
-        self.unit_dict = {
+        self.unit_mapping = {
             'C4-M1': 'uV',
             'F4-M1': 'uV',
             'O2-M1': 'uV',
@@ -159,7 +159,7 @@ class DREAMT(BaseDataset):
             return {
                 "signal": signal,
                 "sampling_rate": sampling_rate,
-                "unit": self.unit_dict.get(channel,'n/a'),
+                "unit": self.unit_mapping.get(channel,'n/a'),
                 "file_duration": file_duration,
             }
 

@@ -21,12 +21,12 @@ class MHRW(BaseDataset):
         self.has_front_alignment = True
         self.has_end_alignment = True
 
-    unit_mapping = {
-        'hr': 'bpm',
-        'acc_x': 'g',
-        'acc_y': 'g',
-        'acc_z': 'g',
-        'steps': 'count',}
+        self.unit_mapping = {
+                            'hr': 'bpm',
+                            'acc_x': 'g',
+                            'acc_y': 'g',
+                            'acc_z': 'g',
+                            'steps': 'count',}
 
 
     def get_channels(self, logger, filepath):

@@ -96,6 +96,7 @@ class MWT(BaseDataset):
 
             return {
                 "signal": signal,
+                "unit": "uV",  # MWT signals are assumed to be in microvolts (uV)
                 "sampling_rate": float(sampling_rate)
             }
         except Exception as e:

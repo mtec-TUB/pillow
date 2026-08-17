@@ -20,18 +20,18 @@ class MMASH(BaseDataset):
         super().__init__("MMASH","MMASH - Multilevel Monitoring of Activity and Sleep in Healthy People")
         self.has_end_alignment = True
 
-    unit_mapping = {
-        'ibi_s': 's',
-        'Axis1': 'Nm',
-        'Axis2': 'Nm',
-        'Axis3': 'Nm',
-        'Steps': 'count',
-        'HR': 'bpm',
-        'Inclinometer Off': 'n/a',
-        'Inclinometer Standing': 'n/a',
-        'Inclinometer Sitting': 'n/a',
-        'Inclinometer Lying': 'n/a',
-        'Vector Magnitude': 'Nm'}
+        self.unit_mapping = {
+            'ibi_s': 's',
+            'Axis1': 'Nm',
+            'Axis2': 'Nm',
+            'Axis3': 'Nm',
+            'Steps': 'count',
+            'HR': 'bpm',
+            'Inclinometer Off': 'n/a',
+            'Inclinometer Standing': 'n/a',
+            'Inclinometer Sitting': 'n/a',
+            'Inclinometer Lying': 'n/a',
+            'Vector Magnitude': 'Nm'}
 
 
     def get_channels(self, logger, filepath):
