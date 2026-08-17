@@ -73,7 +73,7 @@ map_channel_names: true
 # Options: uV, mV, V
 rescale_unit:
   eeg_eog: uV  # EEG and EOG channel
-  emg: mV  # EMG channel
+  emg: uV  # EMG channel
   ecg: mV  # ECG channel
   thoraco_abdo_resp: null  # Thorax, Abdominal, Respiration signals
   nasal_pressure: null  # Nasal pressure
