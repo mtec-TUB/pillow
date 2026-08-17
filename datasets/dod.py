@@ -4,20 +4,90 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
-from datasets.file_handlers import DOD_H5Handler
 
 class DOD(BaseDataset):
     """DOD (Dreem Open Dataset) base class."""
-    
+
     def __init__(self, dataset_name: str, description: str):
         super().__init__(dataset_name, description)
-        self._file_handler = DOD_H5Handler()
+        self._file_handler = None  # DOD uses custom H5 handling directly implemented here
 
     def dataset_paths(self):
         return [
             '',
             ''
         ]
+
+    def get_channels(self, logger, filepath):
+        """Extract channel names from file."""
+        try:
+            channel_names = []
+            with h5py.File(filepath, "r") as f:
+
+                def visitor(name, obj):
+                    if isinstance(obj, h5py.Dataset):
+                        channel_names.append(name)
+
+                f["signals"].visititems(visitor)    # only get channels in signals subfolder
+            return channel_names
+        except Exception as e:
+            logger.error(f"Error during channel extraction: {e}")
+            raise
+
+    def read_signal(self, logger, filepath, channel):
+        """Read signal from file for specific channel."""
+        try:
+            with h5py.File(filepath, "r") as f:
+                if channel not in f["signals"]:
+                    return None
+
+                signal = f["signals"][channel][:]
+                return signal
+        except Exception as e:
+            logger.error(f"Error during signal extraction: {e}")
+            raise
+
+    def get_file_info(self, logger, filepath):
+        """Get start datetime and file duration."""
+        try:
+            with h5py.File(filepath, "r") as f:
+
+                start_time = f.attrs.get("start_time")
+                if start_time is None:
+                    logger.warning(f"No start_time attribute found, defaulting to datetime(1970, 1, 1)")
+                    start_datetime = datetime(1970, 1, 1)
+                else:
+                    start_datetime = datetime.fromtimestamp(start_time)
+
+                file_duration = f.attrs.get("duration")
+
+        except Exception as e:
+            logger.error(f"Error during file info retrieval: {e}")
+            raise
+
+        return {"start_datetime": start_datetime, "file_duration": file_duration}
+
+    def get_signal_data(self, logger, filepath, channel):
+        """Get complete signal information for specific channel."""
+        try:
+            with h5py.File(filepath, "r") as f:
+                dataset = f["signals"][channel]
+                signal = dataset[:]
+
+                unit = dataset.parent.attrs.get("unit", "n/a")
+                if isinstance(unit, bytes):
+                    unit = unit.decode("utf-8")
+
+                sampling_rate = dataset.parent.attrs.get("fs")
+
+                return {
+                    "signal": signal,
+                    "sampling_rate": sampling_rate,
+                    "unit": unit
+                }
+        except Exception as e:
+            logger.error(f"Error during data retrieval: {e}")
+            raise
 
     def ann_parse(self, ann_fname: str):
         """
