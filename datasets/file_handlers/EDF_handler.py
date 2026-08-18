@@ -1,7 +1,6 @@
 import os
 import pyedflib
 from mne.io import read_raw_edf
-from mne import _fiff
 from warnings import catch_warnings
 
 class EDFHandler:
@@ -109,7 +108,14 @@ class EDFHandler:
                 "file_duration": file_duration}
 
     def get_signal_data(self, logger, filepath, channel):
-        """Get complete signal information for specific channel."""
+        """Get complete signal information for specific channel.
+
+        mne always calibrates recognized voltage-family channels (uV/mV/V) to Volts
+        internally. We ask it to convert back to the unit originally recorded in the
+        EDF header (via its own `units=` scaling), so the returned signal always
+        matches the file's original physical amplitude, like a raw pyedflib read.
+        Any further rescaling to a different unit happens downstream, driven by config.
+        """
         try:
             with catch_warnings(record=True) as w:
                 raw = read_raw_edf(filepath, include=[channel], preload=False, verbose='WARNING')
@@ -120,19 +126,15 @@ class EDFHandler:
                         pass
                     else:
                         logger.warning("Warning during data retrieval with mne library: " + str(w[0].message))
-            
-            signal = raw.get_data(picks=channel)[0]
+
             sampling_rate = raw.info['sfreq']
-            info = raw.info
 
         except NotImplementedError as e:
             # This can happen for some EDF files which e.g. do not have the standard .edf extension, but are still internally in EDF format (.rec)
             try:
                 with open(filepath, "rb") as f:
                     raw = read_raw_edf(f, include=[channel], preload=True, verbose="WARNING")   # only supported for mne version >= 1.10
-                    signal = raw.get_data(picks=channel)[0]
                     sampling_rate = raw.info['sfreq']
-                    info = raw.info
             except Exception as e:
                 raise
         except KeyboardInterrupt:
@@ -143,19 +145,27 @@ class EDFHandler:
             logger.error("Maybe EDF Browser header repair can help.")
             raise
 
-        unit = info['chs'][info['ch_names'].index(channel)]['unit']
-        unit = _fiff.meas_info._unit2human[unit]
-
-        if raw._orig_units.get(channel, "n/a") == "n/a":
+        mne_unit = raw._orig_units.get(channel, "n/a")
+        if mne_unit == "n/a":
             # mne only recognizes uV/mV/V; any other original unit (e.g. "%" for SpO2)
-            # gets silently replaced with "n/a" in raw._orig_units, so re-read the true
-            # unit straight from the EDF header.
+            # gets silently replaced with "n/a" in raw._orig_units (and left unconverted
+            # in the signal values), so re-read the true unit straight from the EDF header.
+            signal = raw.get_data(picks=channel)[0]
+            unit = "n/a"
             try:
                 with pyedflib.EdfReader(filepath) as f:
                     labels = f.getSignalLabels()
                     unit = f.getPhysicalDimension(labels.index(channel))
             except Exception as e:
                 logger.warning(f"Could not recover original unit for channel {channel} from EDF header: {e}")
+        else:
+            ch_type = raw.get_channel_types(picks=channel)[0]
+            signal = raw.get_data(picks=channel, units={ch_type: mne_unit})[0]
+            # EDF header fields are ASCII-only (per spec); mne represents the micro
+            # prefix with the unicode MICRO SIGN (µ/μ), which downstream EDF writers
+            # (pyedflib) cannot round-trip (it gets corrupted, e.g. into "AuV"), so
+            # normalize to the ascii 'u' pyedflib itself uses when reading the header.
+            unit = mne_unit.replace("µ", "u").replace("μ", "u")
 
         return {
             "signal": signal,

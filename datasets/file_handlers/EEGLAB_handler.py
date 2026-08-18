@@ -1,6 +1,5 @@
 import mne
 from mne.io import read_raw_eeglab, read_epochs_eeglab
-from mne import _fiff
 import numpy as np
 from pymatreader import read_mat
 
@@ -105,11 +104,20 @@ class EEGLABHandler:
         return {"start_datetime": start_datetime, "file_duration": file_duration}
 
     def get_signal_data(self, logger, filepath, channel):
-        """Get complete signal information for specific channel."""
+        """Get complete signal information for specific channel.
+
+        EEGLAB .set/.fdt files have no per-channel unit header field; mne's EEGLAB
+        reader unconditionally assumes the stored values are microvolts and
+        calibrates them to Volts internally (`CAL = 1e-6` in mne's eeglab reader).
+        We ask it to convert back to uV (via its own `units=` scaling) so the
+        returned signal always matches the file's original stored amplitude. Any
+        further rescaling to a different unit happens downstream, driven by config.
+        """
         try:
             raw_data = read_raw_eeglab(filepath, verbose='WARNING', preload=True)
 
-            signal = raw_data.get_data(picks=channel)[0]
+            ch_type = raw_data.get_channel_types(picks=channel)[0]
+            signal = raw_data.get_data(picks=channel, units={ch_type: 'uV'})[0]
             if np.all(np.isnan(signal)):
                 logger.warning(f"Signal for channel {channel} contains only NaN values.")
                 return {}
@@ -127,14 +135,17 @@ class EEGLABHandler:
             events = np.vstack((np.arange(n_epochs,dtype=int), np.zeros(n_epochs,dtype=int), np.ones(n_epochs, dtype=int))).T
             event_id=dict(unknown=1)
             raw_epoched_data = read_epochs_eeglab(filepath, verbose="WARNING", events=events, event_id=event_id)
-        
-            epoched_data = raw_epoched_data.get_data(picks=channel)[:,0,:]  # shape (n_epochs, n_times)
-            
+
+            ch_type = raw_epoched_data.get_channel_types(picks=channel)[0]
+            epoched_data = raw_epoched_data.get_data(picks=channel, units={ch_type: 'uV'})[:,0,:]  # shape (n_epochs, n_times)
+
             signal = epoched_data.flatten()
             info = raw_epoched_data.info
         except RuntimeError as e:
             try:
-                # File is truncated, try to reconstruct signal from .fdt file
+                # File is truncated, try to reconstruct signal from .fdt file.
+                # This reads the raw binary directly (bypassing mne's Volt calibration
+                # entirely), so the values are already in EEGLAB's native uV scale.
                 raw_data = read_raw_eeglab(filepath, verbose='WARNING', preload=False)
                 info = raw_data.info
                 n_channels = info['nchan']
@@ -154,10 +165,8 @@ class EEGLABHandler:
             raise
 
         sampling_rate = info["sfreq"]
-        unit = info['chs'][info['ch_names'].index(channel)]['unit']
-        unit = _fiff.meas_info._unit2human[unit]
         return {
             "signal": signal,
             "sampling_rate": sampling_rate,
-            "unit": unit
+            "unit": "uV"
         }
