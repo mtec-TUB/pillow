@@ -439,9 +439,15 @@ class FileProcessor:
             n_epochs  = len(label_1d)
             sleep_mask = np.isin(label_1d, SLEEP_STAGES)
             sleep_idx  = np.where(sleep_mask)[0]
+            if self.config.select_edges == "non-wake":
+                # Anchor on any non-Wake epoch (incl. Movement/Unknown), matching SleePyCo's reference behavior
+                edge_idx = np.where(label_1d != STAGE_DICT["W"])[0]
+            else:
+                edge_idx = sleep_idx
         else:
             label_1d  = None
             sleep_idx = np.array([], dtype=int)
+            edge_idx  = np.array([], dtype=int)
 
         start_idx = 0
         end_idx   = n_epochs
@@ -469,10 +475,10 @@ class FileProcessor:
         elif isinstance(self.config.select_epochs, int):
             if label_1d is None:
                 self.logger.warning("select_epochs config is an integer but use_annot=False — no labels available to identify sleep stages, keeping all epochs.")
-            elif len(sleep_idx) > 0:
+            elif len(edge_idx) > 0:
                 n_select  = self.config.select_epochs
-                start_idx = max(0, sleep_idx[0] - n_select)
-                end_idx   = min(n_epochs, sleep_idx[-1] + n_select + 1)
+                start_idx = max(0, edge_idx[0] - n_select)
+                end_idx   = min(n_epochs, edge_idx[-1] + n_select + 1)
                 if start_idx > 0 or end_idx != n_epochs:
                     n_crop = n_epochs - (end_idx - start_idx)
                     self.logger.info(

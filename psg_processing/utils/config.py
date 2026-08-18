@@ -88,6 +88,11 @@ class ProcessorConfig:
         self.min_sleep_epochs: int = self._validate_min_sleep_epochs(kwargs.get("min_sleep_epochs"))
         self.channels: List[str] = self._validate_channels(kwargs.get("channels"))
         self.select_epochs: Union[int, str] = self._validate_select_epochs(kwargs.get("select_epochs"))
+        self.select_edges: str = self._validate_enum(
+            kwargs.get("select_edges"),
+            {"sleep", "non-wake"},
+            "select_edges"
+        )
         self.truncate_non_sleep_end: bool = self._validate_truncate_non_sleep_end(kwargs.get("truncate_non_sleep_end"), self.select_epochs)
         self.iir_filter_order: int = self._validate_iir_filter_order(kwargs.get("iir_filter_order"))
         self.filter_freq: Dict[str, List[Optional[float]]] = self._validate_filter_freq(kwargs.get("filter_freq"))

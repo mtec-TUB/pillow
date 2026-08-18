@@ -123,6 +123,13 @@ rm_unk: false
 # - integer number: to determine how many epochs of WAKE (Non-Sleep) to keep at start and end (e.g., 60 to keep 30 minutes with epoch duration of 30s). truncate_non_sleep_end must be set to false.
 select_epochs: lights
 
+# Which epochs count as the "first"/"last" epoch when 'select_epochs' is an integer
+# (start_idx = first_edge - select_epochs, end_idx = last_edge + select_epochs), Movement/Unknown epochs are removed afterwards either way
+# Options:
+# - non-wake: anchor on the first/last epoch that is NOT Wake (includes Movement/Unknown epochs), as implemented in SleePyCo
+# - sleep: anchor on the first/last actual sleep-stage epoch (N1/N2/N3/REM only)
+select_edges: non-wake
+
 # Truncate Non-Sleep epochs at end of recording if no Lights on marker is available (only if 'use_annot' is true and 'select_epochs' is set to "lights")
 # If true, all epochs after the last sleep epoch will be removed if no 'lights on' marker is available, otherwise these epochs will be kept
 truncate_non_sleep_end: true
