@@ -127,14 +127,12 @@ class EDFHandler:
                     else:
                         logger.warning("Warning during data retrieval with mne library: " + str(w[0].message))
 
-            sampling_rate = raw.info['sfreq']
 
         except NotImplementedError as e:
             # This can happen for some EDF files which e.g. do not have the standard .edf extension, but are still internally in EDF format (.rec)
             try:
                 with open(filepath, "rb") as f:
                     raw = read_raw_edf(f, include=[channel], preload=True, verbose="WARNING")   # only supported for mne version >= 1.10
-                    sampling_rate = raw.info['sfreq']
             except Exception as e:
                 raise
         except KeyboardInterrupt:
@@ -167,6 +165,7 @@ class EDFHandler:
             # normalize to the ascii 'u' pyedflib itself uses when reading the header.
             unit = mne_unit.replace("µ", "u").replace("μ", "u")
 
+        sampling_rate = raw.info['sfreq']
         return {
             "signal": signal,
             "sampling_rate": sampling_rate,
