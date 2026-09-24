@@ -1,7 +1,6 @@
 import logging
 import os
 import argparse
-import sys
 from pathlib import Path
 import yaml
 
@@ -149,7 +148,7 @@ def main(config):
 if __name__ == "__main__":
 
     parser = build_parser()
-    cli_args = parser.parse_args(sys.argv[1:])
+    cli_args = parser.parse_args()
 
     # Load user's config file if specified
     if cli_args.config:
