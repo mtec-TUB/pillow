@@ -20,11 +20,12 @@ def build_parser() -> argparse.ArgumentParser:
                 """,
     )
 
-    # Configuration file (optional)
+    # Parse path to configuration file. If flag is not used, use default config path.
     parser.add_argument(
         "--config",
         type=str,
         help="Path to YAML configuration file. Adapt config.yaml according to your needs.",
+        default="config.yaml"
     )
 
     return parser
@@ -32,46 +33,34 @@ def build_parser() -> argparse.ArgumentParser:
 
 def resolve_paths(
     dataset,
-    base_data_dir: str,
+    base_data_dir: str | None,
     data_dir: str | None,
     output_dir: str | None,
     output_format: str,
 ):
-    """Return resolved (data_dir, ann_dir, output_dir).
-
-    - If data_dir or ann_dir not provided, use dataset.dataset_paths() and join with base_data_dir.
-    - If output_dir not provided, construct under base_data_dir using dataset_name and output format info.
+    """Return resolved (dset_dir, psg_dir, ann_dir, output_dir_resolved).
     """
+    
     if data_dir:
         dset_dir = data_dir
-    elif base_data_dir:
+    else:
         dset_dir = os.path.join(base_data_dir, dataset.dataset_name)
-        
+    
     rel_data_dir, rel_ann_dir = dataset.dataset_paths()
-
-    if data_dir:
-        psg_dir = os.path.join(data_dir, rel_data_dir)
-        ann_dir = os.path.join(data_dir, rel_ann_dir)
-    elif base_data_dir:
-        psg_dir = os.path.join(base_data_dir, dataset.dataset_name, rel_data_dir)
-        ann_dir = os.path.join(base_data_dir, dataset.dataset_name, rel_ann_dir)
-
+    psg_dir = os.path.join(dset_dir, rel_data_dir)
+    ann_dir = os.path.join(dset_dir, rel_ann_dir)
+    
     if output_dir:
-        output_dir_resolved = os.path.join(
-            output_dir, f"{dataset.dset_name}_harmonized", output_format
-        )
-    elif data_dir:
-        output_dir_resolved = os.path.join(
-            data_dir, f"{dataset.dset_name}_harmonized", output_format
-        )
-    elif base_data_dir:
-        output_dir_resolved = os.path.join(
-            base_data_dir, dataset.dataset_name, f"{dataset.dset_name}_harmonized", output_format
-        )
+        parent_folder_output = output_dir
+    else:
+        parent_folder_output = dset_dir
+        
+    output_dir_resolved = os.path.join(
+        parent_folder_output, f"{dataset.dset_name}_harmonized", output_format)
 
     return dset_dir, psg_dir, ann_dir, output_dir_resolved
 
-def load_config_file(config_file_path: str) -> dict:
+def load_config_file(config_file_path: str) -> ProcessorConfig:
     """Load configuration from a YAML file."""
 
     file_path = Path(config_file_path)
@@ -86,7 +75,7 @@ def load_config_file(config_file_path: str) -> dict:
     except yaml.YAMLError as e:
         raise ValueError(f"Invalid YAML in configuration file: {e}")
 
-def main(config):
+def main(config : ProcessorConfig):
     """
     Process a dataset.
     """
@@ -147,6 +136,7 @@ def main(config):
 
 if __name__ == "__main__":
 
+    # Parse from args config path and load config file
     parser = build_parser()
     cli_args = parser.parse_args()
 

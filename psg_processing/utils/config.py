@@ -239,22 +239,12 @@ class ProcessorConfig:
     def _validate_consistency(self):
         
         has_base = self.base_data_dir is not None
-        has_specific = (
-            self.data_dir is not None and
-            self.ann_dir is not None
-        )
+        has_specific = self.data_dir is not None
 
-        if not (has_base or has_specific):
+        if has_base == has_specific:
             raise ConfigError(
                 "Either 'base_data_dir' must be provided OR "
-                "both 'data_dir' and 'ann_dir' must be provided."
-            )
-
-        # Forbid ambiguous configuration
-        if has_base and has_specific:
-            raise ConfigError(
-                "Provide either 'base_data_dir' OR "
-                "'data_dir' and 'ann_dir', not both."
+                "'data_dir' must be provided, not both at the same time"
             )
     
         if self.filter and not self.filter_freq:

@@ -261,14 +261,16 @@ class BaseDataset(ABC):
         ABC, MESA, SOF, Sleep-EDF, FDCSR, CFS, MROS, etc.
 
         Args:
-            ann_fname: Path to annotation file
+            ann_fname (str): Path to annotation file
 
         Returns:
-            Tuple of (sleep_stage_events, start_datetime)
-            where sleep_stage_events is a list of dictionaries with keys:
-            - 'Stage': sleep stage name
-            - 'Start': start time in seconds
-            - 'Duration': duration in seconds
+            ann_stage_events List[Dict[str, Union[str, float]]]: a list of dictionaries for each continuous sleep_stage with keys:
+                - 'Stage' (str): sleep stage name (only keys from defined self.ann2label are valid)
+                - 'Start' (float): onset time in seconds, relative to the first sleep stage event.
+                - 'Duration' (float): duration in seconds
+            ann_startdatetime (datetime.timedelta): start_onset of the recording in seconds 
+            lights_off (float): lights_off time in seconds
+            lights_on (float): lights_on time in seconds
         """
 
         ann_f = ET.parse(ann_fname)

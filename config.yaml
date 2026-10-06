@@ -103,7 +103,7 @@ alignment: match_signal
 
 # Padding values for signal and labels when using alignment options that require padding
 # default signal padding 'null' will use np.nan (if you choose EDF as file output, NaN will be converted to the physical minimum)
-# pad value for labels must be an integer (already in use: {0:"Wach", 1:"N1", 2:"N2", 3:"N3", 4:"REM", 5:"MOVE", 6:"Unknown"}), recommended to choose -1 or 6 (Unknown)
+# pad value for labels must be an integer (already in use: {0:"Wake", 1:"N1", 2:"N2", 3:"N3", 4:"REM", 5:"MOVE", 6:"Unknown"}), recommended to choose -1 or 6 (Unknown)
 pad_values: 
   signal: null
   label: -1

@@ -2,7 +2,6 @@ import os
 from mne import read_annotations
 import pandas as pd
 from typing import Dict, List, Optional, Tuple
-from datetime import timedelta
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
@@ -79,7 +78,6 @@ class SleepEDFX(BaseDataset):
         psg_fname = os.path.basename(psg_fname)
         subject_id = int(psg_fname[3:5])
         subject_night = int(psg_fname[5])
-        # print(subject_id, subject_night)
         if "SC4" in psg_fname:
             # Sleep-Cassette
             subjects = pd.read_excel(os.path.join(self.dset_dir,'1.0.0','SC-subjects.xls'))
@@ -100,7 +98,7 @@ class SleepEDFX(BaseDataset):
     
     def ann_parse(self, ann_fname: str):
         """
-        Parse Sleep-EDF-2018 EDF annotation files using PyEDF.
+        Parse Sleep-EDF-2018 EDF annotation files using MNE.
         
         Args:
             ann_fname: Path to EDF hypnogram file
@@ -113,43 +111,34 @@ class SleepEDFX(BaseDataset):
         ann_onsets = ann_f.onset
         ann_durations = ann_f.duration
         ann_stages = ann_f.description
-        ann_startdatetime = ann_f.orig_time
-        start_offset = None
+
+        ann_start_time = ann_onsets[0]
         
         ann_stage_events = []
         
-        for onset, duration, stage in zip(ann_onsets, ann_durations, ann_stages):
-            onset_sec = onset
-            
-            # Handle delayed annotations at the beginning
-            if start_offset is None:
-                start_offset = onset_sec
-                if ann_startdatetime is not None:
-                    ann_startdatetime = ann_startdatetime + timedelta(seconds=onset_sec)
-                else:
-                    ann_startdatetime = onset_sec
-                
-            # Special handling for specific files with known gaps
-            if 'ST7121JE-Hypnogram' in ann_fname and onset_sec == 30840:
-                ann_stage_events.append({
+        for i in range(len(ann_onsets)-1):
+
+            ann_stage_event = {
+                'Stage': ann_stages[i],
+                'Start': ann_onsets[i] - ann_start_time,
+                'Duration': ann_durations[i]
+            }
+            ann_stage_events.append(ann_stage_event)
+            # Fill out missing annotations with 'Sleep stage ?' (happens only one time in 'ST7121JE-Hypnogram' and 'ST7221JA-Hypnogram')
+            if ann_onsets[i] + ann_durations[i] != ann_onsets[i+1]:
+                ann_stage_event = {
                     'Stage': "Sleep stage ?",
-                    'Start': 30810,
-                    'Duration': 30
-                })
-                
-            if 'ST7221JA-Hypnogram' in ann_fname and onset_sec == 32820:
-                ann_stage_events.append({
-                    'Stage': "Sleep stage ?",
-                    'Start': 30870,
-                    'Duration': 1950
-                })
-            
-            ann_stage_events.append({
-                'Stage': stage,
-                'Start': onset_sec - start_offset,
-                'Duration': duration
-            })
-    
-        return ann_stage_events, ann_startdatetime, None, None
+                    'Start': (ann_onsets[i] + ann_durations[i]) - ann_start_time,
+                    'Duration': ann_onsets[i+1] - (ann_onsets[i] + ann_durations[i])
+                }
+                ann_stage_events.append(ann_stage_event)
+        
+        # add last ann_stage_event because loop stopped before
+        ann_stage_events.append({
+                'Stage': ann_stages[-1],
+                'Start': ann_onsets[-1] - ann_start_time,
+                'Duration': ann_durations[-1]
+        })
+        return ann_stage_events, ann_start_time, None, None
 
 
