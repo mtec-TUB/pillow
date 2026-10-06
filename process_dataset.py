@@ -40,6 +40,9 @@ def resolve_paths(
 ):
     """Return resolved (dset_dir, psg_dir, ann_dir, output_dir_resolved).
     """
+
+    if not data_dir and not base_data_dir:
+        raise ValueError("Either data_dir or base_data_dir must be provided")
     
     if data_dir:
         dset_dir = data_dir
