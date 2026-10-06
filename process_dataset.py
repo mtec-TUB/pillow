@@ -139,7 +139,13 @@ if __name__ == "__main__":
     # Parse from args config path and load config file
     parser = build_parser()
     cli_args = parser.parse_args()
-    config = load_config_file(cli_args.config)
+
+    # Load user's config file if specified
+    if cli_args.config:
+        config = load_config_file(cli_args.config)
+    else:
+        # Load defaults from config.yaml
+        config = load_config_file("config.yaml")
 
     main(config)
 
