@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 class DOD(BaseDataset):
     """DOD (Dreem Open Dataset) base class."""
@@ -119,12 +120,12 @@ class DODO(DOD):
 
     def _setup_dataset_config(self):
         self.ann2label =  {
-            0: "W",  # Wake
-            1: "N1",   # NREM Stage 1
-            2: "N2",   # NREM Stage 2
-            3: "N3",   # NREM Stage 3
-            4: "REM",   # REM sleep
-            -1: "UNK",   # Unscored
+            0: SleepStage.W,  # Wake
+            1: SleepStage.N1,   # NREM Stage 1
+            2: SleepStage.N2,   # NREM Stage 2
+            3: SleepStage.N3,   # NREM Stage 3
+            4: SleepStage.REM,   # REM sleep
+            -1: SleepStage.UNK,   # Unscored
         }
         
         
@@ -203,12 +204,12 @@ class DODH(DOD):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-            0: "W",   # Wake
-            1: "N1",   # NREM Stage 1
-            2: "N2",   # NREM Stage 2
-            3: "N3",   # NREM Stage 3
-            4: "REM",   # REM sleep
-            -1: "UNK",   # Unscored
+            0: SleepStage.W,   # Wake
+            1: SleepStage.N1,   # NREM Stage 1
+            2: SleepStage.N2,   # NREM Stage 2
+            3: SleepStage.N3,   # NREM Stage 3
+            4: SleepStage.REM,   # REM sleep
+            -1: SleepStage.UNK,   # Unscored
         }
         
         self.intra_dataset_mapping = {

@@ -3,6 +3,7 @@ from pathlib import Path
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 @register_dataset("HFO")
 class HFO(BaseDataset):
@@ -14,9 +15,9 @@ class HFO(BaseDataset):
         self.has_end_alignment = True
 
     def _setup_dataset_config(self):
-        self.ann2label = {"N2": "N2",
-                          "N3": "N3",
-                          "REM": "REM",
+        self.ann2label = {"N2": SleepStage.N2,
+                          "N3": SleepStage.N3,
+                          "REM": SleepStage.REM,
         }        
         
         self.channel_names = ['Fp1', 'A2', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'T3', 'C3', 'Cz', 'C4', 'T4', 'T5', 'P3', 'Pz', 'P4', 'T6', 

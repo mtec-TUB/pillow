@@ -1,13 +1,13 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 import logging
 import numpy as np
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from enum import Enum, auto
 
-from psg_processing.utils import Alignment
+from psg_processing.utils import Alignment, SleepStage
 from .file_handlers import EDFHandler
 
 class BaseDataset(ABC):
@@ -38,6 +38,7 @@ class BaseDataset(ABC):
 
         # Call setup method that subclasses must implement
         self._setup_dataset_config()
+        self._validate_ann2label()
 
         # Default way to load psg files is with the EDF-Handler, datasets that do not use EDF files override this
         self._file_handler = EDFHandler()
@@ -65,7 +66,7 @@ class BaseDataset(ABC):
     def _setup_dataset_config(self):
         """Configure dataset-specific settings.
         Subclasses must implement this to set:
-        - self.ann2label: Dict[str, int]
+        - self.ann2label: Dict[Any, SleepStage] (dataset-specific annotation -> universal stage)
         - self.channel_names: List[str]
         - self.channel_types: Dict[str, List[str]]
         - self.inter_dataset_mapping: Dict[str, Mapping]
@@ -74,6 +75,18 @@ class BaseDataset(ABC):
         - self.intra_dataset_mapping: Dict[str, List[str]]
         """
         pass
+
+    def _validate_ann2label(self):
+        """Ensure every ann2label value is a universal SleepStage label."""
+        if not isinstance(self.ann2label, dict):
+            raise TypeError(f"{self.dset_name}: ann2label must be a dict, got {type(self.ann2label).__name__}")
+
+        invalid = {k: v for k, v in self.ann2label.items() if not isinstance(v, SleepStage)}
+        if invalid:
+            raise ValueError(
+                f"{self.dset_name}: ann2label values must be SleepStage members "
+                f"({', '.join(s.name for s in SleepStage)}), invalid entries: {invalid}"
+            )
 
     def get_file_identifier(self, psg_fname=None, ann_fname=None):
         """Used to find corresponding PSG and annotation files based on filename patterns
@@ -318,7 +331,6 @@ class BaseDataset(ABC):
         self,
         logger: logging.Logger,
         ann_stage_events: List[Dict],
-        STAGE_DICT: Dict[str, int],
         epoch_duration: int,
     ):
         """
@@ -347,11 +359,10 @@ class BaseDataset(ABC):
 
             # Get label value
             if ann_str in self.ann2label:
-                label = self.ann2label[ann_str]
+                label = int(self.ann2label[ann_str])
             else:
                 logger.error(f"Something unexpected: label {ann_str} not found")
                 raise Exception(f"Something unexpected: label {ann_str} not found")
-            label = STAGE_DICT[label]   # Map to standardized label
 
             # Compute # of epoch for this stage
             if ann_duration % epoch_duration != 0:

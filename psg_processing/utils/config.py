@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import Optional, List, Dict, Union
 
 class Alignment(Enum):
@@ -10,6 +10,21 @@ class Alignment(Enum):
     MATCH_LONGER = "match_longer"  # no cropping, but padding with custom values
     MATCH_SIGNAL = "match_signal"  # pad/crop to signal length
     MATCH_ANNOT = "match_annot"  # pad/crop to annotation length
+
+class SleepStage(IntEnum):
+    """Universal sleep stage labels. The integer values are what appears in the output files."""
+
+    W = 0
+    N1 = 1
+    N2 = 2
+    N3 = 3
+    REM = 4
+    MOVE = 5
+    UNK = 6
+    SLEEP = 7  # sleep without stage information
+
+# All stages that are considered sleep (N1, N2, N3, REM, SLEEP)
+SLEEP_STAGES = (SleepStage.N1, SleepStage.N2, SleepStage.N3, SleepStage.REM, SleepStage.SLEEP)
 
 class ConfigError(ValueError):
     """Raised when configuration validation fails."""

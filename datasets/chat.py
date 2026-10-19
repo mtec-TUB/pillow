@@ -3,6 +3,7 @@ import numpy as np
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 
 @register_dataset("CHAT")
@@ -14,13 +15,13 @@ class CHAT(BaseDataset):
   
     def _setup_dataset_config(self):
         self.ann2label = {
-            "Wake": "W",
-            "Stage 1 sleep": "N1",
-            "Stage 2 sleep": "N2",
-            "Stage 3 sleep": "N3",
-            "Stage 4 sleep": "N3", # Follow AASM Manual
-            "REM sleep": "REM",
-            "Unscored": "UNK",
+            "Wake": SleepStage.W,
+            "Stage 1 sleep": SleepStage.N1,
+            "Stage 2 sleep": SleepStage.N2,
+            "Stage 3 sleep": SleepStage.N3,
+            "Stage 4 sleep": SleepStage.N3, # Follow AASM Manual
+            "REM sleep": SleepStage.REM,
+            "Unscored": SleepStage.UNK,
         }
 
         self.intra_dataset_mapping = {

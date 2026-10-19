@@ -2,6 +2,7 @@ import pandas as pd
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 
 @register_dataset("BDSP")
@@ -35,15 +36,15 @@ class BDSP(BaseDataset):
     def _config_i0002(self):
         return {
             "ann2label": {
-                "W": "W",
-                "N1": "N1",
-                "N2": "N2",
-                "N3": "N3",
-                "R": "REM",
-                "UNSCORED": "UNK",
-                "L": "UNK",  # all epochs before lights off and after lights on
-                "X": "UNK",
-                "MT": "MOVE",
+                "W": SleepStage.W,
+                "N1": SleepStage.N1,
+                "N2": SleepStage.N2,
+                "N3": SleepStage.N3,
+                "R": SleepStage.REM,
+                "UNSCORED": SleepStage.UNK,
+                "L": SleepStage.UNK,  # all epochs before lights off and after lights on
+                "X": SleepStage.UNK,
+                "MT": SleepStage.MOVE,
             },
 
             "inter_dataset_mapping": {

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 @register_dataset("ANPHY")
 class ANPHY(BaseDataset):
@@ -17,12 +18,12 @@ class ANPHY(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-            "W": "W",   # Wake
-            "N1": "N1",  # NREM Stage 1
-            "N2": "N2",  # NREM Stage 2
-            "N3": "N3",  # NREM Stage 3
-            "R": "REM",   # REM sleep
-            "L": "UNK",    # Prepare, lights on/off time
+            "W": SleepStage.W,   # Wake
+            "N1": SleepStage.N1,  # NREM Stage 1
+            "N2": SleepStage.N2,  # NREM Stage 2
+            "N3": SleepStage.N3,  # NREM Stage 3
+            "R": SleepStage.REM,   # REM sleep
+            "L": SleepStage.UNK,    # Prepare, lights on/off time
         }
         
         self.channel_names = ['AF3', 'AF3-Ref', 'AF4', 'AF4-Ref', 'AF7', 'AF7-Ref', 'AF8', 'AF8-Ref', 'AFZ', 'AFZ-Ref', 'C1', 'C1-', 'C1-Ref', 'C2', 

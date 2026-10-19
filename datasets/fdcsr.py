@@ -10,6 +10,7 @@ from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 @register_dataset("FDCSR")
 class FDCSR(BaseDataset):
@@ -21,16 +22,16 @@ class FDCSR(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label =  {
-            5: "W",  # Wake
-            1: "N1",  # NREM Stage 1
-            2: "N2",  # NREM Stage 2
-            3: "N3",  # NREM Stage 3
-            4: "N3",  # Follow AASM Manual
-            6: "REM",  # REM sleep
-            0: "UNK",  # Unknown
-            7: "MOVE",  # Movement
-            8: "UNK",  # Lights Out
-            9: "UNK",  # Lights On
+            5: SleepStage.W,  # Wake
+            1: SleepStage.N1,  # NREM Stage 1
+            2: SleepStage.N2,  # NREM Stage 2
+            3: SleepStage.N3,  # NREM Stage 3
+            4: SleepStage.N3,  # Follow AASM Manual
+            6: SleepStage.REM,  # REM sleep
+            0: SleepStage.UNK,  # Unknown
+            7: SleepStage.MOVE,  # Movement
+            8: SleepStage.UNK,  # Lights Out
+            9: SleepStage.UNK,  # Lights On
         }
         
         

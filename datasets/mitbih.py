@@ -7,6 +7,7 @@ from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
 from datasets.file_handlers import WFDBHandler
+from psg_processing.utils import SleepStage
 
 @register_dataset("MIT-BIH")
 class MITBIH(BaseDataset):
@@ -20,13 +21,13 @@ class MITBIH(BaseDataset):
   
     def _setup_dataset_config(self):
         self.ann2label = {
-                "W": "W",
-                "1": "N1",
-                "2": "N2",
-                "3": "N3",
-                "4": "N3",
-                "R": "REM",
-                "M": "MOVE",
+                "W": SleepStage.W,
+                "1": SleepStage.N1,
+                "2": SleepStage.N2,
+                "3": SleepStage.N3,
+                "4": SleepStage.N3,
+                "R": SleepStage.REM,
+                "M": SleepStage.MOVE,
                 }
         
         self.intra_dataset_mapping = {

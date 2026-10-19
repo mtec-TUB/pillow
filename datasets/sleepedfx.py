@@ -4,6 +4,7 @@ import pandas as pd
 from typing import Dict, List, Optional, Tuple
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 @register_dataset("SLEEP-EDFX")
 class SleepEDFX(BaseDataset):
@@ -16,14 +17,14 @@ class SleepEDFX(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-            "Sleep stage W": "W",     # Wake
-            "Sleep stage 1": "N1",      # NREM Stage 1
-            "Sleep stage 2": "N2",      # NREM Stage 2
-            "Sleep stage 3": "N3",      # NREM Stage 3
-            "Sleep stage 4": "N3",      # NREM Stage 4 (Follow AASM Manual)
-            "Sleep stage R": "REM",      # REM sleep
-            "Sleep stage ?": "UNK",      # Unknown/Unscored
-            "Movement time": "MOVE",       # Movement
+            "Sleep stage W": SleepStage.W,     # Wake
+            "Sleep stage 1": SleepStage.N1,      # NREM Stage 1
+            "Sleep stage 2": SleepStage.N2,      # NREM Stage 2
+            "Sleep stage 3": SleepStage.N3,      # NREM Stage 3
+            "Sleep stage 4": SleepStage.N3,      # NREM Stage 4 (Follow AASM Manual)
+            "Sleep stage R": SleepStage.REM,      # REM sleep
+            "Sleep stage ?": SleepStage.UNK,      # Unknown/Unscored
+            "Movement time": SleepStage.MOVE,       # Movement
         }
 
         self.inter_dataset_mapping = {

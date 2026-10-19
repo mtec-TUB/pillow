@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 @register_dataset("SLEEPBRL")
 class SLEEPBRL(BaseDataset):
@@ -15,11 +16,11 @@ class SLEEPBRL(BaseDataset):
   
     def _setup_dataset_config(self):
         self.ann2label = {
-                "W": "W",
-                "1": "N1",
-                "2": "N2",
-                "3": "N3",
-                "R": "REM",
+                "W": SleepStage.W,
+                "1": SleepStage.N1,
+                "2": SleepStage.N2,
+                "3": SleepStage.N3,
+                "R": SleepStage.REM,
                 }
         
         self.channel_names = ['S9', 'S14', 'S1', 'S10', 'S5', 'S6', 'S3',

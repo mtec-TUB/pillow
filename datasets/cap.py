@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 @register_dataset("CAP")
 class CAP(BaseDataset):
@@ -17,15 +18,15 @@ class CAP(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-                            "W": "W",
-                            "S1": "N1",
-                            "S2": "N2",
-                            "S3": "N3",
-                            "1S3": "N3",    # occurs in file n12.txt
-                            "S4": "N3",
-                            "REM": "REM",
-                            "R": "REM",
-                            "MT": "MOVE"
+                            "W": SleepStage.W,
+                            "S1": SleepStage.N1,
+                            "S2": SleepStage.N2,
+                            "S3": SleepStage.N3,
+                            "1S3": SleepStage.N3,    # occurs in file n12.txt
+                            "S4": SleepStage.N3,
+                            "REM": SleepStage.REM,
+                            "R": SleepStage.REM,
+                            "MT": SleepStage.MOVE
                             }
         
         self.intra_dataset_mapping = {

@@ -6,6 +6,7 @@ from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
 from datasets.file_handlers import WFDBHandler
+from psg_processing.utils import SleepStage
 
 @register_dataset("PHYSIO2018")
 class Physio2018(BaseDataset):
@@ -20,11 +21,11 @@ class Physio2018(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-                "W": "W",
-                "N1": "N1",
-                "N2": "N2",
-                "N3": "N3",
-                "R": "REM",
+                "W": SleepStage.W,
+                "N1": SleepStage.N1,
+                "N2": SleepStage.N2,
+                "N3": SleepStage.N3,
+                "R": SleepStage.REM,
                 }
         
         

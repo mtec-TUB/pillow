@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 
 @register_dataset("PSG_IPA")
@@ -17,12 +18,12 @@ class PSG_IPA(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-            "Sleep stage W": "W",
-            "Sleep stage N1": "N1",
-            "Sleep stage N2": "N2",
-            "Sleep stage N3": "N3",
-            "Sleep stage R": "REM",
-            "Unscored": "UNK",
+            "Sleep stage W": SleepStage.W,
+            "Sleep stage N1": SleepStage.N1,
+            "Sleep stage N2": SleepStage.N2,
+            "Sleep stage N3": SleepStage.N3,
+            "Sleep stage R": SleepStage.REM,
+            "Unscored": SleepStage.UNK,
         }
 
         self.inter_dataset_mapping = {

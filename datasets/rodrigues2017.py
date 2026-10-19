@@ -7,6 +7,7 @@ from pathlib import Path
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 print(moabb.__version__)
 
@@ -19,7 +20,7 @@ class RODRIGUES2017(BaseDataset):
   
     def _setup_dataset_config(self):
         self.ann2label = {
-            "W": "W",
+            "W": SleepStage.W,
         } # no annotations, but we know all epochs are Wake
 
         # https://hal.science/hal-02086581

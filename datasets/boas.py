@@ -2,6 +2,7 @@ import pandas as pd
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 @register_dataset("BOAS")
 class BOAS(BaseDataset):
@@ -16,13 +17,13 @@ class BOAS(BaseDataset):
         self.shortest_signal_length = None
     
     def _setup_dataset_config(self):
-        self.ann2label = {0: "W",
-                          1: "N1",
-                          2: "N2",
-                          3: "N3",   
-                          4: "REM",
-                          8: "UNK",
-                          -2: "UNK" 
+        self.ann2label = {0: SleepStage.W,
+                          1: SleepStage.N1,
+                          2: SleepStage.N2,
+                          3: SleepStage.N3,   
+                          4: SleepStage.REM,
+                          8: SleepStage.UNK,
+                          -2: SleepStage.UNK 
         }        
         
         self.channel_names = ['HB_1', 'HB_2', 'PSG_F3', 'PSG_F4', 'PSG_C3', 'PSG_C4', 'PSG_O1', 'PSG_O2', 'PSG_EOG', 'PSG_EMG', 'PSG_THER', 'PSG_THOR', 

@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 @register_dataset("HMC")
 class HMC(BaseDataset):
@@ -15,11 +16,11 @@ class HMC(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-            "Sleep stage W": "W",   # Wake
-            "Sleep stage N1": "N1",  # NREM Stage 1
-            "Sleep stage N2": "N2",  # NREM Stage 2
-            "Sleep stage N3": "N3",  # NREM Stage 3
-            "Sleep stage R": "REM",   # REM sleep
+            "Sleep stage W": SleepStage.W,   # Wake
+            "Sleep stage N1": SleepStage.N1,  # NREM Stage 1
+            "Sleep stage N2": SleepStage.N2,  # NREM Stage 2
+            "Sleep stage N3": SleepStage.N3,  # NREM Stage 3
+            "Sleep stage R": SleepStage.REM,   # REM sleep
         }
 
         self.inter_dataset_mapping = {

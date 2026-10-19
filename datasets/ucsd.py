@@ -3,6 +3,7 @@ from pymatreader import read_mat
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from datasets.file_handlers import EEGLABHandler
+from psg_processing.utils import SleepStage
 
 @register_dataset("UCSD")
 class UCSD(BaseDataset):
@@ -15,12 +16,12 @@ class UCSD(BaseDataset):
         self._file_handler = EEGLABHandler()
     
     def _setup_dataset_config(self):
-        self.ann2label = {1: "W",
-                          3: "N1",
-                          4: "N2",
-                          5: "N3",
-                          2: "REM",
-                          0: "UNK"
+        self.ann2label = {1: SleepStage.W,
+                          3: SleepStage.N1,
+                          4: SleepStage.N2,
+                          5: SleepStage.N3,
+                          2: SleepStage.REM,
+                          0: SleepStage.UNK
                           }
         
         # 33-channel data is not included in this release, maybe updated in the future, see https://doi.org/10.18112/openneuro.ds006695.v1.0.2

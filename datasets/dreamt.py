@@ -9,6 +9,7 @@ import csv
 from typing import Dict, List, Optional, Tuple
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 @register_dataset("DREAMT")
 class DREAMT(BaseDataset):
@@ -53,13 +54,13 @@ class DREAMT(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-            "W": "W",      # Wake
-            "N1": "N1",     # NREM Stage 1
-            "N2": "N2",     # NREM Stage 2
-            "N3": "N3",     # NREM Stage 3
-            "R": "REM",      # REM sleep
-            "Missing": "UNK", # Unscored/Missing
-            "P": "UNK"     # Preparation stage, labeled as Wake as in described in https://physionet.org/content/dreamt/2.1.0/
+            "W": SleepStage.W,      # Wake
+            "N1": SleepStage.N1,     # NREM Stage 1
+            "N2": SleepStage.N2,     # NREM Stage 2
+            "N3": SleepStage.N3,     # NREM Stage 3
+            "R": SleepStage.REM,      # REM sleep
+            "Missing": SleepStage.UNK, # Unscored/Missing
+            "P": SleepStage.UNK     # Preparation stage, labeled as Wake as in described in https://physionet.org/content/dreamt/2.1.0/
         }        
         
         self.channel_names = ['C4-M1', 'F4-M1', 'O2-M1', 'Fp1-O2', 'T3 - CZ', 'CZ - T4', 'CHIN', 'E1', 'E2', 'ECG', 'LAT', 'RAT', 'SNORE', 'PTAF', 'FLOW', 

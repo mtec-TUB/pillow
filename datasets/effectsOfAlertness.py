@@ -7,6 +7,7 @@ from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
 from datasets.file_handlers import EEGLABHandler
+from psg_processing.utils import SleepStage
 
 
 @register_dataset("EffectsOfAlertness")
@@ -20,13 +21,13 @@ class EffectsOfAlertness(BaseDataset):
     
     def _setup_dataset_config(self):
         self.ann2label = {
-                        1: "W",   # Wake
-                        3: "N1",   # NREM Stage 1
-                        4: "N2",   # NREM Stage 2
-                        5: "N3",   # NREM Stage 3
-                        2: "REM",   # REM sleep
-                        7: "UNK",   # Artefact
-                        8: "UNK",   # Unknown
+                        1: SleepStage.W,   # Wake
+                        3: SleepStage.N1,   # NREM Stage 1
+                        4: SleepStage.N2,   # NREM Stage 2
+                        5: SleepStage.N3,   # NREM Stage 3
+                        2: SleepStage.REM,   # REM sleep
+                        7: SleepStage.UNK,   # Artefact
+                        8: SleepStage.UNK,   # Unknown
                         }
         
         

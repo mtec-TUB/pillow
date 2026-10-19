@@ -4,6 +4,7 @@ from typing import Dict, List, Tuple
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 
 @register_dataset("UCDDB")
@@ -16,15 +17,15 @@ class UCDDB(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label =  {
-            0: "W",   # Wake
-            2: "N1",   # Stage 1
-            3: "N2",   # Stage 2
-            4: "N3",   # Stage 3
-            5: "N3",   # Stage 4 according to AASM
-            1: "REM",    # REM
-            6: "UNK",
-            7: "UNK",
-            8: "UNK",
+            0: SleepStage.W,   # Wake
+            2: SleepStage.N1,   # Stage 1
+            3: SleepStage.N2,   # Stage 2
+            4: SleepStage.N3,   # Stage 3
+            5: SleepStage.N3,   # Stage 4 according to AASM
+            1: SleepStage.REM,    # REM
+            6: SleepStage.UNK,
+            7: SleepStage.UNK,
+            8: SleepStage.UNK,
         }
         
         

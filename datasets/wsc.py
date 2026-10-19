@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 @register_dataset("WSC")
 class WSC(BaseDataset):
@@ -17,23 +18,23 @@ class WSC(BaseDataset):
         # see wsc-scoring-annotation-documentation.xlsx
         self.ann2label = {
             # String-based labels
-            "STAGE - W": "W",
-            "STAGE - N1": "N1",
-            "STAGE - N2": "N2",
-            "STAGE - N3": "N3",
-            "STAGE - N4": "N3",  # Follow AASM Manual
-            "STAGE - R": "REM",
-            "STAGE - NO STAGE": "UNK",
-            "STAGE - MVT": "MOVE",
+            "STAGE - W": SleepStage.W,
+            "STAGE - N1": SleepStage.N1,
+            "STAGE - N2": SleepStage.N2,
+            "STAGE - N3": SleepStage.N3,
+            "STAGE - N4": SleepStage.N3,  # Follow AASM Manual
+            "STAGE - R": SleepStage.REM,
+            "STAGE - NO STAGE": SleepStage.UNK,
+            "STAGE - MVT": SleepStage.MOVE,
             # Numeric labels
-            0: "W",  # Wake
-            1: "N1",  # NREM Stage 1
-            2: "N2",  # NREM Stage 2
-            3: "N3",  # NREM Stage 3
-            4: "N3",  # NREM Stage 4 (Follow AASM Manual)
-            5: "REM",  # REM
-            6: "MOVE",   # Movement
-            7: "UNK",  # Unscored
+            0: SleepStage.W,  # Wake
+            1: SleepStage.N1,  # NREM Stage 1
+            2: SleepStage.N2,  # NREM Stage 2
+            3: SleepStage.N3,  # NREM Stage 3
+            4: SleepStage.N3,  # NREM Stage 4 (Follow AASM Manual)
+            5: SleepStage.REM,  # REM
+            6: SleepStage.MOVE,   # Movement
+            7: SleepStage.UNK,  # Unscored
         }
 
         self.inter_dataset_mapping = {

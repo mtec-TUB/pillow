@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 
 @register_dataset("DCSM")
@@ -19,11 +20,11 @@ class DCSM(BaseDataset):
     
     def _setup_dataset_config(self):
         self.ann2label = {
-            "W": "W",      # Wake
-            "N1": "N1",     # NREM Stage 1
-            "N2": "N2",     # NREM Stage 2  
-            "N3": "N3",     # NREM Stage 3
-            "REM": "REM",    # REM sleep
+            "W": SleepStage.W,      # Wake
+            "N1": SleepStage.N1,     # NREM Stage 1
+            "N2": SleepStage.N2,     # NREM Stage 2  
+            "N3": SleepStage.N3,     # NREM Stage 3
+            "REM": SleepStage.REM,    # REM sleep
         }
 
         self.inter_dataset_mapping = {

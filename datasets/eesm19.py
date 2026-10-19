@@ -14,6 +14,7 @@ from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
 from datasets.file_handlers import EEGLABHandler
+from psg_processing.utils import SleepStage
 
 
 @register_dataset("EESM19")
@@ -29,12 +30,12 @@ class EESM19(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-                        1: "W",   # Wake
-                        3: "N1",  # NREM Stage 1
-                        4: "N2",  # NREM Stage 2
-                        5: "N3",  # NREM Stage 3
-                        2: "REM",   # REM sleep
-                        7: "UNK",    # Artefact
+                        1: SleepStage.W,   # Wake
+                        3: SleepStage.N1,  # NREM Stage 1
+                        4: SleepStage.N2,  # NREM Stage 2
+                        5: SleepStage.N3,  # NREM Stage 3
+                        2: SleepStage.REM,   # REM sleep
+                        7: SleepStage.UNK,    # Artefact
                         }
         
         
@@ -136,12 +137,12 @@ class EESM19(BaseDataset):
             
         return [ann_stage_events_1, ann_stage_events_2], start_time_label, lights_off, None
     
-    def ann_label(self, logger, ann_stage_events: List[List[Dict]], STAGE_DICT, epoch_duration: int):
+    def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int):
         """
         Convert multi-scorer sleep stage events to epoch-wise labels for ISRUC dataset.
         Returns 2D array (n_epochs, n_scorers).
         """
-        labels = [np.array([]), np.array([])]
+        labels = [np.array([], dtype=np.int32), np.array([], dtype=np.int32)]
 
         for i, annotation in enumerate(ann_stage_events):  # two scorers
             total_duration = 0
@@ -155,11 +156,10 @@ class EESM19(BaseDataset):
 
                 # Get label value
                 if ann_str in self.ann2label:
-                    label = self.ann2label[ann_str]
+                    label = int(self.ann2label[ann_str])
                 else:
                     logger.info(f"Something unexpected: label {ann_str} not found")
                     raise Exception(f"Something unexpected: label {ann_str} not found")
-                label = STAGE_DICT[label]   # Map to standardized label
 
                 # Compute # of epoch for this stage
                 if duration_sec % epoch_duration != 0:
@@ -180,8 +180,8 @@ class EESM19(BaseDataset):
         # Pad shorter annotation to match longer one
         if len(labels[0]) != len(labels[1]):
             max_len = max(len(labels[0]), len(labels[1]))
-            labels[0] = np.pad(labels[0], (0, max_len - len(labels[0])), mode='constant', constant_values=6)
-            labels[1] = np.pad(labels[1], (0, max_len - len(labels[1])), mode='constant', constant_values=6)
+            labels[0] = np.pad(labels[0], (0, max_len - len(labels[0])), mode='constant', constant_values=SleepStage.UNK)
+            labels[1] = np.pad(labels[1], (0, max_len - len(labels[1])), mode='constant', constant_values=SleepStage.UNK)
 
         labels = np.array(labels).T  # Transpose to (n_epochs, n_scorers)
         

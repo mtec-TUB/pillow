@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 
 @register_dataset("MNC")
@@ -20,17 +21,17 @@ class MNC(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-                "wake": "W",
-                "NREM1": "N1",
-                "NREM2": "N2",
-                "NREM3": "N3",
-                "NREM4": "N3",
-                "REM": "REM",
-                "unscored": "UNK",
-                "9": "UNK",  # unknown?
-                "8": "UNK", # unknown?
-                " ": "UNK",  # empty lines
-                "NaN": "UNK",
+                "wake": SleepStage.W,
+                "NREM1": SleepStage.N1,
+                "NREM2": SleepStage.N2,
+                "NREM3": SleepStage.N3,
+                "NREM4": SleepStage.N3,
+                "REM": SleepStage.REM,
+                "unscored": SleepStage.UNK,
+                "9": SleepStage.UNK,  # unknown?
+                "8": SleepStage.UNK, # unknown?
+                " ": SleepStage.UNK,  # empty lines
+                "NaN": SleepStage.UNK,
         }
 
         self.intra_dataset_mapping = {

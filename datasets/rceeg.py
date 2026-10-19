@@ -1,6 +1,7 @@
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from datasets.file_handlers import BRAINVISIONHandler
+from psg_processing.utils import SleepStage
 
 @register_dataset("RCEEG")
 class RCEEG(BaseDataset):
@@ -13,7 +14,7 @@ class RCEEG(BaseDataset):
     
     def _setup_dataset_config(self):
         self.ann2label = {
-                            "Wake": "W",
+                            "Wake": SleepStage.W,
                           }
         
         self.channel_names = ['Fp1', 'AF3', 'AF7', 'Fz', 'F1', 'F3', 'F5', 'F7', 'FC1', 'FC3', 'FC5', 'FT7', 'Cz', 'C1', 'C3', 'C5', 'T7', 'CP1', 'CP3', 

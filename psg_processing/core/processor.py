@@ -16,17 +16,11 @@ import numpy as np
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
 
-from ..utils import LoggingManager, Alignment
+from ..utils import LoggingManager, Alignment, SleepStage, SLEEP_STAGES
 from .dataset_explorer import Dataset_Explorer
 from .signal_processor import SignalProcessor
 
 logging.captureWarnings(True)
-
-# Final sleep stage labels mapping (did not yet find a better place for this, maybe in config?)
-# labels will appear like this in output 
-STAGE_DICT = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "MOVE": 5, "UNK": 6, "SLEEP": 7}
-
-SLEEP_STAGES = [STAGE_DICT["N1"],STAGE_DICT["N2"],STAGE_DICT["N3"],STAGE_DICT["REM"]]
 
 
 class DatasetProcessor:
@@ -234,7 +228,7 @@ class FileProcessor:
                     return
                 
                 # Map dataset-labels to standardized labels and check consistency
-                labels = self.dataset.ann_label(self.logger, ann_stage_events, STAGE_DICT, self.config.epoch_duration)
+                labels = self.dataset.ann_label(self.logger, ann_stage_events, self.config.epoch_duration)
                 # Check how many sleep epochs are in the file
                 sleep_mask = np.isin(labels if labels.ndim == 1 else labels[:, 0], SLEEP_STAGES)
                 if np.sum(sleep_mask) < self.config.min_sleep_epochs:
@@ -441,7 +435,7 @@ class FileProcessor:
             sleep_idx  = np.where(sleep_mask)[0]
             if self.config.select_edges == "non-wake":
                 # Anchor on any non-Wake epoch (incl. Movement/Unknown), matching SleePyCo's reference behavior
-                edge_idx = np.where(label_1d != STAGE_DICT["W"])[0]
+                edge_idx = np.where(label_1d != SleepStage.W)[0]
             else:
                 edge_idx = sleep_idx
         else:
@@ -486,8 +480,8 @@ class FileProcessor:
                     )
 
         if label_1d is not None:
-            move_idx = np.where(label_1d == STAGE_DICT["MOVE"])[0] if self.config.rm_move else []
-            unk_idx  = np.where(label_1d == STAGE_DICT["UNK"])[0]  if self.config.rm_unk  else []
+            move_idx = np.where(label_1d == SleepStage.MOVE)[0] if self.config.rm_move else []
+            unk_idx  = np.where(label_1d == SleepStage.UNK)[0]  if self.config.rm_unk  else []
             if len(move_idx) > 0:
                 self.logger.info(f"Removing {len(move_idx)} Movement epochs")
             if len(unk_idx) > 0:
@@ -869,10 +863,11 @@ class FileProcessor:
                     all_labels = np.array([channel_data["labels"] for channel_data in channel_dicts])
                     duration = self.config.epoch_duration
                     for epoch_idx, label in enumerate(all_labels[0]):
+                        # one value per scorer, comma-separated (e.g. "0" or "0,6")
                         edf_writer.writeAnnotation(
                             onset_in_seconds=epoch_idx * duration,
                             duration_in_seconds=duration,
-                            description=str(label),
+                            description=",".join(str(int(l)) for l in np.atleast_1d(label)),
                         )
 
         elif output_format == "hdf5":

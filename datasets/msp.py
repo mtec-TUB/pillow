@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 @register_dataset("MSP")
 class MSP(BaseDataset):
@@ -18,12 +19,12 @@ class MSP(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-                'W': "W",
-                'N1': "N1",
-                'N2': "N2",
-                'N3': "N3",
-                'R': "REM",
-                '?': "UNK",
+                'W': SleepStage.W,
+                'N1': SleepStage.N1,
+                'N2': SleepStage.N2,
+                'N3': SleepStage.N3,
+                'R': SleepStage.REM,
+                '?': SleepStage.UNK,
         }
 
         self.inter_dataset_mapping = {

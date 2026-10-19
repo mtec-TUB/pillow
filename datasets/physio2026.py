@@ -4,6 +4,7 @@ from typing import Dict, List, Tuple
 from datetime import datetime, date
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 
 @register_dataset("PHYSIO2026")
@@ -15,13 +16,13 @@ class Physio2026(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-                9: "UNK", # Stage 'L' in BDSP
-                0: "UNK", # corresponds to empty rows in BDSP
-                5: "W",
-                3: "N1",
-                2: "N2",
-                1: "N3",
-                4: "REM",
+                9: SleepStage.UNK, # Stage 'L' in BDSP
+                0: SleepStage.UNK, # corresponds to empty rows in BDSP
+                5: SleepStage.W,
+                3: SleepStage.N1,
+                2: SleepStage.N2,
+                1: SleepStage.N3,
+                4: SleepStage.REM,
                 }
         
         self.intra_dataset_mapping = {

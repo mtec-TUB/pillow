@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime, date, timedelta
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 @register_dataset("STAGES")
 class STAGES(BaseDataset):
@@ -20,12 +21,12 @@ class STAGES(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-                'Wake': "W",
-                'Stage1': "N1",
-                'Stage2': "N2",
-                'Stage3': "N3",
-                'REM': "REM",
-                'UnknownStage': "UNK",
+                'Wake': SleepStage.W,
+                'Stage1': SleepStage.N1,
+                'Stage2': SleepStage.N2,
+                'Stage3': SleepStage.N3,
+                'REM': SleepStage.REM,
+                'UnknownStage': SleepStage.UNK,
         }
 
         # does not include channels that are only present in very few recordings

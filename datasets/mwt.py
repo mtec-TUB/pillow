@@ -9,6 +9,7 @@ import numpy as np
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 
 @register_dataset("MWT")
@@ -24,8 +25,8 @@ class MWT(BaseDataset):
         # Dataset uses BERN scoring (0-wake, 1-MSE, 2-MSEc, 3-ED), we map more than 15s of MSE (micro-sleep-event) to "sleep" and the rest to "wake"
         # see also https://doi.org/10.1093/sleep/zsz163
         self.ann2label = {
-            "wake": "W",
-            "sleep": "SLEEP",
+            "wake": SleepStage.W,
+            "sleep": SleepStage.SLEEP,
         }
 
         # https://zenodo.org/records/3251716
@@ -147,12 +148,12 @@ class MWT(BaseDataset):
 
         return ann_stage_events, None, None, None
     
-    def ann_label(self, logger, ann_stage_events: List[List[Dict]], STAGE_DICT, epoch_duration: int):
+    def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int):
         """
         Convert multi-scorer sleep stage events to epoch-wise labels for ISRUC dataset.
         Returns 2D array (n_epochs, n_scorers).
         """
-        labels = [np.array([]), np.array([])]
+        labels = [np.array([], dtype=np.int32), np.array([], dtype=np.int32)]
 
         for i, annotation in enumerate(ann_stage_events):  # two scorers
             total_duration = 0
@@ -166,11 +167,10 @@ class MWT(BaseDataset):
 
                 # Get label value
                 if ann_str in self.ann2label:
-                    label = self.ann2label[ann_str]
+                    label = int(self.ann2label[ann_str])
                 else:
                     logger.info(f"Something unexpected: label {ann_str} not found")
                     raise Exception(f"Something unexpected: label {ann_str} not found")
-                label = STAGE_DICT[label]   # Map to standardized label
 
                 # Compute # of epoch for this stage
                 if duration_sec % epoch_duration != 0:
@@ -191,8 +191,8 @@ class MWT(BaseDataset):
         # Pad shorter annotation to match longer one
         if len(labels[0]) != len(labels[1]):
             max_len = max(len(labels[0]), len(labels[1]))
-            labels[0] = np.pad(labels[0], (0, max_len - len(labels[0])), mode='constant', constant_values=6)
-            labels[1] = np.pad(labels[1], (0, max_len - len(labels[1])), mode='constant', constant_values=6)
+            labels[0] = np.pad(labels[0], (0, max_len - len(labels[0])), mode='constant', constant_values=SleepStage.UNK)
+            labels[1] = np.pad(labels[1], (0, max_len - len(labels[1])), mode='constant', constant_values=SleepStage.UNK)
 
         labels = np.array(labels).T  # Transpose to (n_epochs, n_scorers)
         

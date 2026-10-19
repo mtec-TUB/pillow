@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from datasets.base import BaseDataset
-from psg_processing.utils import Alignment
+from psg_processing.utils import Alignment, SleepStage
 from datasets.registry import register_dataset
 
 from datasets.file_handlers import WFDBHandler
@@ -23,13 +23,13 @@ class CPS(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label = {
-            "Wach": "W",
-            "N1": "N1",
-            "N2": "N2",
-            "N3": "N3",
-            "Rem": "REM",
-            "A": "UNK",
-            "Artefakt": "UNK",
+            "Wach": SleepStage.W,
+            "N1": SleepStage.N1,
+            "N2": SleepStage.N2,
+            "N3": SleepStage.N3,
+            "Rem": SleepStage.REM,
+            "A": SleepStage.UNK,
+            "Artefakt": SleepStage.UNK,
         }
 
         # https://physionet.org/content/cps-dataset-sleep/1.0.0/

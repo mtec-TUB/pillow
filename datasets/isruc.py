@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 
 @register_dataset("ISRUC")
@@ -22,15 +23,15 @@ class ISRUC(BaseDataset):
 
     def _setup_dataset_config(self):
         self.ann2label =  {
-            "W": "W",   # Wake
-            "w": "W",     # in file "Subgroup 3_9_9_9_1.xlsx"
-            "N": "N1",     # in file "Subgroup 1_4_4_4_1.xlsx", compared to "Subgroup 1_4_4_4_1.txt" -> N1
-            "N1": "N1",   # Stage 1
-            "N2": "N2",   # Stage 2
-            "n2": "N2",   # in file "Subgroup 1_2_2_2.xlsx"
-            "N3": "N3",   # Stage 3
-            "R": "REM",    # REM
-            "U": "UNK",    # Unknown
+            "W": SleepStage.W,   # Wake
+            "w": SleepStage.W,     # in file "Subgroup 3_9_9_9_1.xlsx"
+            "N": SleepStage.N1,     # in file "Subgroup 1_4_4_4_1.xlsx", compared to "Subgroup 1_4_4_4_1.txt" -> N1
+            "N1": SleepStage.N1,   # Stage 1
+            "N2": SleepStage.N2,   # Stage 2
+            "n2": SleepStage.N2,   # in file "Subgroup 1_2_2_2.xlsx"
+            "N3": SleepStage.N3,   # Stage 3
+            "R": SleepStage.REM,    # REM
+            "U": SleepStage.UNK,    # Unknown
         }
         
         
@@ -169,12 +170,12 @@ class ISRUC(BaseDataset):
         
         return ann_stage_events, None, lights_off[0], lights_on[0]
     
-    def ann_label(self, logger, ann_stage_events: List[List[Dict]], STAGE_DICT, epoch_duration: int):
+    def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int):
         """
         Convert multi-scorer sleep stage events to epoch-wise labels for ISRUC dataset.
         Returns 2D array (n_epochs, n_scorers).
         """
-        labels = [np.array([]), np.array([])]
+        labels = [np.array([], dtype=np.int32), np.array([], dtype=np.int32)]
 
         for i, annotation in enumerate(ann_stage_events):  # two scorers
             total_duration = 0
@@ -188,11 +189,10 @@ class ISRUC(BaseDataset):
 
                 # Get label value
                 if ann_str in self.ann2label:
-                    label = self.ann2label[ann_str]
+                    label = int(self.ann2label[ann_str])
                 else:
                     logger.info(f"Something unexpected: label {ann_str} not found")
                     raise Exception(f"Something unexpected: label {ann_str} not found")
-                label = STAGE_DICT[label]   # Map to standardized label
 
                 # Compute # of epoch for this stage
                 if duration_sec % epoch_duration != 0:
@@ -213,8 +213,8 @@ class ISRUC(BaseDataset):
         # Pad shorter annotation to match longer one
         if len(labels[0]) != len(labels[1]):
             max_len = max(len(labels[0]), len(labels[1]))
-            labels[0] = np.pad(labels[0], (0, max_len - len(labels[0])), mode='constant', constant_values=6)
-            labels[1] = np.pad(labels[1], (0, max_len - len(labels[1])), mode='constant', constant_values=6)
+            labels[0] = np.pad(labels[0], (0, max_len - len(labels[0])), mode='constant', constant_values=SleepStage.UNK)
+            labels[1] = np.pad(labels[1], (0, max_len - len(labels[1])), mode='constant', constant_values=SleepStage.UNK)
 
         labels = np.array(labels).T  # Transpose to (n_epochs, n_scorers)
         

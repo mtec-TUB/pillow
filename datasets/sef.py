@@ -8,6 +8,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from datasets.file_handlers import BRAINVISIONHandler
+from psg_processing.utils import SleepStage
 
 @register_dataset("SEF")
 class SEF(BaseDataset):
@@ -20,20 +21,20 @@ class SEF(BaseDataset):
         self._file_handler = BRAINVISIONHandler()
     
     def _setup_dataset_config(self):
-        self.ann2label = {"W": "W",
-                          "W (uncertain)": "W",
-                          "1": "N1",
-                          "1 (uncertain)": "N1",
-                          "2": "N2",
-                          "2 (uncertain)": "N2",
-                          "3": "N3",
-                          "3 (uncertain)": "N3",
-                          "Unscorable": "UNK",
-                          "unscorable": "UNK",
-                          "1 (unscorable)": "UNK",
-                          "2 (unscorable)": "UNK",
-                          "3 (unscorable)": "UNK",
-                          "2 or 3 (unscorable)": "UNK",
+        self.ann2label = {"W": SleepStage.W,
+                          "W (uncertain)": SleepStage.W,
+                          "1": SleepStage.N1,
+                          "1 (uncertain)": SleepStage.N1,
+                          "2": SleepStage.N2,
+                          "2 (uncertain)": SleepStage.N2,
+                          "3": SleepStage.N3,
+                          "3 (uncertain)": SleepStage.N3,
+                          "Unscorable": SleepStage.UNK,
+                          "unscorable": SleepStage.UNK,
+                          "1 (unscorable)": SleepStage.UNK,
+                          "2 (unscorable)": SleepStage.UNK,
+                          "3 (unscorable)": SleepStage.UNK,
+                          "2 or 3 (unscorable)": SleepStage.UNK,
                           }
         
         self.channel_names = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8', 'T7', 'T8', 'P7', 'P8', 'Fz', 'Cz', 

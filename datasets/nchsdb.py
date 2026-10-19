@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 @register_dataset("NCHSDB")
 class NCHSDB(BaseDataset):
@@ -28,15 +29,15 @@ class NCHSDB(BaseDataset):
     
     def _setup_dataset_config(self):
         self.ann2label = {
-                'Sleep stage W': "W",
-                'Sleep stage N1': "N1",
-                'Sleep stage N2': "N2",
-                'Sleep stage N3': "N3",
-                'Sleep stage R': "REM",
-                'Sleep stage ?': "UNK",
-                'Sleep stage 2': "N2",
-                'Sleep stage 1': "N1",
-                'Sleep stage 3' : "N3",
+                'Sleep stage W': SleepStage.W,
+                'Sleep stage N1': SleepStage.N1,
+                'Sleep stage N2': SleepStage.N2,
+                'Sleep stage N3': SleepStage.N3,
+                'Sleep stage R': SleepStage.REM,
+                'Sleep stage ?': SleepStage.UNK,
+                'Sleep stage 2': SleepStage.N2,
+                'Sleep stage 1': SleepStage.N1,
+                'Sleep stage 3' : SleepStage.N3,
         }
 
         self.intra_dataset_mapping = {'Abdomen': ['Abdominal','EEG Abd'],

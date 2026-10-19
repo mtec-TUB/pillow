@@ -4,6 +4,7 @@ import pandas as pd
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 
 @register_dataset("APPLES")
@@ -14,13 +15,13 @@ class APPLES(BaseDataset):
         super().__init__("APPLES","APPLES - Apnea Positive Pressure Long-term Efficacy Study")
 
     def _setup_dataset_config(self):
-        self.ann2label ={'W': "W",
-                        'N1': "N1",
-                        'N2': "N2",
-                        'N3': "N3",
-                        'R': "REM",
-                        '?': "UNK",
-                        'L': "UNK", # treat epochs with L as unknown
+        self.ann2label ={'W': SleepStage.W,
+                        'N1': SleepStage.N1,
+                        'N2': SleepStage.N2,
+                        'N3': SleepStage.N3,
+                        'R': SleepStage.REM,
+                        '?': SleepStage.UNK,
+                        'L': SleepStage.UNK, # treat epochs with L as unknown
                     }
         
         self.inter_dataset_mapping = {

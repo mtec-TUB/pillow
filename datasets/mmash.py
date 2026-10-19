@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timezone
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 @register_dataset("MMASH")
 class MMASH(BaseDataset):
@@ -168,8 +169,8 @@ class MMASH(BaseDataset):
 
 
     def _setup_dataset_config(self):
-        self.ann2label = {"W": "W",
-                          "Sleep": "SLEEP"}
+        self.ann2label = {"W": SleepStage.W,
+                          "Sleep": SleepStage.SLEEP}
 
         
         self.channel_names =  ['Axis1', 'Axis2', 'Axis3', 'Steps', 'HR', 'Inclinometer Off', 'Inclinometer Standing', 

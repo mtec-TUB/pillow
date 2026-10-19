@@ -7,6 +7,7 @@ import pandas as pd
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 
 @register_dataset("APOE")
@@ -18,15 +19,15 @@ class APOE(BaseDataset):
         self.has_end_alignment = True
 
     def _setup_dataset_config(self):
-        self.ann2label = {  0: "W",
-                            1: "N1",
-                            2: "N2",
-                            3: "N3",
-                            4: "N3",  # Follow AASM Manual
-                            5: "REM",
-                            7: "UNK",
-                            8: "UNK",
-                            10: "UNK",
+        self.ann2label = {  0: SleepStage.W,
+                            1: SleepStage.N1,
+                            2: SleepStage.N2,
+                            3: SleepStage.N3,
+                            4: SleepStage.N3,  # Follow AASM Manual
+                            5: SleepStage.REM,
+                            7: SleepStage.UNK,
+                            8: SleepStage.UNK,
+                            10: SleepStage.UNK,
                         }
         
         

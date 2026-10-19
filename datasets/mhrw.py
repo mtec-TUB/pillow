@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timezone
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
+from psg_processing.utils import SleepStage
 
 @register_dataset("MHRW")
 class MHRW(BaseDataset):
@@ -140,13 +141,13 @@ class MHRW(BaseDataset):
 
 
     def _setup_dataset_config(self):
-        self.ann2label = {0: "W",
-                          1: "N1",
-                          2: "N2",
-                          3: "N3",
-                          4: "N3", # According to AASM
-                          5: "REM",
-                          -1: "UNK"}
+        self.ann2label = {0: SleepStage.W,
+                          1: SleepStage.N1,
+                          2: SleepStage.N2,
+                          3: SleepStage.N3,
+                          4: SleepStage.N3, # According to AASM
+                          5: SleepStage.REM,
+                          -1: SleepStage.UNK}
 
         
         self.channel_names =  ['heartrate', 'acc_x', 'acc_y', 'acc_z', 'steps']
