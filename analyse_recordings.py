@@ -6,7 +6,7 @@ Metrics computed per recording:
                                   (lights-off = recording start, lights-on = recording end)
   - Total Sleep Time (TST):       sum of all non-wake, non-movement, non-unknown epochs (minutes)
   - Sleep Onset Latency (SOL):    time from start of recording (lights-out) to the FIRST
-                                  epoch of any sleep stage (N1/N2/N3/REM).
+                                  epoch of any sleep stage (N1/N2/N3/REM/SLEEP).
                                   Returns recording_min if no sleep occurs.
   - Sleep Efficiency (SE):        TST / TIB (%)
   - WASO (min):                   wake time after sleep onset until END OF RECORDING (lights-on),
@@ -22,7 +22,7 @@ Definitions
     (includes the final awakening / WAFA, not just inter-sleep wake)
 
 Stage label mapping:
-  W=0, N1=1, N2=2, N3=3, REM=4, MOVE=5, UNK=6
+  W=0, N1=1, N2=2, N3=3, REM=4, MOVE=5, UNK=6, SLEEP=7 (see psg_processing.utils.config.SleepStage)
 """
 
 import os
@@ -34,8 +34,7 @@ import pandas as pd
 from pathlib import Path
 from collections import Counter
 
-STAGE_DICT = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "MOVE": 5, "UNK": 6}
-SLEEP_STAGES = {STAGE_DICT["N1"], STAGE_DICT["N2"], STAGE_DICT["N3"], STAGE_DICT["REM"]}
+from psg_processing.utils import SleepStage, SLEEP_STAGES
 
 def extract_channels(h5f):
     if "signals" in h5f:
@@ -46,10 +45,10 @@ def extract_channels(h5f):
 def compute_metrics(h5_path):
     """
     Returns:
-        Dictionary with keys: file, tst_min, sol_min, se_pct, tib_min,
+        Dictionary with keys: file, tst_min, sol_min, se_pct, waso_min, tib_min,
         n1_pct, n2_pct, n3_pct, rem_pct,
-        recording_min, n_epochs, epoch_dur_s,
-        n_wake, n_n1, n_n2, n_n3, n_rem, n_move, n_unk
+        n_waso, recording_min, n_epochs, epoch_dur_s,
+        n_wake, n_n1, n_n2, n_n3, n_rem, n_move, n_unk, n_unstaged_sleep
     """
     # Initialize everything as NaN/Empty
     res = {
@@ -58,6 +57,7 @@ def compute_metrics(h5_path):
         "n3_pct": np.nan, "rem_pct": np.nan, "recording_min": np.nan, "n_epochs": np.nan,
         "epoch_dur_s": np.nan, "n_wake": np.nan, "n_n1": np.nan, "n_n2": np.nan,
         "n_n3": np.nan, "n_rem": np.nan, "n_move": np.nan, "n_unk": np.nan,
+        "n_unstaged_sleep": np.nan, 
         "n_waso": np.nan, "channels": []
     }
 
@@ -81,14 +81,15 @@ def compute_metrics(h5_path):
         channels = extract_channels(h5f)
 
         # Per-stage epoch counts
-        n_wake  = int(np.sum(labels == STAGE_DICT["W"]))
-        n_n1    = int(np.sum(labels == STAGE_DICT["N1"]))
-        n_n2    = int(np.sum(labels == STAGE_DICT["N2"]))
-        n_n3    = int(np.sum(labels == STAGE_DICT["N3"]))
-        n_rem   = int(np.sum(labels == STAGE_DICT["REM"]))
-        n_move  = int(np.sum(labels == STAGE_DICT["MOVE"]))
-        n_unk   = int(np.sum(labels == STAGE_DICT["UNK"]))
-        n_sleep = n_n1 + n_n2 + n_n3 + n_rem  # MOVE and UNK excluded from TST
+        n_wake  = int(np.sum(labels == SleepStage.W))
+        n_n1    = int(np.sum(labels == SleepStage.N1))
+        n_n2    = int(np.sum(labels == SleepStage.N2))
+        n_n3    = int(np.sum(labels == SleepStage.N3))
+        n_rem   = int(np.sum(labels == SleepStage.REM))
+        n_move  = int(np.sum(labels == SleepStage.MOVE))
+        n_unstaged_sleep = int(np.sum(labels == SleepStage.SLEEP)) # unstaged sleep epochs
+        n_unk   = int(np.sum(labels == SleepStage.UNK))
+        n_sleep = n_n1 + n_n2 + n_n3 + n_rem + n_unstaged_sleep  # MOVE and UNK excluded from TST
 
         n_epochs      = len(labels)
         recording_min = n_epochs * epoch_dur_min
@@ -116,7 +117,7 @@ def compute_metrics(h5_path):
         # includes the final awakening period
         if first_sleep_idx is not None:
             post_onset_labels = labels[first_sleep_idx:]
-            n_waso  = int(np.sum(post_onset_labels == STAGE_DICT["W"]))
+            n_waso  = int(np.sum(post_onset_labels == SleepStage.W))
             waso_min = round(n_waso * epoch_dur_min, 2)
         else:
             n_waso   = 0
@@ -132,7 +133,8 @@ def compute_metrics(h5_path):
             "n2_pct": stage_pct(n_n2), "n3_pct": stage_pct(n_n3), "rem_pct": stage_pct(n_rem),
             "recording_min": round(recording_min, 2), "n_epochs": n_epochs,
             "n_wake": n_wake, "n_n1": n_n1, "n_n2": n_n2, "n_n3": n_n3,
-            "n_rem": n_rem, "n_move": n_move, "n_unk": n_unk, "n_waso": n_waso
+            "n_rem": n_rem, "n_move": n_move, "n_unk": n_unk, "n_unstaged_sleep": n_unstaged_sleep,
+            "n_waso": n_waso,
         })
 
         return res
