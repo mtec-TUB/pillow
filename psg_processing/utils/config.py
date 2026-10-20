@@ -1,3 +1,4 @@
+import difflib
 import logging
 from pathlib import Path
 from enum import Enum, IntEnum
@@ -45,7 +46,19 @@ class ProcessorConfig:
     }
     VALID_RESCALE_UNITS = {"uV", "mV", "V"}
 
+    # All parameters accepted in config.yaml (each one is stored under an attribute of the same name)
+    VALID_KEYS = {
+        "dataset", "base_data_dir", "data_dir", "output_dir", "output_format", "logging_level", "action",
+        "alignment", "filter_type", "overwrite", "filter", "map_channel_names", "rm_move", "rm_unk",
+        "use_annot", "num_workers", "resample", "epoch_duration", "min_sleep_epochs", "channels",
+        "mapped_channels", "select_epochs", "select_edges", "truncate_non_sleep_end", "iir_filter_order",
+        "filter_freq", "rescale_unit", "pad_values",
+    }
+
     def __init__(self, **kwargs):
+        # Reject unknown (e.g. misspelled) parameters before they are silently ignored
+        self._validate_keys(kwargs)
+
         # validate and set all required parameters
 
         self.dataset = kwargs.get("dataset")
@@ -117,6 +130,16 @@ class ProcessorConfig:
 
         # ---------- Cross-checks ----------
         self._validate_consistency()
+
+    def _validate_keys(self, kwargs):
+        unknown = sorted(set(kwargs) - self.VALID_KEYS)
+        if not unknown:
+            return
+        hints = []
+        for key in unknown:
+            close = difflib.get_close_matches(key, self.VALID_KEYS, n=1)
+            hints.append(f"'{key}' (did you mean '{close[0]}'?)" if close else f"'{key}'")
+        raise ConfigError(f"Unknown config parameter(s): {', '.join(hints)}")
 
     def _validate_enum(self, value, valid_set, name):
         if value not in valid_set:
