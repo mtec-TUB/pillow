@@ -102,7 +102,7 @@ class CHAT(BaseDataset):
             "Position": self.Mapping(self.TTRef.POSITION, None),
             "SaO2": self.Mapping(self.TTRef.SPO2, None),
             "Chest": self.Mapping(self.TTRef.THORACIC, None),
-            "CPAP Flow": self.Mapping(self.TTRef.CPAP, None),
+            "CPAP": self.Mapping(self.TTRef.CPAP, None),
         }
         
 

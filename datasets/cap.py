@@ -83,7 +83,7 @@ class CAP(BaseDataset):
             "P4": self.Mapping(self.TTRef.P4, None),
             "P4-O2": self.Mapping(self.TTRef.P4, self.TTRef.O2),
             "ECG": self.Mapping(self.TTRef.ECG, None),
-            "flow": self.Mapping(self.TTRef.AIRFLOW, None),
+            "Flow": self.Mapping(self.TTRef.AIRFLOW, None),
             "LOC": self.Mapping(self.TTRef.EL, self.TTRef.LPA),
             "O2-A1": self.Mapping(self.TTRef.O2, self.TTRef.LPA),
             "T3": self.Mapping(self.TTRef.T7, None),

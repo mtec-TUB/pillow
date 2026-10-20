@@ -44,7 +44,7 @@ class SHHS(BaseDataset):
             "EOG(R)": self.Mapping(self.TTRef.ER, self.TTRef.Nz),
             "ECG": self.Mapping(self.TTRef.ECG, None),
             "EMG": self.Mapping(self.TTRef.EMG_CHIN, None),
-            "Position": self.Mapping(self.TTRef.POSITION, None),
+            "POSITION": self.Mapping(self.TTRef.POSITION, None),
             "SaO2": self.Mapping(self.TTRef.SPO2, None),
             "SOUND": self.Mapping(self.TTRef.SNORE, None),
             "CPAP": self.Mapping(self.TTRef.CPAP, None),

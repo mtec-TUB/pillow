@@ -33,7 +33,6 @@ class STAGES(BaseDataset):
         self.inter_dataset_mapping = {
             "Abdomen": self.Mapping(self.TTRef.ABDOMINAL, None),
             "Airflow": self.Mapping(self.TTRef.AIRFLOW, None),
-            "Cflow": self.Mapping(self.TTRef.CPAP, None),
             "C3-M2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
             "C4-M1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
             "Chest": self.Mapping(self.TTRef.THORACIC, None),
@@ -53,7 +52,7 @@ class STAGES(BaseDataset):
             "BodyPosition": self.Mapping(self.TTRef.POSITION, None),
             "C3": self.Mapping(self.TTRef.C3, None),
             "C4": self.Mapping(self.TTRef.C4, None),
-            "CPAP": self.Mapping(self.TTRef.CPAP, None),
+            "Cflow": self.Mapping(self.TTRef.CPAP, None),
             "Cz": self.Mapping(self.TTRef.Cz, None),
             "EEG_A1-A2": self.Mapping(self.TTRef.LPA, self.TTRef.RPA),
             "EEG_Fp1-A2": self.Mapping(self.TTRef.Fp1, self.TTRef.RPA),
@@ -116,10 +115,8 @@ class STAGES(BaseDataset):
                                     'LAT2':['L-Leg2','L-LEG2','L-LEG_2'],
                                     "LOC_A2": ['EOG_LOC-A2','E1M2'],
                                     'LOC': ['E1','E1_(LEOG)','L-EOG','EOG1'],
-                                    'Masseter_1': ['Massater_1',  'Masseter_1',],
-                                    'Masseter_2': ['Massater_2', 'Masseter_2',],
                                     'Right-Masseter': ['Massater_1',  'Masseter_1', 'Mass-R', 'Right-Masseter1','Right_Masseter_1'],
-                                    'Left-Masseter': ['Mass-L','Left_Masseter_1'],
+                                    'Left-Masseter': ['Mass-L','Left_Masseter_1','Massater_2', 'Masseter_2'],
                                     'Movement': ['Move.', 'Mvmt',],
                                     'NasalOr':['NasOr', 'NasalOr',],
                                     'Nasal_pressure': ['NASAL_PRESSURE','Nasal_Pressure',],
@@ -177,7 +174,6 @@ class STAGES(BaseDataset):
                                'Tidal_Vol', 'WAVE', 'WPLM_ST', 'WPLM_ST.1', 'Winx-Oral', 'Winx-Pump', 'cNEP_pressure', 'unused', 'wPLMl', 'wPLMl_Sta', 'wPLMr', 'wPLMr_Sta', 'x', 'x.1', 'x.2', 
                                'xPAP_CPAP', 'xPAP_EPAP', 'xPAP_EPAPMax', 'xPAP_EPAPMin', 'xPAP_IPAP', 'xPAP_IPAPMax', 'xPAP_IPAPMin', 'xPAP_MaxPress', 'xPAP_PSMax', 'xPAP_PSMin']
         
-        # ACHTUNG EEG in MSTR00200 nur digital??
         self.channel_types = {'analog': ['NasOr2', 'Pes-L1', 'RAT1-RAT2', 'PAP_Leak', '21', 'F3-M2', 'Fp2:Fp1', 'T4M1', 'NasalSn', 'Chin', 'F4-C4', 'NasalOr', 'ECG_II', 'Leg_12', 'wPLMl_Sta', 
                                          'E2M2', 'Chin2', 'Tidal_Vol', 'Right-Masseter1', 'RLEG', 'Arms-R', 'Snore2', 'SNORE', 'C4-M1', 'C-LEAK', 'O1-M2', 'CO2_EndTidal2', 'ROC', 'Flow_Patient2', 
                                          'EEG_F3-A22', 'LLeg4', 'Press_Patient', 'FP2-F4', 'EEG_T5-A2', 'R-LEG2', 'LAT', 'RAT', 'C3:C4', 'Fp1', 'EEG_T6-A1', 'CPAP_Leak', 'E2_(REOG)', 'Flow', 

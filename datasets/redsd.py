@@ -86,7 +86,6 @@ class REDSD(BaseDataset):
             'PO4': self.Mapping(self.TTRef.PO4, self.TTRef.FCz),
             'PO8': self.Mapping(self.TTRef.PO8, self.TTRef.FCz),
             'O2': self.Mapping(self.TTRef.O2, self.TTRef.FCz),
-            'Cpz': self.Mapping(self.TTRef.CPz, self.TTRef.FCz)
         }
         
         self.channel_types = {'analog': ['Fp1', 'AF3', 'AF7', 'Fz', 'F1', 'F3', 'F5', 'F7', 'FC1', 'FC3', 'FC5', 'FT7', 'Cz', 'C1', 'C3', 'C5', 'T7', 'CP1', 'CP3', 
