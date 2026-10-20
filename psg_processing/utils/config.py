@@ -102,6 +102,7 @@ class ProcessorConfig:
         self.epoch_duration: int = self._validate_epoch_duration(kwargs.get("epoch_duration"))
         self.min_sleep_epochs: int = self._validate_min_sleep_epochs(kwargs.get("min_sleep_epochs"))
         self.channels: List[str] = self._validate_channels(kwargs.get("channels"))
+        self.mapped_channels: List[str] = self._validate_channels(kwargs.get("mapped_channels"))
         self.select_epochs: Union[int, str] = self._validate_select_epochs(kwargs.get("select_epochs"))
         self.select_edges: str = self._validate_enum(
             kwargs.get("select_edges"),

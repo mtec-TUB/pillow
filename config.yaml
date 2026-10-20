@@ -62,9 +62,14 @@ filter_freq:
   snoring: [10, null]  # Snoring: 10+ Hz (high-pass)
   default: [null, null]  # Default for all channels that do not belong to above groups: no filtering
   
-# List of specific channel names to process (empty list = process all channels)
+# List of original channel names to process
 # Example: ["C3", "C4", "EOG-L", "EOG-R", "EMG", "ECG"]
 channels: []
+# List of harmonized channel names to process, combined with 'channels' option
+# Every original channel whose name is mapped to one of these (via intra- and inter-dataset mapping) is selected automatically
+# Example: ["EL", "ABDOMINAL", "C3-RPA"]
+mapped_channels: []
+# If both lists are empty, all available channels will be processed
 
 # Map channel names to standards names if possible (true = map names, false = use original names)
 map_channel_names: true

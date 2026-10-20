@@ -276,9 +276,12 @@ class FileProcessor:
                     "start_time_shift":        0.0,
                 })
 
-            # Intersection of available channels in psg file and configured channels to process
+            # Intersection of available channels in psg file and configured channels to process,
+            # plus all channels whose harmonized name is listed in mapped_channels
+            file_channels = self.dataset.get_channels(self.logger, self.psg_fname)
             channels = list(
-                set(self.config.channels) & set(self.dataset.get_channels(self.logger, self.psg_fname))
+                (set(self.config.channels) & set(file_channels))
+                | set(self.dataset.channels_mapped_to(file_channels, self.config.mapped_channels))
             )
             if len(channels) == 0:
                 self.logger.warning("No selected channels found in this file. Skipping.")

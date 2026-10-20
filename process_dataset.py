@@ -106,8 +106,19 @@ def main(config : ProcessorConfig):
 
     if config.action == "process":
         # If channels are specified in config, set them in dataset, else use all available
-        if config.channels == []:
+        if config.channels == [] and config.mapped_channels == []:
             config.channels = dataset.channel_names
+
+        # Show which known original channel names lead to the requested harmonized names
+        for label in config.mapped_channels:
+            known_channels = set(dataset.channel_names)
+            for aliases in dataset.intra_dataset_mapping.values():
+                known_channels.update(aliases)
+            matches = sorted(dataset.channels_mapped_to(known_channels, [label]))
+            if matches:
+                print(f"Mapped channel {label} <- {matches}")
+            else:
+                print(f"WARNING: No known channel of {dataset.dset_name} maps to {label}")
 
         # Initialize DatasetProcessor
         processor = DatasetProcessor(dataset, config)

@@ -130,10 +130,15 @@ class BaseDataset(ABC):
         mapping = self.inter_dataset_mapping
         if harm_channel in mapping:
             chnl = mapping[harm_channel] # change name to harmonized one
-            harm_channel = chnl.get_mapping()      
-        
+            harm_channel = chnl.get_mapping()
+
         return harm_channel
-    
+
+    def channels_mapped_to(self, channels, labels):
+        """Return all channel names from 'channels' whose harmonized name (see map_channel) is in 'labels'."""
+        labels = set(labels)
+        return [ch for ch in channels if self.map_channel(ch) in labels]
+
     class Mapping:
         def __init__(self, ref1, ref2):
             self.ref1 = ref1
