@@ -103,7 +103,7 @@ use_annot: true
 # - match_shorter: match shorter one (crop the longer one at front and/or end), guarantees no padding
 # - match_longer: match longer one (pad signal with VALUE to match longer annotations, and/or pad annotations with VALUE to match longer signal)
 # - match_signal: match signal length (crop or pad annotation with VALUE if needed but never change signal)
-# - match_annot:match annot length (crop or pad signal with VALUE if needed but never change annotation)
+# - match_annot: match annot length (crop or pad signal with VALUE if needed but never change annotation)
 alignment: match_signal
 
 # Padding values for signal and labels when using alignment options that require padding
@@ -119,11 +119,12 @@ rm_move: false
 # Remove Unknown epochs during processing (only if 'use_annot' is true)
 rm_unk: false
 
-# Selection of epochs based on Annotation (only if 'use_annot' is true)
+# Selection of epochs based on Annotation
 # Used to remove extensive wake periods at the start and end of recordings while keeping some wake epochs for context (e.g., for sleep onset detection)
 # Options
 # - all: to keep all available epochs
 # - lights: to keep only epochs in between Lights off and on markers if available in this dataset
+#   - if lights marker are only available inside annotation, "use_annot" must be set to true
 #   - set alignment to "match_longer" for best results
 # - integer number: to determine how many epochs of WAKE (Non-Sleep) to keep at start and end (e.g., 60 to keep 30 minutes with epoch duration of 30s). truncate_non_sleep_end must be set to false.
 select_epochs: lights
