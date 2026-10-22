@@ -2,6 +2,6 @@
 Core processing modules for PSG data.
 """
 
-from .dataset_explorer import Dataset_Explorer
-from .processor import DatasetProcessor
+from .dataset_explorer import DatasetExplorer
+from .processor import DatasetProcessor, FileProcessor
 from .signal_processor import SignalProcessor

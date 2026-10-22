@@ -4,15 +4,16 @@ Dataset exploration and analysis tools for PSG data.
 
 import os
 import glob
+import logging
+from collections import Counter
+from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
+
 import numpy as np
 from numba import njit
 from tqdm import tqdm
 from natsort import natsorted
-from collections import Counter
-from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
-import logging
 
-from ..utils import LoggingManager
+from psg_processing.utils import LoggingManager
 
 # Amplitude resolution threshold (2^7)
 DIGITAL_SIGNAL_MAX_UNIQUE_VALUES = 128
@@ -65,6 +66,7 @@ class _ChannelDiscoveryTask:
         self.console_level = console_level
 
     def run(self):
+        """Return (psg_fname, channel names found in this file)."""
         logging_manager = LoggingManager(console_level=self.console_level)
         logger, _ = logging_manager.create_file_logger(os.path.basename(self.psg_fname))
         channels = self.dataset.get_channels(logger, self.psg_fname)
@@ -72,7 +74,8 @@ class _ChannelDiscoveryTask:
 
 
 class _ChannelTypeTask:
-    """Picklable unit of work run in a worker process: classify one file's still-digital channels."""
+    """Picklable unit of work run in a worker process:
+    classify one file's still-digital channels."""
 
     def __init__(self, dataset, psg_fname, digital_channels, console_level):
         self.dataset = dataset
@@ -81,6 +84,7 @@ class _ChannelTypeTask:
         self.console_level = console_level
 
     def run(self):
+        """Return (psg_fname, still-digital channels that turned out analog in this file)."""
         logging_manager = LoggingManager(console_level=self.console_level)
         logger, _ = logging_manager.create_file_logger(os.path.basename(self.psg_fname))
 
@@ -95,7 +99,7 @@ class _ChannelTypeTask:
         return self.psg_fname, newly_analog
 
 
-class Dataset_Explorer:
+class DatasetExplorer:
     """
     A class for exploring and analyzing polysomnography (PSG) datasets.
 
@@ -112,7 +116,7 @@ class Dataset_Explorer:
         log_level=logging.INFO,
         num_workers=None,
     ):
-        """Initialize the Dataset_Explorer with empty containers and logger."""
+        """Initialize the DatasetExplorer with empty containers and logger."""
         self.dataset = dataset
         self.data_dir = data_dir
         self.ann_dir = ann_dir
@@ -139,32 +143,32 @@ class Dataset_Explorer:
 
         # Discover PSG signal files
         if not os.path.exists(self.data_dir):
-            self.logger.error(f"Data directory does not exist: {self.data_dir}")
+            self.logger.error("Data directory does not exist: %s", self.data_dir)
             raise FileNotFoundError(f"Data directory does not exist: {self.data_dir}")
 
         psg_ext = self.dataset.file_extensions['psg_ext']
 
         self.logger.info(
-            f"Searching for signal files: {os.path.join(self.data_dir, psg_ext)}"
+            "Searching for signal files: %s", os.path.join(self.data_dir, psg_ext)
         )
 
         self.psg_fnames = glob.glob(
             os.path.join(self.data_dir, psg_ext), recursive=True
         )
         self.psg_fnames = natsorted(self.psg_fnames)
-        self.logger.info(f"Found {len(self.psg_fnames)} signal files")
+        self.logger.info("Found %d signal files", len(self.psg_fnames))
 
         if which == "both":
             # Discover annotation files
             if not os.path.exists(self.ann_dir):
-                self.logger.error(f"Annotation directory does not exist: {self.ann_dir}")
+                self.logger.error("Annotation directory does not exist: %s", self.ann_dir)
                 raise FileNotFoundError(
                     f"Annotation directory does not exist {self.ann_dir}"
                 )
 
             ann_ext = self.dataset.file_extensions['ann_ext']
             self.logger.info(
-                f"Searching for annotation files: {os.path.join(self.ann_dir, ann_ext)}"
+                "Searching for annotation files: %s", os.path.join(self.ann_dir, ann_ext)
             )
 
             self.ann_fnames = glob.glob(
@@ -175,20 +179,22 @@ class Dataset_Explorer:
             if 'ann_ext2' in self.dataset.file_extensions:
                 ann_ext2 = self.dataset.file_extensions['ann_ext2']
                 self.logger.info(
-                    f"Searching for additional annotation files: {os.path.join(self.ann_dir, ann_ext2)}"
+                    "Searching for additional annotation files: %s",
+                    os.path.join(self.ann_dir, ann_ext2)
                 )
                 ann_fnames2 = glob.glob(
                     os.path.join(self.ann_dir, ann_ext2), recursive=True
                 )
                 self.ann_fnames.extend(ann_fnames2)
-                self.logger.info(f"Found {len(ann_fnames2)} additional annotation files")
+                self.logger.info("Found %d additional annotation files", len(ann_fnames2))
 
-            self.logger.info(f"Total annotation files: {len(self.ann_fnames)}")
+            self.logger.info("Total annotation files: %d", len(self.ann_fnames))
 
         # # Validate that we have matching numbers of files
         # if ann_ext != "" and len(self.ann_fnames) != len(self.psg_fnames):
         #     self.logger.warning(
-        #         f"Number of PSG files and Annotation files do not match: ({len(self.psg_fnames)}/{len(self.ann_fnames)})"
+        #         f"Number of PSG files and Annotation files do not match: "
+        #         f"({len(self.psg_fnames)}/{len(self.ann_fnames)})"
         #     )
 
         return self.psg_fnames, self.ann_fnames
@@ -240,14 +246,15 @@ class Dataset_Explorer:
                         psg_fname, channels = future.result()
                         if not channels:
                             self.logger.warning(
-                                f"Skipping file with no readable channels: {os.path.basename(psg_fname)}"
+                                "Skipping file with no readable channels: %s",
+                                os.path.basename(psg_fname)
                             )
                         else:
                             self.ch_names.update(channels)
                         pbar.update(1)
 
         self.logger.info(
-            f"Discovery complete! Found {len(self.ch_names)} unique channels across all files."
+            "Discovery complete! Found %d unique channels across all files.", len(self.ch_names)
         )
 
         return self.ch_names
@@ -269,12 +276,13 @@ class Dataset_Explorer:
             channel_names = self.ch_names.keys() # Get just the channel names without frequencies
 
         self.logger.info(
-            f"Found {len(channel_names)} channels to analyze across {len(self.psg_fnames)} files"
+            "Found %d channels to analyze across %d files", len(channel_names), len(self.psg_fnames)
         )
 
         channel_types = {"analog": [], "digital": []}
 
-        # Set default to digital and only change to analog if we find evidence of it being analog in any file
+        # Set default to digital and only change to analog
+        # if we find evidence of it being analog in any file
         channel_dict = {channel: 'digital' for channel in channel_names}
 
         channel_dict = self.analyze_channel_types(self.psg_fnames, channel_dict)
@@ -284,9 +292,9 @@ class Dataset_Explorer:
             channel_types[ch_type].append(channel)
 
         # Print final summary
-        self.logger.info(f"\nAnalysis complete!")
-        self.logger.info(f"Analog channels: {len(channel_types['analog'])}")
-        self.logger.info(f"Digital channels: {len(channel_types['digital'])}")
+        self.logger.info("\nAnalysis complete!")
+        self.logger.info("Analog channels: %d", len(channel_types['analog']))
+        self.logger.info("Digital channels: %d", len(channel_types['digital']))
 
         return channel_types
 
@@ -307,7 +315,8 @@ class Dataset_Explorer:
                 fname_iter = iter(remaining_fnames)
                 tasks = {}
 
-                with tqdm(total=len(remaining_fnames), desc="Analyzing files", unit="file") as outer_bar:
+                with tqdm(total=len(remaining_fnames), desc="Analyzing files",
+                          unit="file") as outer_bar:
                     more_files = True
                     while True:
                         still_digital = {ch for ch, t in channel_dict.items() if t == 'digital'}
@@ -324,7 +333,8 @@ class Dataset_Explorer:
                             except StopIteration:
                                 more_files = False
                                 break
-                            task = _ChannelTypeTask(self.dataset, psg_fname, still_digital, console_level)
+                            task = _ChannelTypeTask(self.dataset, psg_fname,
+                                                    still_digital, console_level)
                             tasks[executor.submit(task.run)] = psg_fname
 
                         if not tasks:
@@ -343,19 +353,21 @@ class Dataset_Explorer:
                         outer_bar.set_postfix({"n_digital": n_digital})
 
         except KeyboardInterrupt:
-            self.logger.warning(f"\n\nKeyboard interrupt detected during channel analysis!")
+            self.logger.warning("\n\nKeyboard interrupt detected during channel analysis!")
             # Convert to final lists
             channel_types = {"analog": [], "digital": []}
             for channel, ch_type in channel_dict.items():
                 channel_types[ch_type].append(channel)
             print(f"Current status of analysis: {channel_types}")
-            exec = input("Do you want to continue analysing (y) or finalizing the results now (n):")  # Wait for user input before finalizing
-            if str(exec).lower() == "y":
+            # Wait for user input before finalizing
+            answer = input("Do you want to continue analysing (y) "
+                           "or finalizing the results now (n):")
+            if str(answer).lower() == "y":
                 still_pending = [f for f in remaining_fnames if f not in completed_fnames]
-                channel_dict = self.analyze_channel_types(still_pending, channel_dict)  # Continue analysis with the remaining files
+                # Continue analysis with the remaining files
+                channel_dict = self.analyze_channel_types(still_pending, channel_dict)
             else:
-                self.logger.info(f"Finalizing results with current analysis status...")
+                self.logger.info("Finalizing results with current analysis status...")
         except Exception as e:
-            self.logger.error(f"Error during channel type analysis: {e}")
-        finally:
-            return channel_dict
+            self.logger.error("Error during channel type analysis: %s", str(e))
+        return channel_dict

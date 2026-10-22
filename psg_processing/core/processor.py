@@ -5,20 +5,21 @@ Main dataset processor for PSG data preparation.
 import logging
 import os
 import re
+import glob
 from math import ceil, floor
 from datetime import datetime, date, time, timedelta
-from pyedflib import EdfWriter
-import h5py
-import glob
 from pathlib import Path
 from decimal import Decimal
-import numpy as np
-from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
 
-from ..utils import LoggingManager, Alignment, SleepStage, SLEEP_STAGES
-from .dataset_explorer import Dataset_Explorer
-from .signal_processor import SignalProcessor
+from pyedflib import EdfWriter
+import h5py
+import numpy as np
+from tqdm import tqdm
+
+from psg_processing.utils import LoggingManager, Alignment, SleepStage, SLEEP_STAGES
+from psg_processing.core.dataset_explorer import DatasetExplorer
+from psg_processing.core.signal_processor import SignalProcessor
 
 logging.captureWarnings(True)
 
@@ -36,23 +37,26 @@ class DatasetProcessor:
         self.logging_manager = LoggingManager(console_level=config.logging_level)
         self.dataset = dataset
         self.config = config
+        self.pipeline_logger = self.logging_manager.create_pipeline_logger()
 
     def process_files(self):
+        """
+        Process all PSG files in the dataset according to the provided configuration.
+        """
 
         try:
             tasks = []
 
             if self.config.overwrite:
-                log_files = glob.glob(os.path.join(self.config.output_dir, "**", "*.log"), recursive=True)
+                log_files = glob.glob(os.path.join(self.config.output_dir, "**", "*.log"),
+                                      recursive=True)
                 for f in log_files:
                     os.remove(f)
-
-            self.pipeline_logger = self.logging_manager.create_pipeline_logger()
 
             self.pipeline_logger.info("Starting dataset processing")
 
             # Get all PSG and Annot files names
-            psg_fnames, ann_fnames  = Dataset_Explorer(
+            psg_fnames, ann_fnames  = DatasetExplorer(
                 self.pipeline_logger,
                 self.dataset,
                 self.config.psg_dir,
@@ -64,7 +68,11 @@ class DatasetProcessor:
             if self.config.use_annot:
                 annotation_map = self._build_annot_lookup(psg_fnames, ann_fnames)
                 if len(annotation_map) < len(psg_fnames):
-                    self.pipeline_logger.info(f"{len(psg_fnames)-len(annotation_map)}/{len(psg_fnames)} PSG files have no matching annotation file and will be skipped.")
+                    self.pipeline_logger.info(
+                        "%d/%d PSG files have no matching annotation file and will be skipped.",
+                        len(psg_fnames) - len(annotation_map),
+                        len(psg_fnames),
+                    )
                 n_files_to_process = len(annotation_map)
             else:
                 n_files_to_process = len(psg_fnames)
@@ -79,10 +87,12 @@ class DatasetProcessor:
                     more_files_to_process = True
                     while True:
                         if not more_files_to_process and not tasks:
-                           break
-                        
-                        # Fill up worker tasks until max_workers is reached or no more files to process
-                        # Do not enqueue all files at once to handle Errors and stop processing immediatly
+                            break
+
+                        # Fill up worker tasks until max_workers is reached
+                        # or no more files to process.
+                        # Do not enqueue all files at once to handle Errors
+                        # and stop processing immediatly
                         while len(tasks) < max_workers:
                             try:
                                 psg_fname = next(psg_iter)
@@ -94,27 +104,31 @@ class DatasetProcessor:
                             if self.config.use_annot:
                                 ann_fname = annotation_map.get(psg_fname, None)
                                 if ann_fname is None:
-                                    continue # No matching annotation file found, skip this PSG file
+                                    # No matching annotation file found, skip this PSG file
+                                    continue
                             else:
                                 ann_fname = None
 
-                            file_processor = FileProcessor(self.config, self.dataset, psg_fname, ann_fname)
+                            file_processor = FileProcessor(self.config,
+                                                           self.dataset,
+                                                           psg_fname, ann_fname)
 
-                            future = executor.submit(file_processor._process_file)
+                            future = executor.submit(file_processor.process_file)
                             tasks.append(future)
-                            
+
                         # Get notified when at least one file is finished and resume this one
-                        # Filling with new file will happen in the next loop iteration -> handle errors before enqueuing new files
-                        # Maximal "n_worker" files will still get finished before stopping pipeline if an error occurs
-                        # Ensures that capacity of workers is used as good as possible, even if some files take much longer to process than others
-                        done,_ = wait(tasks, return_when=FIRST_COMPLETED)   
+                        # Filling with new file will happen in the next loop iteration
+                        # -> handle errors before enqueuing new files
+                        # Maximal "n_worker" files will still get finished
+                        # before stopping pipeline if an error occurs
+                        done,_ = wait(tasks, return_when=FIRST_COMPLETED)
 
                         for future in done:
                             try:
                                 future.result()  # Check for exceptions
                                 pbar.update(1)
                             except Exception as e:
-                                self.pipeline_logger.error(f"Processing failed: {e}")
+                                self.pipeline_logger.error("Processing failed: %s", str(e))
                                 executor.shutdown(cancel_futures=True)
                                 break
                             finally:
@@ -122,7 +136,7 @@ class DatasetProcessor:
                         else:
                             continue
                         break  # Break outer loop if an exception occurred in the inner loop
-                    
+
             # Finalize processing
             self.pipeline_logger.info("=" * 60)
             self.pipeline_logger.info("DATASET PROCESSING COMPLETED")
@@ -160,79 +174,94 @@ class DatasetProcessor:
 
 
 class FileProcessor:
-    """Class to process a single PSG file with one or multiple channels and save the processed data to file."""
+    """Class to process a single PSG file with one or multiple channels
+    and save the processed data to file."""
 
     def __init__(self, config, dataset, psg_fname, ann_fname):
         self.logging_manager = LoggingManager(console_level=config.logging_level)
+        self.logger = None
         self.config = config
         self.dataset = dataset
         self.psg_fname = psg_fname
         self.ann_fname = ann_fname
 
-    def _process_file(self):
+    def process_file(self):
         """Process a single PSG file for all specified channels."""
 
         try:
             # Start buffering logs for this file
             file_id = Path(self.psg_fname).stem
-            self.logger, buffer_handler = self.logging_manager.create_file_logger(file_identifier=file_id)
+            self.logger, buffer_handler = self.logging_manager.create_file_logger(
+                file_identifier=file_id
+            )
 
-            self.logger.info(f"Signal file: {Path(self.psg_fname).relative_to(self.config.psg_dir)}")
+            self.logger.info("Signal file: %s",
+                             Path(self.psg_fname).relative_to(self.config.psg_dir))
             if self.config.use_annot:
-                self.logger.info(f"Annotation file: {Path(self.ann_fname).relative_to(self.config.ann_dir)}")
+                self.logger.info("Annotation file: %s",
+                                 Path(self.ann_fname).relative_to(self.config.ann_dir))
 
-            # Initialize signal data dictionary which holds all necessary info for processing and saving
+            # Initialize signal data dictionary
+            # which holds all necessary info for processing and saving
             file_data = {
                 "psg_fname": self.psg_fname,
                 "ann_fname": self.ann_fname,
             }
 
-            if self.config.output_format in ["hdf5", "edf"]:
+            if self.config.output_format == "npz":
+                log_paths = {}  # Store log paths for each channel separately
+            else:   # edf, hdf5
                 file_output_path, log_path = self._setup_file_output()
                 # Skip if file already exists and overwrite is False
                 if os.path.exists(file_output_path) and not self.config.overwrite:
-                    self.logger.info(f"File already exists: {file_output_path}, skipping file.")
+                    self.logger.info("File already exists: %s, skipping file.", file_output_path)
                     return
-            else:
-                log_paths = {}  # Store log paths for each channel separately
 
             # Get Start datetime and duration of polysomnography data
             file_info = self.dataset.get_file_info(self.logger, self.psg_fname)
             if file_info == {}:
                 return
-            
+
             start_datetime = file_info["start_datetime"]
             if isinstance(start_datetime, datetime):
                 start_datetime = start_datetime.replace(tzinfo=None)
             file_data["start_datetime"] = start_datetime
-            self.logger.info(f"Start datetime: {start_datetime}")
+            self.logger.info("Start datetime: %s", start_datetime)
 
             if file_info["file_duration"] // self.config.epoch_duration < 1:
                 self.logger.warning(
-                    f"File does not hold at least one epoch, only {file_info['file_duration']:.2f} seconds, skipping file.")
+                    "File does not hold at least one epoch, only %.2f seconds, skipping file.",
+                    file_info["file_duration"],
+                )
                 return
 
             file_data["file_duration"] = file_info["file_duration"]
-            self.logger.info(f"File duration: {file_data['file_duration']} sec, {file_data['file_duration']/3600:.2f} h")
+            self.logger.info("File duration: %s sec, %.2f h",
+                             file_data["file_duration"], file_data["file_duration"]/3600)
 
             # Annotations and file-level label preparation
             if self.config.use_annot:
-                ann_stage_events, ann_startdatetime, lights_off, lights_on = self.dataset.ann_parse(self.ann_fname)
+                ann_stage_events, ann_startdatetime, lights_off, lights_on = \
+                    self.dataset.ann_parse(self.ann_fname)
                 if isinstance(ann_startdatetime, datetime):
                     ann_startdatetime = ann_startdatetime.replace(tzinfo=None)
                 file_data["ann_start_datetime"] = ann_startdatetime
                 file_data.update({"lights_off": lights_off, "lights_on": lights_on})
 
                 if ann_stage_events == []:
-                    self.logger.warning(f"No sleep stage annotations found in {os.path.basename(self.ann_fname)}, skipping file.")
+                    self.logger.warning("No sleep stage annotations found in %s, skipping file.",
+                                        os.path.basename(self.ann_fname))
                     return
-                
+
                 # Map dataset-labels to standardized labels and check consistency
-                labels = self.dataset.ann_label(self.logger, ann_stage_events, self.config.epoch_duration)
+                labels = self.dataset.ann_label(self.logger, ann_stage_events,
+                                                self.config.epoch_duration)
                 # Check how many sleep epochs are in the file
                 sleep_mask = np.isin(labels if labels.ndim == 1 else labels[:, 0], SLEEP_STAGES)
                 if np.sum(sleep_mask) < self.config.min_sleep_epochs:
-                    self.logger.warning("File contains less sleep epochs than required, skipping file.")
+                    self.logger.warning(
+                        "File contains less sleep epochs than required, skipping file."
+                    )
                     return
 
                 # Front alignment (file level)
@@ -241,7 +270,7 @@ class FileProcessor:
 
                 if start_delay != 0:
                     if not self.dataset.has_front_alignment:
-                        raise Exception(
+                        raise ValueError(
                             f"Signal/annotation start-time mismatch ({start_delay:.1f}s) but "
                             f"dataset {self.dataset.dset_name} has has_front_alignment=False. "
                             f"Please verify."
@@ -250,13 +279,16 @@ class FileProcessor:
                         self.logger, self.config.alignment, self.config.pad_values,
                         self.config.epoch_duration, start_delay,
                     )
-                    labels = self._apply_front_label_adjustment(labels, front_params["label_adjust_front"])
+                    labels = self._apply_front_label_adjustment(
+                        labels, front_params["label_adjust_front"]
+                    )
                     signal_adjust_front_sec = front_params["signal_adjust_front_sec"]
                     start_time_shift = -signal_adjust_front_sec
                     if start_time_shift and isinstance(start_datetime, datetime):
                         start_datetime = start_datetime + timedelta(seconds=start_time_shift)
                         file_data["start_datetime"] = start_datetime
-                        self.logger.info(f"Adjusted start datetime after front alignment: {start_datetime}")
+                        self.logger.info("Adjusted start datetime after front alignment: %s",
+                                         start_datetime)
                 else:
                     signal_adjust_front_sec = 0.0
                     start_time_shift        = 0.0
@@ -297,13 +329,16 @@ class FileProcessor:
                     file_output_path, log_path = self._setup_channel_output(channel_harm)
                     log_paths[channel] = log_path
 
-                # Skip if file already exists and overwrite is False (only for output format npz on this level)
+                # Skip if file already exists and overwrite is False
+                # (only for output format npz on this level)
                 if os.path.exists(file_output_path) and not self.config.overwrite:
-                    self.logger.info(f" File already exists: {file_output_path}, skipping channel {channel}.")
+                    self.logger.info(" File already exists: %s, skipping channel %s.",
+                                     file_output_path, channel)
                     continue
 
-                channel_processor = ChannelProcessor(self.logger, self.config, self.dataset, channel)
-                ch_result = channel_processor._process_channel(dict(file_data))
+                channel_processor = ChannelProcessor(self.logger, self.config,
+                                                     self.dataset, channel)
+                ch_result = channel_processor.process_channel(dict(file_data))
 
                 if ch_result is not None:
                     all_channel_data[channel_harm] = {
@@ -320,8 +355,10 @@ class FileProcessor:
 
             # If configured, use lights markers to get selection range
             if self.config.select_epochs == "lights":
-                # In some datasets, lights markers are derived on dataset level, in others they were already extracted from the annotation file
-                lights_off_ds, lights_on_ds = self.dataset.get_light_times(self.logger, self.psg_fname)
+                # In some datasets, lights markers are derived on dataset level,
+                # in others they were already extracted from the annotation file
+                lights_off_ds, lights_on_ds = self.dataset.get_light_times(self.logger,
+                                                                           self.psg_fname)
                 if lights_off_ds is not None:
                     file_data["lights_off"] = lights_off_ds
                 if lights_on_ds is not None:
@@ -331,11 +368,14 @@ class FileProcessor:
             else:
                 loff_epoch, lon_epoch = None, None
 
-            n_signal_epochs      = len(next(iter(all_channel_data.values()))["signal_epoched"]) # get the first channel's epoch count
-            n_real_signal_epochs = n_signal_epochs  # epoch count before any end-alignment padding
+            # get the first channel's epoch count
+            n_signal_epochs      = len(next(iter(all_channel_data.values()))["signal_epoched"])
+            # epoch count before any end-alignment padding
+            n_real_signal_epochs = n_signal_epochs
 
             # End alignment: reconcile signal epoch count with label count.
-            # Skipped when lights selection is configured and lights-on falls within the range both arrays already cover
+            # Skipped when lights selection is configured and lights-on falls
+            # within the range both arrays already cover
             if self.config.use_annot:
                 n_label_epochs      = len(labels)
                 if n_signal_epochs != n_label_epochs:
@@ -346,15 +386,21 @@ class FileProcessor:
                         pass
                     else:
                         if not self.dataset.has_end_alignment:
-                            raise Exception(
-                                f"Signal ({n_signal_epochs} epochs) and labels ({n_label_epochs} epochs) "
-                                f"do not match. Dataset {self.dataset.dset_name} has no end alignment "
+                            raise ValueError(
+                                f"Signal ({n_signal_epochs} epochs) and labels "
+                                f"({n_label_epochs} epochs) do not match. "
+                                f"Dataset {self.dataset.dset_name} has no end alignment "
                                 f"defined (has_end_alignment=False). Please verify."
                             )
-                        labels = self._end_align(labels, all_channel_data, n_signal_epochs, n_label_epochs)
+                        labels = self._end_align(labels, all_channel_data,
+                                                 n_signal_epochs, n_label_epochs)
 
-            # Compute epoch selection based on lights marker and/or MOVE/UNK removal and/or truncate_non_sleep_end
-            n_epochs   = len(labels) if self.config.use_annot else len(next(iter(all_channel_data.values()))["signal_epoched"])
+            # Compute epoch selection based on lights marker
+            # and/or MOVE/UNK removal and/or truncate_non_sleep_end
+            if self.config.use_annot:
+                n_epochs = len(labels)
+            else:
+                n_epochs = len(next(iter(all_channel_data.values()))["signal_epoched"])
             labels_sel = labels if self.config.use_annot else None
             select_idx = self._compute_select_idx(labels_sel, loff_epoch, lon_epoch, n_epochs)
             if select_idx is None:
@@ -377,8 +423,9 @@ class FileProcessor:
 
             labels_shape = labels_out.shape if self.config.use_annot else None
             self.logger.info(
-                f"Data after selection: signal {next(iter(all_channel_data.values()))['signal'].shape}, "
-                f"labels {labels_shape}"
+                "Data after selection: signal %s, labels %s",
+                next(iter(all_channel_data.values()))['signal'].shape,
+                labels_shape
             )
 
             self._save_processed_data(all_channel_data)
@@ -386,14 +433,15 @@ class FileProcessor:
 
         except Exception as e:
             # Log the exception
-            self.logger.error(f"Error processing file: {str(e)}", exc_info=True)
-            raise  # Re-raise after logging        
+            self.logger.error("Error processing file: %s", str(e), exc_info=True)
+            raise  # Re-raise after logging
         finally:
 
             # Flush buffered logs to console and file(s), even if an exception occurred
             if self.config.output_format == "npz":
-                if log_paths == {}:
-                    # Error happened before log paths could be set up, flush to console for this case
+                if not log_paths:
+                    # Error happened before log paths could be set up,
+                    # flush to console for this case
                     buffer_handler.flush_to_console()
                 # For npz, flush to each channel's log file with channel filtering
                 for channel, log_path in log_paths.items():
@@ -402,7 +450,6 @@ class FileProcessor:
                 # For edf/hdf5, flush all channels' logs to single file
                 buffer_handler.flush_to_console_and_file(log_path)
 
-            
     def _apply_front_label_adjustment(self, labels, label_adjust_front):
         """Crop (negative) or pad (positive) the front of the label array.
 
@@ -410,16 +457,17 @@ class FileProcessor:
         """
         if label_adjust_front == 0:
             return labels
+
         pad_val = self.config.pad_values["label"]
         if label_adjust_front < 0:
             return labels[-label_adjust_front:]
-        else:
-            if labels.ndim == 1:
-                pad = np.full(label_adjust_front, pad_val, dtype=labels.dtype)
-                return np.concatenate([pad, labels])
-            else:
-                pad = np.full((label_adjust_front, labels.shape[1]), pad_val, dtype=labels.dtype)
-                return np.vstack([pad, labels])
+
+        if labels.ndim == 1:
+            pad = np.full(label_adjust_front, pad_val, dtype=labels.dtype)
+            return np.concatenate([pad, labels])
+
+        pad = np.full((label_adjust_front, labels.shape[1]), pad_val, dtype=labels.dtype)
+        return np.vstack([pad, labels])
 
     def _compute_select_idx(self, labels, lights_off_epoch, lights_on_epoch, n_epochs):
         """Compute the epoch indices to keep based on lights markers and MOVE/UNK removal.
@@ -437,7 +485,8 @@ class FileProcessor:
             sleep_mask = np.isin(label_1d, SLEEP_STAGES)
             sleep_idx  = np.where(sleep_mask)[0]
             if self.config.select_edges == "non-wake":
-                # Anchor on any non-Wake epoch (incl. Movement/Unknown), matching SleePyCo's reference behavior
+                # Anchor on any non-Wake epoch (incl. Movement/Unknown)
+                # matching SleePyCo's reference behavior
                 edge_idx = np.where(label_1d != SleepStage.W)[0]
             else:
                 edge_idx = sleep_idx
@@ -463,15 +512,20 @@ class FileProcessor:
                     pass  # lights on fell in the last cropped partial epoch -> keep all
                 else:
                     # Maybe padding both signal and annotations until Lights On ??
-                    self.logger.warning(f"Lights On is {lights_on_epoch - n_epochs} epochs after recording ends (marker is ignored for epoch selection).")
+                    self.logger.warning("Lights On is %d epochs after recording ends "
+                                        "(marker is ignored for epoch selection).",
+                                        lights_on_epoch - n_epochs)
             else:
                 if self.config.truncate_non_sleep_end and len(sleep_idx) > 0:
                     end_idx = sleep_idx[-1] + 1
-                    self.logger.info(f"Removed {n_epochs - end_idx} Non-Sleep epochs at end of night.")
+                    self.logger.info("Removed %d Non-Sleep epochs at end of night.",
+                                     n_epochs - end_idx)
 
         elif isinstance(self.config.select_epochs, int):
             if label_1d is None:
-                self.logger.warning("select_epochs config is an integer but use_annot=False — no labels available to identify sleep stages, keeping all epochs.")
+                self.logger.warning("select_epochs config is an integer but use_annot=False — "
+                                    "no labels available to identify sleep stages, "
+                                    "keeping all epochs.")
             elif len(edge_idx) > 0:
                 n_select  = self.config.select_epochs
                 start_idx = max(0, edge_idx[0] - n_select)
@@ -479,16 +533,18 @@ class FileProcessor:
                 if start_idx > 0 or end_idx != n_epochs:
                     n_crop = n_epochs - (end_idx - start_idx)
                     self.logger.info(
-                        f"Cropped {n_crop} epochs ({n_crop * self.config.epoch_duration / 60:.1f} min) of extensive wake"
+                        "Cropped %d epochs (%.1f min) of extensive wake",
+                        n_crop,
+                        n_crop * self.config.epoch_duration / 60
                     )
 
         if label_1d is not None:
             move_idx = np.where(label_1d == SleepStage.MOVE)[0] if self.config.rm_move else []
             unk_idx  = np.where(label_1d == SleepStage.UNK)[0]  if self.config.rm_unk  else []
             if len(move_idx) > 0:
-                self.logger.info(f"Removing {len(move_idx)} Movement epochs")
+                self.logger.info("Removing %d Movement epochs", len(move_idx))
             if len(unk_idx) > 0:
-                self.logger.info(f"Removing {len(unk_idx)} Unknown epochs")
+                self.logger.info("Removing %d Unknown epochs", len(unk_idx))
             remove_idx = np.union1d(move_idx, unk_idx)
         else:
             remove_idx = np.array([], dtype=int)
@@ -497,14 +553,17 @@ class FileProcessor:
 
         if len(select_idx) == 0:
             self.logger.warning(
-                f"No data left after epoch selection. "
-                f"start_idx={start_idx}, end_idx={end_idx}, removed={len(remove_idx)}"
+                "No data left after epoch selection. \n start_idx=%d, end_idx=%d, removed=%d",
+                start_idx,
+                end_idx,
+                len(remove_idx)
             )
             return None
         return select_idx
 
     def _valid_selection_range(self, file_data, select_idx, n_real_signal_epochs):
-        """Check if the selected epochs are within the valid real signal range and not entirely in the padded region.""" 
+        """Check if the selected epochs are within the valid real signal range
+        and not entirely in the padded region."""
 
         # Front padding: signal_adjust_front_sec > 0 means N epochs of padding were prepended.
         # Only full epochs that are entirely padding are counted (floor division).
@@ -514,8 +573,9 @@ class FileProcessor:
                 and len(select_idx) > 0
                 and select_idx[-1] < n_front_pad_epochs):
             self.logger.warning(
-                f"All selected epochs ({select_idx[0]}–{select_idx[-1]}) fall entirely "
-                f"outside the signal region. Skipping file."
+                "All selected epochs (%d-%d) fall entirely outside the signal region. "
+                "Skipping file.",
+                select_idx[0], select_idx[-1]
             )
             return False
 
@@ -524,12 +584,13 @@ class FileProcessor:
                 and len(select_idx) > 0
                 and select_idx[0] >= n_real_signal_epochs):
             self.logger.warning(
-                f"All selected epochs ({select_idx[0]}–{select_idx[-1]}) fall entirely "
-                f"outside the signal region. Skipping file."
+                "All selected epochs (%d-%d) fall entirely outside the signal region. "
+                "Skipping file.",
+                select_idx[0], select_idx[-1]
             )
             return False
         return True
-    
+
     def _end_align(self, labels, all_channel_data, n_signal_epochs, n_labels_epochs):
         """Reconcile signal epoch count vs label epoch count using the alignment config.
 
@@ -538,30 +599,36 @@ class FileProcessor:
         Returns the (possibly updated) labels array.
         """
         self.logger.info(
-            f"End alignment needed: signal has {n_signal_epochs} epochs, labels have {n_labels_epochs} epochs."
+            "End alignment needed: signal has %d epochs, labels have %d epochs.",
+            n_signal_epochs, n_labels_epochs
         )
         if n_signal_epochs > n_labels_epochs:
-            if self.config.alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_ANNOT.value):
-                self.logger.info(f"End alignment: cropping signal to {n_labels_epochs} epochs.")
+            if self.config.alignment in (Alignment.MATCH_SHORTER.value,
+                                         Alignment.MATCH_ANNOT.value):
+                self.logger.info("End alignment: cropping signal to %d epochs.", n_labels_epochs)
                 # in-place modification
                 for ch in all_channel_data.values():
                     ch["signal_epoched"] = ch["signal_epoched"][:n_labels_epochs]
-            elif self.config.alignment in (Alignment.MATCH_LONGER.value, Alignment.MATCH_SIGNAL.value): #pad labels
+            elif self.config.alignment in (Alignment.MATCH_LONGER.value,
+                                           Alignment.MATCH_SIGNAL.value): #pad labels
                 n_pad   = n_signal_epochs - n_labels_epochs
                 pad_val = self.config.pad_values["label"]
-                self.logger.info(f"End alignment: padding labels by {n_pad} epochs.")
+                self.logger.info("End alignment: padding labels by %d epochs.", n_pad)
                 if labels.ndim == 1:
                     labels = np.concatenate([labels, np.full(n_pad, pad_val, dtype=labels.dtype)])
                 else:
-                    labels = np.vstack([labels, np.full((n_pad, labels.shape[1]), pad_val, dtype=labels.dtype)])
+                    labels = np.vstack([labels, np.full((n_pad, labels.shape[1]), pad_val,
+                                                        dtype=labels.dtype)])
         else:
-            if self.config.alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_SIGNAL.value):
-                self.logger.info(f"End alignment: cropping labels to {n_signal_epochs} epochs.")
+            if self.config.alignment in (Alignment.MATCH_SHORTER.value,
+                                         Alignment.MATCH_SIGNAL.value):
+                self.logger.info("End alignment: cropping labels to %d epochs.", n_signal_epochs)
                 labels = labels[:n_signal_epochs]
-            elif self.config.alignment in (Alignment.MATCH_LONGER.value, Alignment.MATCH_ANNOT.value):  # pad signal
+            elif self.config.alignment in (Alignment.MATCH_LONGER.value,
+                                           Alignment.MATCH_ANNOT.value):  # pad signal
                 n_pad   = n_labels_epochs - n_signal_epochs
                 pad_val = np.float64(self.config.pad_values["signal"])
-                self.logger.info(f"End alignment: padding signal by {n_pad} epochs.")
+                self.logger.info("End alignment: padding signal by %d epochs.", n_pad)
                 # in-place modification
                 for ch in all_channel_data.values():
                     sig = ch["signal_epoched"]
@@ -574,20 +641,23 @@ class FileProcessor:
         """Harmonize channel name based on dataset-specific mapping."""
         if self.config.map_channel_names:
             channel_harm = self.dataset.map_channel(channel)
-            self.logger.info(f" Mapped channel name {channel} to {channel_harm}")
+            self.logger.info(" Mapped channel name %s to %s", channel, channel_harm)
             return channel_harm
-        else:
-            return channel
-        
+
+        return channel
+
     def _setup_file_output(self):
-        """ Setup output for edf and hdf5 output format where all channels of one file are stored together and share the same log file. """
-        # Create output directory (including subfolders of original data structure if keep_folder_structure is True)
+        """ Setup output for edf and hdf5 output format where all channels of one file
+        are stored together and share the same log file. """
+        # Create output directory
+        # (including subfolders of original data structure if keep_folder_structure is True)
         if self.dataset.keep_folder_structure:
             relative_path = os.path.split(Path(self.psg_fname).relative_to(self.config.psg_dir))[0]
         else:
             relative_path = ""
 
-        # Output is generated per PSG file containing all channels, log files are saved per PSG file separately
+        # Output is generated per PSG file containing all channels,
+        # log files are saved per PSG file separately
         output_dir = os.path.join(self.config.output_dir, relative_path)
         log_dir = os.path.join(output_dir, "log_files")
         log_filename = f"{Path(self.psg_fname).stem}.log"
@@ -605,16 +675,20 @@ class FileProcessor:
         return file_output_path, log_file_path
 
     def _setup_channel_output(self, channel):
-        """Setup output for npz output format where each channel is stored separately and has its own log file."""
+        """Setup output for npz output format where each channel is stored separately
+        and has its own log file."""
 
-        # Create output directory (including subfolders of original data structure if keep_folder_structure is True)
+        # Create output directory
+        # (including subfolders of original data structure if keep_folder_structure is True)
         if self.dataset.keep_folder_structure:
             relative_path = os.path.split(Path(self.psg_fname).relative_to(self.config.psg_dir))[0]
         else:
             relative_path = ""
 
-        # Output is generated per channel and sorted into channel folders with corresponding log file
-        # replace slash in folder names to avoid nested output structure and colon because it is often not accepted in folder names
+        # Output is generated per channel and sorted into channel folders
+        # with corresponding log file
+        # replace slash in folder names to avoid nested output structure
+        # replace colon because it is often not accepted in folder names
         channel_clean = re.sub(r"[:/]", "_", channel)
         output_dir = os.path.join(self.config.output_dir, relative_path, channel_clean)
         log_dir = output_dir
@@ -633,11 +707,13 @@ class FileProcessor:
         return file_output_path, log_file_path
 
     def _get_start_delay(self, ann_start_datetime, signal_start_datetime):
-        """ Check if annotation and signal start datetime are aligned and calculate the delay between annotation and signal start if necessary.
+        """ Check if annotation and signal start datetime are aligned and calculate the delay
+        between annotation and signal start if necessary.
         """
         delay = 0
-        if ann_start_datetime != None:
-            # If annotation start datetime is given as a datetime object, compare with signal start datetime and calculate start delay
+        if ann_start_datetime is not None:
+            # If annotation start datetime is given as a datetime object,
+            # compare with signal start datetime and calculate start delay
             if isinstance(ann_start_datetime, datetime) and signal_start_datetime is not None:
                 # Strip timezone info before comparison/subtraction
                 ann_dt = ann_start_datetime
@@ -645,33 +721,42 @@ class FileProcessor:
                 if ann_dt.time() != sig_dt.time():
                     delay = (ann_dt - sig_dt).total_seconds()
                     if abs(delay) >= 24*3600:
-                        raise Exception(f"Annotation start datetime {ann_dt} is more than 24h after signal start datetime {sig_dt}. Check implementation!")
+                        direction = "after" if delay > 0 else "before"
+                        raise ValueError(f"Annotation start datetime {ann_dt} is more than 24h "
+                                         f"{direction} signal start datetime {sig_dt}. "
+                                         f"Check implementation!")
                     if abs(delay) > 20*3600:
                         delay = delay % (-np.sign(delay)*24*3600)  # Wrap around to next day
-                    
-            # If annotation start datetime is given as a numeric value, it indicates a delay in seconds or samples (depending on dataset)
+
+            # If annotation start datetime is given as a numeric value,
+            # it indicates a delay in seconds or samples (depending on dataset)
             elif isinstance(ann_start_datetime, (int, float, Decimal)):
                 delay = ann_start_datetime
             else:
-                raise Exception(f"Unsupported format of annotation start datetime: {ann_start_datetime}")
+                raise ValueError(f"Unsupported format of annotation start datetime: "
+                                 f"{ann_start_datetime}")
             if delay != 0:
-                self.logger.info(f"Start of signal: {signal_start_datetime}, Start of labels: {ann_start_datetime}")
+                self.logger.info("Start of signal: %s, Start of labels: %s",
+                                 signal_start_datetime, ann_start_datetime)
 
         return delay
-    
+
     def _get_lights_epochs(self, channel_data):
-        """Get the epochs where lights off and lights on happen based on the configured lights marker in annotation or PSG data.
+        """Get the epochs where lights off and lights on happen based on the configured
+        lights marker in annotation or PSG data.
         - The epoch in which lights off event happens is return as lights_off_epoch
-        - The epoch AFTER which lights on event happens is returned as lights_on_epoch, 
-            meaning that the epoch in which lights on event happens is still included in the selected data. 
+        - The epoch AFTER which lights on event happens is returned as lights_on_epoch,
+            meaning that the epoch in which lights on event happens is still included
+            in the selected data.
 
         Args:
-            channel_data (_type_): Dictionary containing minimum the following keys: "psg_fname", "start_datetime", "lights_off", "lights_on"
+            channel_data (_type_): Dictionary containing minimum the following keys:
+                "psg_fname", "start_datetime", "lights_off", "lights_on"
 
         Returns:
             _type_: epochs of lights off and lights on
         """
-        
+
         startdatetime    = channel_data["start_datetime"]
         start_time_shift = channel_data.get("start_time_shift", 0.0)
         lights_off_epoch = 0
@@ -681,60 +766,86 @@ class FileProcessor:
             lights_off = channel_data["lights_off"]
             if isinstance(lights_off, (datetime,time)):
                 if isinstance(lights_off, time):
-                    # if date of marker timestamp is not available, take date of signal start for easier comparison
+                    # if date of marker timestamp is not available,
+                    # take date of signal start for easier comparison
                     lights_off = datetime.combine(startdatetime.date(),lights_off)
 
                 lights_off_sec = (lights_off - startdatetime).total_seconds()
 
                 if lights_off_sec != 0:
-                    if lights_off_sec < 0 and lights_off_sec > -3600:       
+                    if -3600 < lights_off_sec < 0:
                         # Between -3600 and 0, before signal start but in 1 hour range
-                        self.logger.info(f"Lights Off time {lights_off} is before signal start time {startdatetime.time()} (marker is ignored for epoch selection).")
-                        # maybe padding with wake epochs until lights Off time is reached? For now, just keep all epochs and do not select (keep lights_off_epoch at 0)
+                        self.logger.info("Lights Off time %s is before signal start time %s "
+                                         "(marker is ignored for epoch selection).",
+                                          lights_off, startdatetime.time())
+                        # maybe padding with wake epochs until lights Off time is reached?
+                        # For now, just keep all epochs and do not select
+                        # (keep lights_off_epoch at 0)
                     else:
                         if lights_off_sec < 0:
                             # Assume lights Off is after and signal start before midnight
                             lights_off_sec += 24*3600 # add 24h
-                        
+
                         # Round to full epoch
-                        lights_off_epoch = self._round_marker_time("lights_off", lights_off_sec, self.config.epoch_duration, lights_off.time())
-                        
-                        self.logger.info(f"Select only epochs after {(startdatetime + timedelta(seconds=lights_off_epoch * self.config.epoch_duration)).time()} (based on Lights Off marker in epoch {lights_off_epoch})")
-                 
+                        lights_off_epoch = self._round_marker_time("lights_off", lights_off_sec,
+                                                                    self.config.epoch_duration,
+                                                                    lights_off.time())
+
+                        lights_off_delta = timedelta(
+                            seconds=lights_off_epoch * self.config.epoch_duration
+                        )
+                        self.logger.info("Select only epochs after %s "
+                                         "(based on Lights Off marker in epoch %d)",
+                                         (startdatetime + lights_off_delta).time(),
+                                          lights_off_epoch)
+
                 else:
-                    self.logger.info("Lights Off time is at the start of the signal, no need of epoch selection based on lights Off time.")
+                    self.logger.info("Lights Off time is at the start of the signal, "
+                                     "no need of epoch selection based on lights Off time.")
 
             elif isinstance(lights_off, (int,float)):
                 # int/float is seconds from the ORIGINAL signal start; subtract start_time_shift
                 # so the value becomes relative to the (possibly cropped/padded) start_datetime.
                 lights_off_sec = lights_off - start_time_shift
                 if lights_off_sec != 0:
-                    if lights_off_sec < 0 and lights_off_sec > -3600:   # Lights Off probably starts before PSG Data (1 hour range before signal start)
-                        self.logger.warning(f"Lights Off time {lights_off_sec} is before signal start time {startdatetime.time()} (marker is ignored for epoch selection).")
-                        # front_padding = 
-                        # maybe padding with wake epochs until lights Off time is reached? For now, just keep all epochs and do not select
+                    # Lights Off probably starts before PSG Data
+                    # (1 hour range before signal start)
+                    if -3600 < lights_off_sec < 0:
+                        self.logger.warning("Lights Off time %s is before signal start time %s "
+                                            "(marker is ignored for epoch selection).",
+                                             lights_off_sec, startdatetime.time())
+                        # front_padding =
+                        # maybe padding with wake epochs until lights Off time is reached?
+                        # For now, just keep all epochs and do not select
                     elif lights_off_sec < 0:
-                        raise Exception(f"Lights Off time ({lights_off_sec}) is more than 1 hour before signal start ({startdatetime.time()})")
+                        raise ValueError(f"Lights Off time ({lights_off_sec}) is more than 1 hour "
+                                         f"before signal start ({startdatetime.time()})")
                     else:
                         # Round to full epoch
-                        lights_off_epoch = self._round_marker_time("lights_off", lights_off_sec, self.config.epoch_duration)
-                        self.logger.info(f"Select only epochs after lights Off at second {lights_off_sec} (epoch {lights_off_epoch})")
+                        lights_off_epoch = self._round_marker_time("lights_off", lights_off_sec,
+                                                                    self.config.epoch_duration)
+                        self.logger.info("Select only epochs after lights Off at second %s "
+                                         "(epoch %d)",
+                                         lights_off_sec, lights_off_epoch)
                 else:
-                    self.logger.info("Lights Off time is at the start of the signal, no need of epoch selection based on lights Off time.")
+                    self.logger.info("Lights Off time is at the start of the signal, "
+                                     "no need of epoch selection based on lights Off time.")
             else:
-                raise Exception(f"Lights Off time has unsupported format: {lights_off}")
-        
+                raise ValueError(f"Lights Off time has unsupported format: {lights_off}")
+
         else:
-            self.logger.warning(f"Lights Off time not available, keeping all wake epochs at start.")
-            
+            self.logger.warning("Lights Off time not available, keeping all wake epochs at start.")
+
         if channel_data["lights_on"] is not None:
             lights_on = channel_data["lights_on"]
-            # Info: Lights On marker can happen to be after signal end, cannot check this here because signal length is not determined yet
+            # Info: Lights On marker can happen to be after signal end,
+            # cannot check this here because signal length is not determined yet
             if isinstance(lights_on, (datetime,time)):
                 if isinstance(lights_on, time):
-                    # if date of marker timestamp is not available, take date of signal start for easier comparison
+                    # if date of marker timestamp is not available,
+                    # take date of signal start for easier comparison
                     lights_on = datetime.combine(startdatetime.date(),lights_on)
-                
+
                 # seconds from recording start until lights On
                 lights_on_sec = (lights_on - startdatetime).total_seconds()
 
@@ -742,8 +853,14 @@ class FileProcessor:
                     # Assume lights On is after and signal start before midnight
                     lights_on_sec += 24 * 3600  # add 24h
 
-                lights_on_epoch = self._round_marker_time("lights_on", lights_on_sec, self.config.epoch_duration, lights_on.time())
-                self.logger.info(f"Select only epochs before {(startdatetime + timedelta(seconds=lights_on_epoch*self.config.epoch_duration)).time()} (based on Lights On marker in epoch {lights_on_epoch})")
+                lights_on_epoch = self._round_marker_time("lights_on", lights_on_sec,
+                                                          self.config.epoch_duration,
+                                                          lights_on.time())
+                lights_on_delta = timedelta(seconds=lights_on_epoch*self.config.epoch_duration)
+                self.logger.info("Select only epochs before %s "
+                                 "(based on Lights On marker in epoch %d)",
+                                 (startdatetime + lights_on_delta).time(),
+                                   lights_on_epoch)
 
             elif isinstance(lights_on, (int,float)):
                 # int/float is seconds from the ORIGINAL signal start; subtract start_time_shift
@@ -751,24 +868,29 @@ class FileProcessor:
                 lights_on_sec = lights_on - start_time_shift
 
                 if lights_on_sec < 0:
-                    raise Exception(f"Lights On time ({lights_on_sec}) is before signal start ({startdatetime.time()})")
-                        
-                lights_on_epoch = self._round_marker_time("lights_on", lights_on_sec, self.config.epoch_duration)
-                self.logger.info(f"Select only epochs before lights On at second {lights_on_sec} (epoch {lights_on_epoch})")
+                    raise ValueError(f"Lights On time ({lights_on_sec}) is before signal start "
+                                     f"({startdatetime.time()})")
+
+                lights_on_epoch = self._round_marker_time("lights_on", lights_on_sec,
+                                                          self.config.epoch_duration)
+                self.logger.info("Select only epochs before lights On at second %s (epoch %d)",
+                                 lights_on_sec, lights_on_epoch)
             else:
-                raise Exception(f"Lights On time has unsupported format: {lights_on}")
+                raise ValueError(f"Lights On time has unsupported format: {lights_on}")
         else:
-            self.logger.warning(f"Lights On time not available.")
+            self.logger.warning("Lights On time not available.")
 
         return lights_off_epoch, lights_on_epoch
-   
+
     def _round_marker_time(self, marker, marker_sec, epoch_duration, marker_time=None):
-        """Helper function to round lights Off/On time to the next (or previous) epoch if it is not exactly at the start/end of an epoch and log this behavior.
-        
+        """Helper function to round lights Off/On time to the next (or previous) epoch
+        if it is not exactly at the start/end of an epoch and log this behavior.
+
         Args:
             marker (_type_): Type of marker which is processed ("lights_off" or "lights_on")
             marker_sec (_type_): timestamp of marker in seconds from signal start
-            marker_time (_type_): timestamp of marker as datetime.time object for logging purposes (if not available, )
+            marker_time (_type_): timestamp of marker as datetime.time object
+                for logging purposes (if not available, )
             epoch_duration (_type_): epoch duration in seconds to round the marker time to
 
         Returns:
@@ -776,17 +898,19 @@ class FileProcessor:
         """
         if marker_time is None:
             marker_time = marker_sec
-        if marker_sec % epoch_duration != 0:              
+        if marker_sec % epoch_duration != 0:
             if marker == "lights_off":
                 round_marker_epoch = floor(marker_sec / epoch_duration)
-                self.logger.info(f"Lights Off time {marker_time} is floored to {round_marker_epoch * epoch_duration}sec from signal start.")
+                self.logger.info("Lights Off time %s is floored to %dsec from signal start.",
+                                 marker_time, round_marker_epoch * epoch_duration)
             elif marker == "lights_on":
                 round_marker_epoch = ceil(marker_sec / epoch_duration)
-                self.logger.info(f"Lights On time {marker_time} is ceiled to  {round_marker_epoch * epoch_duration}sec from signal start.")
+                self.logger.info("Lights On time %s is ceiled to  %dsec from signal start.",
+                                 marker_time, round_marker_epoch * epoch_duration)
         else:
             round_marker_epoch = marker_sec / epoch_duration
         return int(round_marker_epoch)
- 
+
     def _save_processed_data(self, all_channel_data):
         """Save processed data to file for npz, edf, hdf5 formats."""
         output_format = self.config.output_format
@@ -794,12 +918,17 @@ class FileProcessor:
         channel_dicts = [all_channel_data[ch] for ch in channels_sorted]
         n_epochs = [len(channel_data["signal"]) for channel_data in channel_dicts]
         if len(np.unique(n_epochs)) != 1:
-            self.logger.error(f"All channels must have the same number of epochs after processing to be saved together, but got different number of epochs: {n_epochs}")
-            raise ValueError(f"All channels must have the same number of epochs after processing to be saved together, but got different number of epochs: {n_epochs}")
+            self.logger.error("All channels must have the same number of epochs after processing "
+                              "to be saved together, but got different number of epochs: %s",
+                              n_epochs)
+            raise ValueError("All channels must have the same number of epochs after processing "
+                             "to be saved together, but got different number of epochs: "
+                             f"{n_epochs}")
 
         # check if there is a signal with only NaN values
-        if any([np.isnan(channel_data["signal"]).all() for channel_data in channel_dicts]):
-            self.logger.warning(f"One or more channels contain only NaN values after processing. Skipping this file.")
+        if any(np.isnan(channel_data["signal"]).all() for channel_data in channel_dicts):
+            self.logger.warning("One or more channels contain only NaN values after processing. "
+                                "Skipping this file.")
             return
 
         if output_format == "npz":
@@ -851,19 +980,23 @@ class FileProcessor:
                     edf_writer.setSignalHeader(i, channel_info)
                 if isinstance(channel_dicts[0]["start_datetime"], datetime):
                     if channel_dicts[0]["start_datetime"].date() > date(1985, 1, 1):
-                        Startdatetime = channel_dicts[0]["start_datetime"]
+                        start_datetime = channel_dicts[0]["start_datetime"]
                     else:
-                        Startdatetime = datetime.combine(date(1985, 1, 1), channel_dicts[0]["start_datetime"].time())
+                        start_datetime = datetime.combine(
+                            date(1985, 1, 1), channel_dicts[0]["start_datetime"].time()
+                        )
                 else:
-                    Startdatetime = datetime(1985, 1, 1, 0, 0, 0)
+                    start_datetime = datetime(1985, 1, 1, 0, 0, 0)
 
                 # Write samples
-                edf_writer.setStartdatetime(Startdatetime)
-                edf_writer.writeSamples([channel_data["signal"].flatten() for channel_data in channel_dicts])
+                edf_writer.setStartdatetime(start_datetime)
+                edf_writer.writeSamples([channel_data["signal"].flatten()
+                                         for channel_data in channel_dicts])
 
                 # Write annotations
                 if self.config.use_annot:
-                    all_labels = np.array([channel_data["labels"] for channel_data in channel_dicts])
+                    all_labels = np.array([channel_data["labels"]
+                                           for channel_data in channel_dicts])
                     duration = self.config.epoch_duration
                     for epoch_idx, label in enumerate(all_labels[0]):
                         # one value per scorer, comma-separated (e.g. "0" or "0,6")
@@ -878,14 +1011,16 @@ class FileProcessor:
             with h5py.File(file_output_path, "w") as h5f:
                 # Metadata
                 h5f.attrs["epoch_duration"] = self.config.epoch_duration
-                h5f.attrs["file_duration"] = len(channel_dicts[0]["signal"]) * self.config.epoch_duration
+                h5f.attrs["file_duration"] = (len(channel_dicts[0]["signal"])
+                                              * self.config.epoch_duration)
                 h5f.attrs["n_epochs"] = len(channel_dicts[0]["signal"])
                 grp_signals = h5f.create_group("signals")
                 for channel_data in channel_dicts:
                     signal = channel_data["signal"].flatten()
 
                     # if channel_name came from h5 originally, keep only the last part after slash
-                    if "h5" in self.dataset.file_extensions["psg_ext"] and "/" in channel_data["ch_name"]:
+                    if ("h5" in self.dataset.file_extensions["psg_ext"]
+                            and "/" in channel_data["ch_name"]):
                         group_name = channel_data["ch_name"].split("/")[-1]
                     else:
                         group_name = channel_data["ch_name"]
@@ -917,13 +1052,13 @@ class ChannelProcessor:
     - Reshape into epochs.
     """
 
-    def __init__(self, logger, config, dataset, channel):
+    def __init__(self, logger: logging.Logger, config, dataset, channel):
         self.logger  = logger
         self.config  = config
         self.dataset = dataset
         self.channel = channel
 
-    def _process_channel(self, data):
+    def process_channel(self, data):
         """Read and process one channel; return dict with signal_epoched and fs.
 
         Returns None if the channel cannot be processed (missing signal, etc.).
@@ -931,7 +1066,8 @@ class ChannelProcessor:
         data["ch_name_orig"] = self.channel
 
         # Read raw signal
-        psg_data = self.dataset.get_signal_data(self.logger, data["psg_fname"], data["ch_name_orig"])
+        psg_data = self.dataset.get_signal_data(self.logger, data["psg_fname"],
+                                                data["ch_name_orig"])
         if psg_data == {}:
             return None
         signal = psg_data["signal"].astype(np.float64)
@@ -939,7 +1075,8 @@ class ChannelProcessor:
         unit   = psg_data.get("unit", "n/a")
         del psg_data
 
-        self.logger.info(f" Channel {data['ch_name_orig']} has {len(signal)} samples ({fs:.2f} Hz)")
+        self.logger.info("Channel %s has %d samples (%.2f Hz).",
+                         data['ch_name_orig'], len(signal), fs)
 
         # Rescale amplitude
         target_unit = self._get_target_unit(data["ch_name_orig"], self.dataset.channel_groups)
@@ -976,11 +1113,12 @@ class ChannelProcessor:
         n_epochs, remainder = divmod(len(signal), n_epoch_samples)
         if n_epochs < 1:
             self.logger.warning(
-                f"Channel {data['ch_name_orig']}: fewer than one full epoch of signal available, skipping."
+                "Channel %s: fewer than one full epoch of signal available, skipping.",
+                data['ch_name_orig']
             )
             return None
         if remainder > 0:
-            self.logger.info(f" Signal cropped to full epochs ({remainder / fs:.2f} sec removed).")
+            self.logger.info("Signal cropped to full epochs (%.2f sec removed).", remainder / fs)
 
         signal_epoched = signal[:n_epochs * n_epoch_samples].reshape(n_epochs, -1)
 
@@ -990,12 +1128,13 @@ class ChannelProcessor:
             "unit":           unit,
             "ch_name_orig":   self.channel,
         }
-    
+
     # Multiplier to convert a value expressed in the given voltage unit to Volts
     VOLT_FACTORS = {"V": 1.0, "mV": 1e-3, "uV": 1e-6}
 
     def _get_target_unit(self, ch_name, channel_groups):
-        """Get the configured target rescale unit for a given channel using the centralized group mapping."""
+        """Get the configured target rescale unit for a given channel
+        using the centralized group mapping."""
         for group_name, channels in channel_groups.items():
             if ch_name in channels:
                 return self.config.rescale_unit.get(group_name)
@@ -1017,15 +1156,17 @@ class ChannelProcessor:
         norm_target = self._normalize_volt_unit(target_unit)
         if norm_unit is None or norm_target is None:
             self.logger.warning(
-                f"Channel {ch_name}: cannot rescale from unit '{unit}' to '{target_unit}' "
-                "(both units must be one of V/mV/uV), keeping original unit."
+                "Channel %s: cannot rescale from unit '%s' to '%s' "
+                "(both units must be one of V/mV/uV), keeping original unit.",
+                ch_name, unit, target_unit
             )
             return signal, unit
 
         factor = self.VOLT_FACTORS[norm_unit] / self.VOLT_FACTORS[norm_target]
         if factor != 1.0:
             signal = signal * factor
-            self.logger.info(f"Channel {ch_name}: rescaled amplitude from {unit} to {target_unit}.")
+            self.logger.info("Channel %s: rescaled amplitude from %s to %s.",
+                             ch_name, unit, target_unit)
 
         return signal, target_unit
 
@@ -1039,7 +1180,6 @@ class ChannelProcessor:
         if signal_adjust_front_sec < 0:
 
             return signal[n_samples:]
-        else:
-            pad_val = np.float64(self.config.pad_values["signal"])
-            return np.concatenate([np.full(n_samples, pad_val), signal])
 
+        pad_val = np.float64(self.config.pad_values["signal"])
+        return np.concatenate([np.full(n_samples, pad_val), signal])

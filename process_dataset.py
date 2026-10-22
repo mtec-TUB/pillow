@@ -5,12 +5,15 @@ from pathlib import Path
 import yaml
 
 from datasets.registry import get_dataset, DatasetRegistry
-from psg_processing.core import Dataset_Explorer, DatasetProcessor
+from psg_processing.core.dataset_explorer import DatasetExplorer
+from psg_processing.core.processor import DatasetProcessor
 from psg_processing.utils.config import ProcessorConfig
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    """ Build argument parser to accept config file path from command line. """
+
+    arg_parser = argparse.ArgumentParser(
         description="Process sleep datasets for harmonization",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         # Load all registered datasets
@@ -21,14 +24,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # Parse path to configuration file. If flag is not used, use default config path.
-    parser.add_argument(
+    arg_parser.add_argument(
         "--config",
         type=str,
         help="Path to YAML configuration file. Adapt config.yaml according to your needs.",
         default="config.yaml"
     )
 
-    return parser
+    return arg_parser
 
 
 def resolve_paths(
@@ -43,21 +46,21 @@ def resolve_paths(
 
     if not data_dir and not base_data_dir:
         raise ValueError("Either data_dir or base_data_dir must be provided")
-    
+
     if data_dir:
         dset_dir = data_dir
     else:
         dset_dir = os.path.join(base_data_dir, dataset.dataset_name)
-    
+
     rel_data_dir, rel_ann_dir = dataset.dataset_paths()
     psg_dir = os.path.join(dset_dir, rel_data_dir)
     ann_dir = os.path.join(dset_dir, rel_ann_dir)
-    
+
     if output_dir:
         parent_folder_output = output_dir
     else:
         parent_folder_output = dset_dir
-        
+
     output_dir_resolved = os.path.join(
         parent_folder_output, f"{dataset.dset_name}_harmonized", output_format)
 
@@ -71,12 +74,12 @@ def load_config_file(config_file_path: str) -> ProcessorConfig:
         raise FileNotFoundError(f"Configuration file not found: {config_file_path}")
 
     try:
-        with open(config_file_path, "r") as f:
+        with open(config_file_path, "r", encoding="utf-8") as f:
             config = ProcessorConfig(**yaml.safe_load(f))
         print(f"Loaded configuration from: {config_file_path}")
         return config
     except yaml.YAMLError as e:
-        raise ValueError(f"Invalid YAML in configuration file: {e}")
+        raise ValueError(f"Invalid YAML in configuration file: {e}") from e
 
 def main(config : ProcessorConfig):
     """
@@ -125,7 +128,7 @@ def main(config : ProcessorConfig):
         processor.process_files()
 
     elif config.action == "get_channel_names":
-        explorer = Dataset_Explorer(
+        explorer = DatasetExplorer(
             None, dataset, config.psg_dir, config.ann_dir, log_level=config.logging_level,
             num_workers=config.num_workers,
         )
@@ -136,7 +139,7 @@ def main(config : ProcessorConfig):
             print(f"  {count:>4}/{n_files} ({100*count/n_files:>5.1f}%)  {ch}")
 
     elif config.action == "get_channel_types":
-        explorer = Dataset_Explorer(
+        explorer = DatasetExplorer(
             None, dataset, config.psg_dir, config.ann_dir, log_level=logging.INFO,
             num_workers=config.num_workers,
         )
@@ -162,4 +165,3 @@ if __name__ == "__main__":
         config = load_config_file("config.yaml")
 
     main(config)
-

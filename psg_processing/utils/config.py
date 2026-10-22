@@ -1,3 +1,7 @@
+"""
+Configuration handling: validation of config.yaml parameters and shared enums/constants.
+"""
+
 import difflib
 import logging
 from pathlib import Path
@@ -29,7 +33,6 @@ SLEEP_STAGES = (SleepStage.N1, SleepStage.N2, SleepStage.N3, SleepStage.REM, Sle
 
 class ConfigError(ValueError):
     """Raised when configuration validation fails."""
-    pass
 
 class ProcessorConfig:
     """Configuration dataclass for dataset processing.
@@ -46,13 +49,14 @@ class ProcessorConfig:
     }
     VALID_RESCALE_UNITS = {"uV", "mV", "V"}
 
-    # All parameters accepted in config.yaml (each one is stored under an attribute of the same name)
+    # All parameters accepted in config.yaml
+    # (each one is stored under an attribute of the same name)
     VALID_KEYS = {
-        "dataset", "base_data_dir", "data_dir", "output_dir", "output_format", "logging_level", "action",
-        "alignment", "filter_type", "overwrite", "filter", "map_channel_names", "rm_move", "rm_unk",
-        "use_annot", "num_workers", "resample", "epoch_duration", "min_sleep_epochs", "channels",
-        "mapped_channels", "select_epochs", "select_edges", "truncate_non_sleep_end", "iir_filter_order",
-        "filter_freq", "rescale_unit", "pad_values",
+        "dataset", "base_data_dir", "data_dir", "output_dir", "output_format", "logging_level",
+        "action", "alignment", "filter_type", "overwrite", "filter", "map_channel_names",
+        "rm_move", "rm_unk", "use_annot", "num_workers", "resample", "epoch_duration",
+        "min_sleep_epochs", "channels", "mapped_channels", "select_epochs", "select_edges",
+        "truncate_non_sleep_end", "iir_filter_order", "filter_freq", "rescale_unit", "pad_values",
     }
 
     def __init__(self, **kwargs):
@@ -77,7 +81,7 @@ class ProcessorConfig:
 
         self.logging_level: str = self._validate_enum(
             kwargs.get("logging_level"),
-            {name for name, lvl in logging._nameToLevel.items()},
+            set(logging.getLevelNamesMapping()),
             "logging_level"
         )
 
@@ -116,16 +120,24 @@ class ProcessorConfig:
         self.min_sleep_epochs: int = self._validate_min_sleep_epochs(kwargs.get("min_sleep_epochs"))
         self.channels: List[str] = self._validate_channels(kwargs.get("channels"))
         self.mapped_channels: List[str] = self._validate_channels(kwargs.get("mapped_channels"))
-        self.select_epochs: Union[int, str] = self._validate_select_epochs(kwargs.get("select_epochs"))
+        self.select_epochs: Union[int, str] = self._validate_select_epochs(
+            kwargs.get("select_epochs")
+        )
         self.select_edges: str = self._validate_enum(
             kwargs.get("select_edges"),
             {"sleep", "non-wake"},
             "select_edges"
         )
-        self.truncate_non_sleep_end: bool = self._validate_truncate_non_sleep_end(kwargs.get("truncate_non_sleep_end"), self.select_epochs)
+        self.truncate_non_sleep_end: bool = self._validate_truncate_non_sleep_end(
+            kwargs.get("truncate_non_sleep_end"), self.select_epochs
+        )
         self.iir_filter_order: int = self._validate_iir_filter_order(kwargs.get("iir_filter_order"))
-        self.filter_freq: Dict[str, List[Optional[float]]] = self._validate_filter_freq(kwargs.get("filter_freq"))
-        self.rescale_unit: Dict[str, Optional[str]] = self._validate_rescale_unit(kwargs.get("rescale_unit"))
+        self.filter_freq: Dict[str, List[Optional[float]]] = self._validate_filter_freq(
+            kwargs.get("filter_freq")
+        )
+        self.rescale_unit: Dict[str, Optional[str]] = self._validate_rescale_unit(
+            kwargs.get("rescale_unit")
+        )
         self.pad_values = self._validate_pad_values(kwargs.get("pad_values"))
 
         # ---------- Cross-checks ----------
@@ -147,12 +159,12 @@ class ProcessorConfig:
                 f"{name} must be one of {valid_set}, got {value}"
             )
         return value
-    
+
     def _validate_workers(self, value):
         if value is None:
             return None
         if not isinstance(value, int) or value <= 0:
-            raise ConfigError(f"Number of workers has to be a positive integer or None")
+            raise ConfigError("Number of workers has to be a positive integer or None")
         return value
 
     def _validate_bool(self, value):
@@ -171,12 +183,12 @@ class ProcessorConfig:
         if value is None:
             return None
         if not isinstance(value, int) or value <= 0:
-            raise ConfigError(f"resample must be positive int.")
+            raise ConfigError("resample must be positive int.")
         return value
 
     def _validate_min_sleep_epochs(self, value):
         if not isinstance(value, int) or value < 0:
-            raise ConfigError(f"min_sleep_epochs must be non-negative integer.")
+            raise ConfigError("min_sleep_epochs must be non-negative integer.")
         return value
 
     def _validate_epoch_duration(self, value):
@@ -193,7 +205,7 @@ class ProcessorConfig:
             return []
         if not isinstance(value, list) or \
            not all(isinstance(v, str) for v in value):
-            raise ConfigError(f"channels must be list of strings.")
+            raise ConfigError("channels must be list of strings.")
         return value
 
     def _validate_select_epochs(self, value):
@@ -206,21 +218,21 @@ class ProcessorConfig:
         raise ConfigError(
             "select_epochs must be non-negative int or 'all' or 'lights'."
         )
-    
+
     def _validate_truncate_non_sleep_end(self, value, select_epochs):
         if not isinstance(value, bool):
-            raise ConfigError(f"truncate_non_sleep_end must be bool.")
+            raise ConfigError("truncate_non_sleep_end must be bool.")
         if value and select_epochs != "lights":
             raise ConfigError(
                 "truncate_non_sleep_end can only be True if select_epochs is set to 'lights'."
             )
         return value
-    
+
     def _validate_iir_filter_order(self, value):
         if value is None:
             return None
         if not isinstance(value, int) or value < 0:
-            raise ConfigError(f"iir_filter_order must be non-negative int or None.")
+            raise ConfigError("iir_filter_order must be non-negative int or None.")
         return value
 
     def _validate_filter_freq(self, value):
@@ -259,7 +271,8 @@ class ProcessorConfig:
                 raise ConfigError(f"Invalid filter group: {key}")
             if unit is not None and unit not in self.VALID_RESCALE_UNITS:
                 raise ConfigError(
-                    f"{key}: rescale_unit must be one of {self.VALID_RESCALE_UNITS} or null, got {unit}"
+                    f"{key}: rescale_unit must be one of {self.VALID_RESCALE_UNITS} or null, "
+                    f"got {unit}"
                 )
 
         return value
@@ -276,7 +289,7 @@ class ProcessorConfig:
         return {"signal": signal, "label": label}
 
     def _validate_consistency(self):
-        
+
         has_base = self.base_data_dir is not None
         has_specific = self.data_dir is not None
 
@@ -285,10 +298,10 @@ class ProcessorConfig:
                 "Either 'base_data_dir' must be provided OR "
                 "'data_dir' must be provided, not both at the same time"
             )
-    
+
         if self.filter and not self.filter_freq:
             raise ConfigError("filter=True but no filter_freq defined.")
-        
+
         if self.filter_type == "fir" and self.iir_filter_order is not None:
             raise ConfigError("Set iir_filter_order to 'null' when filter_type is 'fir'.")
 
@@ -301,4 +314,3 @@ class ProcessorConfig:
                 raise ConfigError(
                     "min_sleep_epochs requires use_annot=True."
                 )
-

@@ -1,7 +1,7 @@
 """
 Signal processing utilities for PSG data.
 """
-
+import logging
 from typing import Dict, List, Union
 
 import numpy as np
@@ -10,6 +10,7 @@ from mne.filter import resample, filter_data
 import cupy
 
 def has_cuda():
+    """Return True if a CUDA device is available via cupy."""
     try:
         return cupy.cuda.is_available()
     except Exception:
@@ -24,7 +25,7 @@ class SignalProcessor:
     during processing.
     """
 
-    def __init__(self, logger, signal, ch_name, config, ch_types):
+    def __init__(self, logger: logging.Logger, signal, ch_name, config, ch_types):
         """
         Initialize the SignalProcessor.
 
@@ -65,14 +66,14 @@ class SignalProcessor:
 
         # If channel not found in any group, return default (no filtering)
         return self.filter_freq["default"]
-    
+
     def _get_channel_type(self, channel, channel_types):
         """Get the type (analog/digital) for a specific channel."""
         for ch_type, channels in channel_types.items():
             if channel in channels:
                 return ch_type
 
-        raise Exception(f"channel {channel} not listed in channel_types")
+        raise ValueError(f"channel {channel} not listed in channel_types")
 
     def resample_signal(self, sampling_rate, resample_freq):
         """
@@ -86,7 +87,7 @@ class SignalProcessor:
         Returns:
             tuple: (processed_signal, final_sampling_rate)
         """
-        self.logger.info(f"Sample rate before: {sampling_rate}")
+        self.logger.info("Sample rate before: %f", sampling_rate)
 
         # if fs not already desired resample fs -> resample
         if resample_freq != sampling_rate:
@@ -97,9 +98,7 @@ class SignalProcessor:
             elif self.ch_type == "analog":
                 self.signal = self.resample_ana(self.signal, sampling_rate, resample_freq)
 
-        self.logger.info(f"Sample rate after: {resample_freq}")
-
-        return
+        self.logger.info("Sample rate after: %f", resample_freq)
 
     def resample_dig(self, signal, input_rate, output_rate):
         """
@@ -166,7 +165,10 @@ class SignalProcessor:
 
             if low and low >= fs / 2:
                 self.logger.warning(
-                    f"Low cutoff frequency {low} Hz is >= Nyquist frequency {fs/2} Hz. Skipping highpass filter."
+                    "Low cutoff frequency %s Hz is >= Nyquist frequency %s Hz. "
+                    "Skipping highpass filter.",
+                    low,
+                    fs/2
                 )
                 low = None  # Avoid invalid low cutoff frequency
             else:
@@ -174,12 +176,17 @@ class SignalProcessor:
 
             if high and high >= fs / 2:
                 self.logger.warning(
-                    f"High cutoff frequency {high} Hz is >= Nyquist frequency {fs/2} Hz. Skipping lowpass filter."
+                    "High cutoff frequency %s Hz is >= Nyquist frequency %s Hz. "
+                    "Skipping lowpass filter.",
+                    high,
+                    fs/2
                 )
                 high = None  # Avoid invalid high cutoff frequency
 
             self.logger.info(
-                f"Filter signal with low: {low} Hz and high: {high} Hz bandpass"
+                "Filter signal with low: %s Hz and high: %s Hz bandpass",
+                low,
+                high
             )
 
             if self.filter_type == "iir" and self.iir_filter_order is not None:
@@ -199,17 +206,16 @@ class SignalProcessor:
             )
 
         elif not (low is None and high is None) and self.ch_type == "digital":
-            self.logger.error(f"Digital channels ({self.select_ch}) cannot be filtered.")
-            raise Exception(f"Digital channels ({self.select_ch}) cannot be filtered.")
+            self.logger.error("Digital channels (%s) cannot be filtered.", self.select_ch)
+            raise ValueError(f"Digital channels ({self.select_ch}) cannot be filtered.")
 
-        return
-    
     def clip_signal(self):
-        # Final clipping to original signal range if filtering was applied
+        """ Final clipping to original signal range if filtering was applied"""
         if self.highpassed:
-            # if highpass filter was applied, signal is now centered around zero, so we need to adjust the clipping range accordingly
-            self.signal = np.clip(self.signal, a_min=self.signal_min - self.signal_mean, a_max=self.signal_max - self.signal_mean)
+            # if highpass filter was applied, signal is now centered around zero,
+            # so we need to adjust the clipping range accordingly
+            self.signal = np.clip(self.signal,
+                                  a_min=self.signal_min - self.signal_mean,
+                                  a_max=self.signal_max - self.signal_mean)
         else:
             self.signal = np.clip(self.signal, a_min=self.signal_min, a_max=self.signal_max)
-
-        return
