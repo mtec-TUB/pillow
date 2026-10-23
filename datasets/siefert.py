@@ -49,8 +49,8 @@ class SIEFERT(BaseDataset):
             'FC5': self.Mapping(self.TTRef.FC5, self.TTRef.FCz),
             'FC1': self.Mapping(self.TTRef.FC1, self.TTRef.FCz),
             'C3': self.Mapping(self.TTRef.C3, self.TTRef.FCz),
-            'T7': self.Mapping(self.TTRef.EMG_LCHIN, self.TTRef.FCz),   # not sure if left or right
-            'TP9': self.Mapping(self.TTRef.LPA, self.TTRef.FCz),    # not sure if left or right
+            'T7': self.Mapping(self.TTRef.EMG_LCHIN, self.TTRef.FCz), # information received from the author
+            'TP9': self.Mapping(self.TTRef.LPA, self.TTRef.FCz),  # information received from the author
             'CP5': self.Mapping(self.TTRef.CP5, self.TTRef.FCz),
             'CP1': self.Mapping(self.TTRef.CP1, self.TTRef.FCz),
             'Pz': self.Mapping(self.TTRef.Pz, self.TTRef.FCz),
@@ -61,12 +61,12 @@ class SIEFERT(BaseDataset):
             'O2': self.Mapping(self.TTRef.O2, self.TTRef.FCz),
             'P4': self.Mapping(self.TTRef.P4, self.TTRef.FCz),
             'P8': self.Mapping(self.TTRef.P8, self.TTRef.FCz),
-            'TP10': self.Mapping(self.TTRef.RPA, self.TTRef.FCz),   #  not sure if left or right
+            'TP10': self.Mapping(self.TTRef.RPA, self.TTRef.FCz), # information received from the author
             'CP6': self.Mapping(self.TTRef.CP6, self.TTRef.FCz),
             'CP2': self.Mapping(self.TTRef.CP2, self.TTRef.FCz),
             'Cz': self.Mapping(self.TTRef.Cz, self.TTRef.FCz),
             'C4': self.Mapping(self.TTRef.C4, self.TTRef.FCz),
-            'T8': self.Mapping(self.TTRef.EMG_RCHIN, self.TTRef.FCz),   # not sure if left or right
+            'T8': self.Mapping(self.TTRef.EMG_RCHIN, self.TTRef.FCz), # information received from the author
             'FT10': self.Mapping(self.TTRef.FT10, self.TTRef.FCz),
             'FC6': self.Mapping(self.TTRef.FC6, self.TTRef.FCz),
             'FC2': self.Mapping(self.TTRef.FC2, self.TTRef.FCz),
