@@ -28,11 +28,12 @@ Stage label mapping:
 import os
 import glob
 import argparse
+from pathlib import Path
+from collections import Counter
+
 import h5py
 import numpy as np
 import pandas as pd
-from pathlib import Path
-from collections import Counter
 
 from psg_processing.utils import SleepStage, SLEEP_STAGES
 
@@ -57,7 +58,7 @@ def compute_metrics(h5_path):
         "n3_pct": np.nan, "rem_pct": np.nan, "recording_min": np.nan, "n_epochs": np.nan,
         "epoch_dur_s": np.nan, "n_wake": np.nan, "n_n1": np.nan, "n_n2": np.nan,
         "n_n3": np.nan, "n_rem": np.nan, "n_move": np.nan, "n_unk": np.nan,
-        "n_unstaged_sleep": np.nan, 
+        "n_unstaged_sleep": np.nan,
         "n_waso": np.nan, "channels": []
     }
 
