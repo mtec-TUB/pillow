@@ -49,7 +49,7 @@ class EDFHandler:
                 labels = raw.ch_names
                 return labels
         except Exception as e:
-            logger.error("Error during channel extraction: %s", str(e))
+            logger.error("Error during channel extraction: %s", e)
             logger.error("Maybe EDF Browser header repair can help.")
             return []
 
@@ -77,7 +77,7 @@ class EDFHandler:
                     signal = raw.get_data()[0]
                     return signal
         except Exception as e:
-            logger.error("Error during signal extraction: %s", str(e))
+            logger.error("Error during signal extraction: %s", e)
             logger.error("Maybe EDF Browser header repair can help.")
         return None     # channel was not found in this file
 
@@ -96,7 +96,7 @@ class EDFHandler:
                 start_datetime = raw.info['meas_date']
                 file_duration = raw.duration
         except Exception as e:
-            logger.error("Error during start_datetime retrieval: %s", str(e))
+            logger.error("Error during start_datetime retrieval: %s", e)
             logger.error("Maybe EDF Browser header repair can help.")
             raise
 
@@ -132,7 +132,7 @@ class EDFHandler:
                 # only supported for mne version >= 1.10
                 raw = read_raw_edf(f, include=[channel], preload=True, verbose="WARNING")
         except Exception as e:
-            logger.error("Error during data retrieval: %s", str(e))
+            logger.error("Error during data retrieval: %s", e)
             logger.error("Maybe EDF Browser header repair can help.")
             raise
 
@@ -149,7 +149,7 @@ class EDFHandler:
                     unit = f.getPhysicalDimension(labels.index(channel))
             except Exception as e:
                 logger.warning("Could not recover original unit for channel %s from EDF header: %s",
-                               channel, str(e))
+                               channel, e)
         else:
             ch_type = raw.get_channel_types(picks=channel)[0]
             signal = raw.get_data(picks=channel, units={ch_type: mne_unit})[0]

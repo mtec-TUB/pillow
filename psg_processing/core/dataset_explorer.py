@@ -369,5 +369,5 @@ class DatasetExplorer:
             else:
                 self.logger.info("Finalizing results with current analysis status...")
         except Exception as e:
-            self.logger.error("Error during channel type analysis: %s", str(e))
+            self.logger.error("Error during channel type analysis: %s", e)
         return channel_dict

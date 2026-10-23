@@ -14,7 +14,7 @@ class BRAINVISIONHandler:
             raw_data = read_raw_brainvision(filepath, verbose="WARNING",preload=False)
             return raw_data.ch_names
         except Exception as e:
-            logger.error("Error during channel extraction from: %s", str(e))
+            logger.error("Error during channel extraction from: %s", e)
             raise
 
     def read_signal(self, logger: logging.Logger, filepath, channel):
@@ -25,7 +25,7 @@ class BRAINVISIONHandler:
                 return raw_data.get_data(picks=channel)[0]
             return None # channel not found in this file
         except Exception as e:
-            logger.error("Error reading signal: %s", str(e))
+            logger.error("Error reading signal: %s", e)
             return None
 
     def get_file_info(self, logger: logging.Logger, filepath):
@@ -36,7 +36,7 @@ class BRAINVISIONHandler:
             file_duration = raw_data.duration
             start_datetime = info["meas_date"]
         except Exception as e:
-            logger.error("Error during file info retrieval: %s", str(e))
+            logger.error("Error during file info retrieval: %s", e)
             raise
 
         return {"start_datetime": start_datetime, "file_duration": file_duration}
@@ -54,7 +54,7 @@ class BRAINVISIONHandler:
             raw_data = read_raw_brainvision(filepath, verbose='WARNING', preload=False)
             info = raw_data.info
         except Exception as e:
-            logger.error("Error during data retrieval: %s", str(e))
+            logger.error("Error during data retrieval: %s", e)
             raise
 
         sampling_rate = info["sfreq"]
@@ -77,7 +77,7 @@ class BRAINVISIONHandler:
             except Exception as e:
                 logger.warning(
                     "Could not recover original unit for channel %s from BrainVision header: %s",
-                    channel, str(e)
+                    channel, e
                 )
         else:
             ch_type = raw_data.get_channel_types(picks=channel)[0]

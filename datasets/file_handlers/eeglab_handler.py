@@ -28,13 +28,13 @@ class EEGLABHandler:
                     raw_epoched_data = read_epochs_eeglab(filepath, verbose="WARNING")
                     return raw_epoched_data.ch_names
                 except FileNotFoundError as e:
-                    logger.error("File not found: %s", str(e))
+                    logger.error("File not found: %s", e)
                     return []
             except OSError as e:
-                logger.error("Skipping corrupt/unreadable file: %s", str(e))
+                logger.error("Skipping corrupt/unreadable file: %s", e)
                 return []
             except Exception as e:
-                logger.error("Error during channel extraction from: %s", str(e))
+                logger.error("Error during channel extraction from: %s", e)
                 raise
 
     def read_signal(self, logger: logging.Logger, filepath, channel):
@@ -70,10 +70,10 @@ class EEGLABHandler:
 
                 return None
             except FileNotFoundError as e:
-                logger.error("File not found: %s", str(e))
+                logger.error("File not found: %s", e)
                 return None
         except Exception as e:
-            logger.error("Error reading signal: %s", str(e))
+            logger.error("Error reading signal: %s", e)
             return None
 
     def get_file_info(self, logger: logging.Logger, filepath):
@@ -103,10 +103,10 @@ class EEGLABHandler:
                 file_duration = (len(eeg_data) // n_channels) / fs
             except Exception as e:
                 logger.error("Runtime error during file info retrieval: %s \n Skipping file.",
-                             str(e))
+                             e)
                 return {}
         except Exception as e:
-            logger.error("Error during file info retrieval: %s", str(e))
+            logger.error("Error during file info retrieval: %s", e)
             raise
 
         start_datetime = info["meas_date"]
@@ -176,10 +176,10 @@ class EEGLABHandler:
                 signal = eeg_data[channel_idx,:]
             except Exception as e:
                 logger.error("Runtime error during data retrieval: %s \n Skipping file.",
-                             str(e))
+                             e)
                 return {}
         except Exception as e:
-            logger.error("Error during data retrieval: %s", str(e))
+            logger.error("Error during data retrieval: %s", e)
             raise
 
         sampling_rate = info["sfreq"]

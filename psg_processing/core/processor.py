@@ -128,7 +128,7 @@ class DatasetProcessor:
                                 future.result()  # Check for exceptions
                                 pbar.update(1)
                             except Exception as e:
-                                self.pipeline_logger.error("Processing failed: %s", str(e))
+                                self.pipeline_logger.error("Processing failed: %s", e)
                                 executor.shutdown(cancel_futures=True)
                                 break
                             finally:
@@ -433,7 +433,7 @@ class FileProcessor:
 
         except Exception as e:
             # Log the exception
-            self.logger.error("Error processing file: %s", str(e), exc_info=True)
+            self.logger.error("Error processing file: %s", e, exc_info=True)
             raise  # Re-raise after logging
         finally:
 
