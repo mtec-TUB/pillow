@@ -1,14 +1,9 @@
 import os
+
 from scipy.interpolate import interp1d
 import numpy as np
 import pandas as pd
-from pathlib import Path
-from tqdm import tqdm
-import glob
-import shutil
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timezone
+
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
@@ -16,7 +11,7 @@ from psg_processing.utils import SleepStage
 @register_dataset("MHRW")
 class MHRW(BaseDataset):
     """MHRW - Motion and heart rate from a wrist-worn wearable dataset."""
-    
+
     def __init__(self):
         super().__init__("MHRW","MHRW - Motion and heart rate from a wrist-worn wearable")
         self.has_front_alignment = True
@@ -67,41 +62,42 @@ class MHRW(BaseDataset):
             df = pd.read_csv(steps_file, names=['timestamp', 'steps'], sep=',')
             aligned_df = df[(df['timestamp'] >= start_time) & (df['timestamp'] <= start_time + duration)]
             sampling_rate = 1
-
+        else:
+            raise ValueError(f"Channel \"{channel}\" is not available in the MHRW dataset.")
 
         f = interp1d(aligned_df['timestamp'], aligned_df[channel], kind='nearest', fill_value='extrapolate')
         signal_interpl = f(np.arange(start_time, start_time + duration, 1/sampling_rate))
 
         return signal_interpl
-    
-    def get_time_range(self, logger, filepath, sep=','):
+
+    def get_time_range(self, filepath, sep=','):
         times = pd.read_csv(filepath, sep=sep).values[:,0]
         return float(times[0]), float(times[-1])
-    
+
     def get_file_info(self, logger, filepath):
         """Get start datetime and file duration."""
 
-        hr_start_time, hr_end_time = self.get_time_range(logger, filepath)
+        hr_start_time, hr_end_time = self.get_time_range(filepath)
 
         motion_file = filepath.replace('heart_rate', 'motion').replace('heartrate', 'acceleration')
-        motion_start_time, motion_end_time = self.get_time_range(logger, motion_file, sep=' ') if os.path.exists(motion_file) else (np.nan, np.nan)
+        motion_start_time, motion_end_time = self.get_time_range(motion_file, sep=' ') if os.path.exists(motion_file) else (np.nan, np.nan)
 
         # steps_file = filepath.replace('heart_rate', 'steps').replace('heartrate', 'steps')
-        # steps_start_time, steps_end_time = self.get_time_range(logger, steps_file) if os.path.exists(steps_file) else (np.nan, np.nan)
+        # steps_start_time, steps_end_time = self.get_time_range(steps_file) if os.path.exists(steps_file) else (np.nan, np.nan)
 
         overlap = motion_start_time and (hr_start_time <= motion_end_time) and (motion_start_time <= hr_end_time)
-        
-        if (overlap): 
+
+        if overlap:
             start_time = max([hr_start_time, motion_start_time])
             end_time = min([hr_end_time, motion_end_time])
         else:
             return {}
 
-        file_duration = (end_time - start_time)
+        file_duration = end_time - start_time
 
         return {"start_datetime": start_time,
                 "file_duration": file_duration}
-    
+
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for specific channel.
         Sampling rates from doi:10.1093/sleep/zsz180"""
@@ -124,14 +120,16 @@ class MHRW(BaseDataset):
             df = pd.read_csv(steps_file, names=['timestamp', 'steps'], sep=',')
             aligned_df = df[(df['timestamp'] >= start_time) & (df['timestamp'] <= start_time + duration)]
             sampling_rate = 1
+        else:
+            raise ValueError(f"Channel \"{channel}\" is not available in the MHRW dataset.")
 
         if aligned_df.empty:
             logger.warning(f"Channel \"{channel}\" has no data in the common time range of heartrate and acceleration for file {filepath}. Will be ignored.")
             return {}
-        
+
         f = interp1d(aligned_df['timestamp'], aligned_df[channel], kind='nearest', fill_value='extrapolate')
         signal_interpl = f(np.arange(start_time, start_time + duration, 1/sampling_rate))
-        unit = self.unit_mapping.get(channel, 'u.a.')        
+        unit = self.unit_mapping.get(channel, 'u.a.')
 
         return {
             "signal": signal_interpl,
@@ -149,24 +147,24 @@ class MHRW(BaseDataset):
                           5: SleepStage.REM,
                           -1: SleepStage.UNK}
 
-        
+
         self.channel_names =  ['heartrate', 'acc_x', 'acc_y', 'acc_z', 'steps']
-        
-        
-        self.channel_types ={'analog': ['acc_x', 'acc_y', 'acc_z'], 
-                             'digital': ['heartrate', 'steps']} 
-        
+
+
+        self.channel_types ={'analog': ['acc_x', 'acc_y', 'acc_z'],
+                             'digital': ['heartrate', 'steps']}
+
         self.channel_groups = {}
-        
+
         self.file_extensions = {
                                 'psg_ext': '**/*_heartrate.txt',    # used as common reference per patient (channels are derived from _heartrate.txt, _motion.txt and _steps.txt)
                                 'ann_ext': '**/*_labeled_sleep.txt'
                                 }
-        
+
 
     def dataset_paths(self):
         return ['', '']
-    
+
     def get_file_identifier(self, psg_fname=None, ann_fname=None):
         """Used to find corresponding PSG and annotation files based on filename patterns
         """
@@ -178,7 +176,7 @@ class MHRW(BaseDataset):
             ann_ext = self.file_extensions['ann_ext'].split('*')[-1]
             ann_id = os.path.basename(ann_fname).split(ann_ext)[0]
         return psg_id, ann_id
-    
+
     def ann_parse(self, ann_fname):
         """
         function to parse the annotation file of the dataset into sleep stage events with start and duration
@@ -192,7 +190,7 @@ class MHRW(BaseDataset):
         epoch_duration = 30  # seconds
 
         ann_stage_events = []
-        for i,row in ann_df.iterrows():
+        for _,row in ann_df.iterrows():
             stage = row['Stage']
             start = row['Timestamp']
             ann_stage_events.append({'Stage': stage,
@@ -200,6 +198,3 @@ class MHRW(BaseDataset):
                                     'Duration': epoch_duration})
 
         return ann_stage_events, abs(start_time), lights_off, lights_on
-    
-
-

@@ -1,6 +1,4 @@
 import numpy as np
-from datetime import datetime
-from typing import Dict, List, Tuple
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -10,7 +8,7 @@ from psg_processing.utils import SleepStage
 @register_dataset("UCDDB")
 class UCDDB(BaseDataset):
     """UCDDB - St. Vincent's University Hospital, University College Dublin Sleep Apnea Database dataset with multiple scorers"""
-    
+
     def __init__(self):
         super().__init__("UCDDB","UCDDB - St. Vincent's University Hospital, University College Dublin Sleep Apnea Database")
         self.has_end_alignment = True
@@ -27,8 +25,8 @@ class UCDDB(BaseDataset):
             7: SleepStage.UNK,
             8: SleepStage.UNK,
         }
-        
-        
+
+
         self.intra_dataset_mapping = {
             'Sound': ['Sound', 'Soud'],
         }
@@ -49,38 +47,38 @@ class UCDDB(BaseDataset):
             'abdo': self.Mapping(self.TTRef.ABDOMINAL, None),
             'ribcage': self.Mapping(self.TTRef.THORACIC, None),
         }
-        
-        
+
+
         self.channel_names = ['BodyPos', 'C3A2', 'C4A1', 'ECG', 'EMG', 'Flow', 'Left leg', 'Lefteye', 'Pulse',
                                'Right leg', 'RightEye', 'Soud', 'Sound', 'SpO2', 'Sum', 'abdo', 'ribcage']
-        
-        
-        self.channel_types =  {'analog': ['SpO2', 'RightEye', 'Sound', 'Lefteye', 'abdo', 'Pulse', 'ribcage', 
+
+
+        self.channel_types =  {'analog': ['SpO2', 'RightEye', 'Sound', 'Lefteye', 'abdo', 'Pulse', 'ribcage',
                                           'Sum', 'EMG', 'C4A1', 'ECG', 'Left leg', 'Soud', 'BodyPos', 'C3A2', 'Flow', 'Right leg'],
                                'digital': []}
-        
-        
+
+
         self.channel_groups = {
             'eeg_eog': ['C3A2', 'C4A1','RightEye', 'Lefteye',],
             'emg': ['EMG', 'Right leg', 'Left leg', ],
             'ecg': ['ECG'],
             'thoraco_abdo_resp': ['abdo', 'ribcage'],
         }
-        
+
         self.file_extensions = {
             'psg_ext': '*.rec',
             'ann_ext': '*_stage.txt'
         }
-    
+
     def dataset_paths(self):
         return [
             '',
             ''
         ]
-    
+
     def ann_parse(self, ann_fname: str):
         """Parse ISRUC annotation files (multiple scorers in separate files)"""
-        
+
         ann_stage_events = []
 
         epoch_duration = 30  # UCDDB uses 30-second epochs
@@ -92,5 +90,5 @@ class UCDDB(BaseDataset):
                 'Duration': epoch_duration,
                 'Stage': stage
             })
-        
+
         return ann_stage_events, None, None, None

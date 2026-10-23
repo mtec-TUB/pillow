@@ -2,11 +2,13 @@
 DREAMT (Dataset for Real-time sleep stage EstimAtion using Multisensor wearable Technology)
 """
 import os
+import csv
+import logging
+
 import numpy as np
 import pandas as pd
 import polars as pl
-import csv
-from typing import Dict, List, Optional, Tuple
+
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
@@ -14,7 +16,7 @@ from psg_processing.utils import SleepStage
 @register_dataset("DREAMT")
 class DREAMT(BaseDataset):
     """DREAMT dataset."""
-    
+
     def __init__(self):
         super().__init__("DREAMT","DREAMT - Dataset for Real-time sleep stage EstimAtion using Multisensor wearable Technology")
         self.has_end_alignment = True
@@ -61,11 +63,11 @@ class DREAMT(BaseDataset):
             "R": SleepStage.REM,      # REM sleep
             "Missing": SleepStage.UNK, # Unscored/Missing
             "P": SleepStage.UNK     # Preparation stage, labeled as Wake as in described in https://physionet.org/content/dreamt/2.1.0/
-        }        
-        
-        self.channel_names = ['C4-M1', 'F4-M1', 'O2-M1', 'Fp1-O2', 'T3 - CZ', 'CZ - T4', 'CHIN', 'E1', 'E2', 'ECG', 'LAT', 'RAT', 'SNORE', 'PTAF', 'FLOW', 
+        }
+
+        self.channel_names = ['C4-M1', 'F4-M1', 'O2-M1', 'Fp1-O2', 'T3 - CZ', 'CZ - T4', 'CHIN', 'E1', 'E2', 'ECG', 'LAT', 'RAT', 'SNORE', 'PTAF', 'FLOW',
                               'THORAX', 'ABDOMEN', 'SAO2', 'BVP', 'ACC_X', 'ACC_Y', 'ACC_Z', 'TEMP', 'EDA', 'HR', 'IBI']
-        
+
         self.inter_dataset_mapping = {
             "C4-M1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
             "F4-M1": self.Mapping(self.TTRef.F4, self.TTRef.LPA),
@@ -86,18 +88,18 @@ class DREAMT(BaseDataset):
             "HR": self.Mapping(self.TTRef.HR, None),
             "FLOW": self.Mapping(self.TTRef.AIRFLOW, None),
         }
-        
-        self.channel_types = {'analog': ['C4-M1', 'F4-M1', 'O2-M1', 'Fp1-O2', 'T3 - CZ', 'CZ - T4', 'CHIN', 'E1', 'E2', 'ECG', 'LAT', 'RAT', 'SNORE', 
-                                         'PTAF', 'FLOW', 'THORAX', 'ABDOMEN', 'SAO2', 'BVP', 'ACC_X', 'ACC_Y', 'ACC_Z', 'TEMP', 'EDA', 'HR'], 
+
+        self.channel_types = {'analog': ['C4-M1', 'F4-M1', 'O2-M1', 'Fp1-O2', 'T3 - CZ', 'CZ - T4', 'CHIN', 'E1', 'E2', 'ECG', 'LAT', 'RAT', 'SNORE',
+                                         'PTAF', 'FLOW', 'THORAX', 'ABDOMEN', 'SAO2', 'BVP', 'ACC_X', 'ACC_Y', 'ACC_Z', 'TEMP', 'EDA', 'HR'],
                               'digital': ['IBI']}
-        
+
         self.channel_groups = {}
-        
+
         self.file_extensions = {
             'psg_ext': '*.csv',
             'ann_ext': '*.csv',  # Annotations are embedded in data CSV files
-        }        
-    
+        }
+
     def dataset_paths(self):
         if self.use_sample_rate == 100:
             return [
@@ -111,37 +113,37 @@ class DREAMT(BaseDataset):
             ]
         else:
             raise ValueError(f"Unsupported sample rate: {self.use_sample_rate}. Existing rates in dataset are 100Hz and 64Hz.")
-    
-    def get_channels(self, logger, filepath):
+
+    def get_channels(self, logger: logging.Logger, filepath):
         """Extract column names from DREAMT CSV files."""
         try:
             dataset = pd.read_csv(filepath, sep=",", header=0, nrows=1)
             # Exclude non-signal columns specific to DREAMT
-            signal_columns = [col for col in dataset.columns 
+            signal_columns = [col for col in dataset.columns
                             if col not in ['TIMESTAMP', 'Sleep_Stage','Obstructive_Apnea','Central_Apnea','Hypopnea','Multiple_Events']]
             return signal_columns
         except Exception as e:
-            logger.error(f"Error reading DREAMT CSV file {filepath}: {e}")
+            logger.error("Error reading DREAMT CSV file %s: %s", filepath, e)
             return []
 
-    def read_signal(self, logger, filepath, channel):
+    def read_signal(self, logger: logging.Logger, filepath, channel):
         """Read signal from DREAMT CSV file for specific channel."""
         try:
             dataset = pl.read_csv(filepath, null_values=[""])
             if channel in dataset.columns:
                 return dataset[channel].to_numpy()
         except Exception as e:
-            logger.error(f"Error reading DREAMT CSV signal from {filepath}: {e}")
+            logger.error("Error reading DREAMT CSV signal from %s: %s", filepath, e)
         return None
-    
-    def get_file_info(self, logger, filepath):
+
+    def get_file_info(self, logger: logging.Logger, filepath):
         """Get start datetime and file duration."""
         start_datetime = None
         num_lines = sum(1 for _ in open(filepath)) - 1  # subtract 1 for header
         file_duration = num_lines / self.use_sample_rate
         return {"start_datetime": start_datetime, "file_duration": file_duration}
 
-    def get_signal_data(self, logger, filepath, channel):
+    def get_signal_data(self, logger: logging.Logger, filepath, channel):
         """Get complete DREAMT CSV signal information for processing."""
         try:
             sampling_rate = self.use_sample_rate
@@ -152,7 +154,7 @@ class DREAMT(BaseDataset):
 
             if missing_count == len(signal):
                 # occurs for channel T3-Cz in file S062_PSG_df_updated.csv
-                logger.warning(f"All values for channel {channel} in file {os.path.basename(filepath)} are missing. Skipping this channel")
+                logger.warning("All values for channel %s in file %s are missing. Skipping this channel", channel, os.path.basename(filepath))
                 return {}
 
             file_duration = len(signal) / sampling_rate
@@ -165,7 +167,7 @@ class DREAMT(BaseDataset):
             }
 
         except Exception as e:
-            logger.error(f"Error processing DREAMT CSV file {filepath}: {e}")
+            logger.error("Error processing DREAMT CSV file %s: %s", filepath, e)
             raise
 
     def ann_parse(self, ann_fname: str):
@@ -206,4 +208,3 @@ class DREAMT(BaseDataset):
 
         lights_off, lights_on = None, None
         return ann_stage_events, start_time, lights_off, lights_on
-    

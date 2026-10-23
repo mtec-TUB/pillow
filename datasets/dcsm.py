@@ -1,10 +1,12 @@
 import os
-import pandas as pd
 import shutil
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-from tqdm import tqdm
+from typing import Dict
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from tqdm import tqdm
+import pandas as pd
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -14,15 +16,15 @@ from psg_processing.utils import SleepStage
 @register_dataset("DCSM")
 class DCSM(BaseDataset):
     """DCSM (Danish Center of Sleep Medicine) dataset."""
-    
+
     def __init__(self):
         super().__init__("DCSM","DCSM - Danish Center of Sleep Medicine", keep_folder_structure = False)
-    
+
     def _setup_dataset_config(self):
         self.ann2label = {
             "W": SleepStage.W,      # Wake
             "N1": SleepStage.N1,     # NREM Stage 1
-            "N2": SleepStage.N2,     # NREM Stage 2  
+            "N2": SleepStage.N2,     # NREM Stage 2
             "N3": SleepStage.N3,     # NREM Stage 3
             "REM": SleepStage.REM,    # REM sleep
         }
@@ -44,19 +46,19 @@ class DCSM(BaseDataset):
             "LAT": self.Mapping(self.TTRef.EMG_LLEG, None),
             "RAT": self.Mapping(self.TTRef.EMG_RLEG, None),
             "SPO2": self.Mapping(self.TTRef.SPO2, None),
-        }   
+        }
 
         self.channel_names = ['E1-M2', 'E2-M2', 'F3-M2', 'F4-M1', 'C3-M2', 'C4-M1', 'O1-M2', 'O2-M1',
                 'LAT', 'RAT', 'SNORE', 'NASAL', 'THORAX', 'ABDOMEN', 'SPO2', 'CHIN', 'ECG-II']
-        
-        
+
+
         self.channel_types =  {
             'analog': ['E1-M2', 'E2-M2', 'F3-M2', 'F4-M1', 'C3-M2', 'C4-M1', 'O1-M2', 'O2-M1',
                 'CHIN', 'LAT', 'RAT', 'SNORE', 'NASAL', 'THORAX', 'ABDOMEN', 'ECG-II'
             ],
             'digital': ['SPO2']
         }
-        
+
         self.channel_groups = {
             'eeg_eog': ['E1-M2', 'E2-M2', 'F3-M2', 'F4-M1', 'C3-M2', 'C4-M1', 'O1-M2', 'O2-M1'],
             'emg': ['CHIN', 'LAT', 'RAT'],
@@ -64,7 +66,7 @@ class DCSM(BaseDataset):
             'thoraco_abdo_resp': ['THORAX', 'ABDOMEN'],
             'nasal_pressure': ['NASAL'],
             'snoring': ['SNORE']
-        }  
+        }
 
         self.file_extensions = {
             'psg_ext': '*_psg.edf',
@@ -76,47 +78,47 @@ class DCSM(BaseDataset):
             "edfs",
             "annot"
         ]
-    
+
 
     def ann_parse(self, ann_fname: str):
         """
         Parse DCSM .ids annotation files.
-        
+
         DCSM uses CSV format with columns: start, duration, stage
         No header in the CSV file.
-        
+
         Args:
             ann_fname: Path to .ids annotation file
-            
+
         Returns:
             Tuple of (sleep_stage_events, start_datetime)
         """
         ann_stage_events = []
-        
+
         # Read CSV file without header
         ann_df = pd.read_csv(ann_fname, sep=',', names=['start', 'duration', 'stage'])
-        
-        for i, row in ann_df.iterrows():
+
+        for _, row in ann_df.iterrows():
             start = row['start']
             duration = row['duration']
             stage = row['stage']
-            
+
             ann_stage_events.append({
                 'Stage': stage,
                 'Start': start,
                 'Duration': duration
             })
-        
+
         # DCSM .ids files don't contain start datetime information
         # Return None for start_datetime, lights_off and lights_on
         return ann_stage_events, None, None, None
-    
+
     def preprocess(self, n_workers, data_dir, ann_dir):
         print("\n DCSM files originally are stored in an unsupported way and therefor need to be preprocessed/resorted ... \n \
               This will not modify the original file content")
-        
+
         execute_preprocess = input("Do you want to perform the preprocessing now? (Y/N) ")
-        
+
         if str(execute_preprocess).lower() == "y":
             organizer = DCSMFileOrganizer(n_workers, os.path.split(data_dir)[0])
             organizer.organize_files()
@@ -124,7 +126,7 @@ class DCSM(BaseDataset):
             if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
                 return False
         return True
-    
+
 class DCSMFileOrganizer:
     """Handles reorganization of DCSM dataset files."""
 
@@ -181,7 +183,7 @@ class DCSMFileOrganizer:
 
     def _create_target_directories(self):
         """Create the target directory structure."""
-        for dir_name, dir_path in self.target_dirs.items():
+        for _, dir_path in self.target_dirs.items():
             dir_path.mkdir(exist_ok=True)
 
     def _process_subject_folder(self, subject_folder: Path):
@@ -201,6 +203,8 @@ class DCSMFileOrganizer:
                     new_filename = f"{subject_id}_psg.edf"
                 elif source_filename == "psg.h5":
                     new_filename = f"{subject_id}_psg.h5"
+                else:
+                    raise ValueError(f"Unexpected source filename: {source_filename}")
 
                 target_file = self.target_dirs[target_dir_name] / new_filename
 
@@ -210,7 +214,7 @@ class DCSMFileOrganizer:
                         shutil.copy2(source_file, target_file)
                         # print(f" Copied {source_filename} -> {new_filename}")
                         stats["copied"] += 1
-                    except Exception as e:
+                    except Exception:
                         # print(f" Failed to copy {source_filename}: {e}")
                         stats["errors"] += 1
             else:

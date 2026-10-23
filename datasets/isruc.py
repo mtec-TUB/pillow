@@ -1,11 +1,12 @@
 import os
-import numpy as np
-import pandas as pd
 import shutil
 import glob
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
 from datasets.base import BaseDataset
@@ -16,7 +17,7 @@ from psg_processing.utils import SleepStage
 @register_dataset("ISRUC")
 class ISRUC(BaseDataset):
     """ISRUC dataset with multiple scorers"""
-    
+
     def __init__(self):
         super().__init__("ISRUC","ISRUC")
         self.has_end_alignment = True
@@ -33,8 +34,8 @@ class ISRUC(BaseDataset):
             "R": SleepStage.REM,    # REM
             "U": SleepStage.UNK,    # Unknown
         }
-        
-        
+
+
         self.intra_dataset_mapping = {
             'ECG': ['25', 'X2'],
             'Chin': ['24', 'X1'],
@@ -57,7 +58,7 @@ class ISRUC(BaseDataset):
             'ROC_A1': ['ROC-A1', 'E2-M1'],
         }
 
-                
+
         self.inter_dataset_mapping = {
             "F3_A2": self.Mapping(self.TTRef.F3, self.TTRef.RPA),
             "C3_A2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
@@ -76,26 +77,26 @@ class ISRUC(BaseDataset):
             "Abdominal_X7": self.Mapping(self.TTRef.ABDOMINAL, None),
             "Snore": self.Mapping(self.TTRef.SNORE, None),
         }
-        
-        
+
+
         self.channel_names = [
             'O1', 'C3', 'F3', 'F4', 'O2', 'C4', 'LOC', 'ROC', 'A1', 'A2',
-            'O2-M1', 'O2-A1', 'C4-M1', 'C4-A1', 'C3-M2', 'C3-A2', 
+            'O2-M1', 'O2-A1', 'C4-M1', 'C4-A1', 'C3-M2', 'C3-A2',
             'O1-M2', 'O1-A2', 'F3-M2', 'F3-A2', 'F4-M1', 'F4-A1',
             'LOC-A2', 'E1-M2', 'ROC-A1', 'E2-M1',
-            '24', 'X1', '26', 'X3', '27', 'X4', 
+            '24', 'X1', '26', 'X3', '27', 'X4',
             '25', 'X2', '28', 'X5', '29', 'X6', 'DC3',
             'X7', 'X8', '30', '31', 'X7-X8',
             'DC8', 'SpO2', 'SaO2'
         ]
-        
-        
+
+
         self.channel_types =  {'analog': ['LOC-A2', 'O2-A1', 'X7', '24', 'C3-M2', 'ROC', 'X8', 'O2', 'F3-A2', 'X7-X8', 'X1', 'C4-A1', '30', 'C4-M1', 'E1-M2', '28',
                            'SpO2', 'O1-M2', 'O1-A2', 'A2', 'C3', 'O2-M1', 'F3', '31', 'X4', 'O1', '29', 'F4-A1', 'F4-M1', 'LOC', 'X2', 'F4', '26', '25',
                            'X6', '27', 'C4', 'ROC-A1', 'C3-A2', 'SaO2', 'F3-M2', 'DC3', 'E2-M1', 'X5', 'X3', 'A1'],
                 'digital': ['DC8']}
-        
-        
+
+
         self.channel_groups = {
             'eeg_eog': ['O1', 'C3', 'F3', 'F4', 'O2', 'C4', 'LOC', 'ROC', 'C3', 'O1', 'O2', 'A1', 'C4', 'A2', 'F4', 'O2-M1', 'O2-A1', 'C4-M1', 'C4-A1', 'C3-M2', 'C3-A2', 'O1-M2', 'O1-A2', 'F3-M2', 'F3-A2', 'F4-M1', 'F4-A1', 'LOC-A2', 'E1-M2', 'ROC-A1', 'E2-M1'],
             'emg': ['24', 'X1', '26', 'X3', '27', 'X4'],
@@ -103,31 +104,31 @@ class ISRUC(BaseDataset):
             'thoraco_abdo_resp': ['X7', 'X8', '30', '31', 'X7-X8','X6','DC3'],
             'snoring': ['28', 'X5']
         }
-        
+
         self.file_extensions = {
             'psg_ext': '*/*.rec',
             'ann_ext': '*/*_1.xlsx'
         }
-    
+
     def dataset_paths(self):
         return [
             'Data',
             'Data'
         ]
-    
+
     def ann_parse(self, ann_fname: str):
         """Parse ISRUC annotation files (multiple scorers in separate files)"""
         # ISRUC has two annotation files: *1.xlsx and *2.xlsx
         base_fname = ann_fname.replace('1.xlsx', '')
 
         epoch_duration = 30  # ISRUC uses 30-second epochs
-        
+
         ann_stage_events = []
 
         lights_off, lights_on = [], []
 
         exp_col_names = ['Epoch', 'Stage', 'SpO2', 'HR', 'Events', 'BPOS', 'Txln', 'TxEx', 'Technote']
-        
+
         # Load both scorer files
         for scorer_suffix in ['1.xlsx', '2.xlsx']:
             ann_fname_scorer = base_fname + scorer_suffix
@@ -152,7 +153,7 @@ class ISRUC(BaseDataset):
                     })
                 ann_stage_events.append(scorer_events)
             else:
-                ann_stage_events.append([])  # No annotation for this scorer        
+                ann_stage_events.append([])  # No annotation for this scorer
 
         if not lights_off:
             raise Exception("No lights off event found in annotations") # should not occur
@@ -162,14 +163,14 @@ class ISRUC(BaseDataset):
                 lights_off = [lights_off[1]]
             else:
                 raise Exception(f"Multiple lights off events found in annotations: {lights_off}")
-        
+
         if not lights_on:
             raise Exception("No lights on event found in annotations")  # should not occur
         elif len(lights_on) > 2 or lights_on[0] != lights_on[1]:
             raise Exception(f"Multiple lights on events found in annotations: {lights_on}") # should not occur
-        
+
         return ann_stage_events, None, lights_off[0], lights_on[0]
-    
+
     def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int):
         """
         Convert multi-scorer sleep stage events to epoch-wise labels for ISRUC dataset.
@@ -217,23 +218,23 @@ class ISRUC(BaseDataset):
             labels[1] = np.pad(labels[1], (0, max_len - len(labels[1])), mode='constant', constant_values=SleepStage.UNK)
 
         labels = np.array(labels).T  # Transpose to (n_epochs, n_scorers)
-        
+
         return labels
-    
+
     def preprocess(self, n_workers, data_dir, ann_dir):
         print("\n ISRUC files originally are stored in an inconvenient way and therefor should be preprocessed/resorted ... \n \
               This will not modify the original file content")
-        
+
         execute_preprocess = input("Do you want to perform the resorting now? (Y/N) ")
-        
+
         if str(execute_preprocess).lower() == "y":
             organizer = ISRUCFileOrganizer(data_dir)
             organizer.organize_files(n_workers)
-        
+
             if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
                 return False
         return True
-            
+
 
 class ISRUCFileOrganizer:
     """Handles reorganization of ISRUC dataset files."""
@@ -264,15 +265,15 @@ class ISRUCFileOrganizer:
 
                     futures = [executor.submit(self._copy_file, file, subgroup_folder) for file in files]
                     for future in tqdm(as_completed(futures), total=len(files), desc=f"Resorting files in {subgroup_folder}"):
-                        future.result()  
+                        future.result()
             except KeyboardInterrupt:
                 print("Preprocessing interrupted by user. Shutting down...")
-                executor.shutdown(cancel_futures=True)            
-                
+                executor.shutdown(cancel_futures=True)
+
         print('Resorting done, if you want you can delete the duplicates at their original location.')
 
     def _copy_file(self, file, subgroup_folder):
-        new_filename = os.path.basename(subgroup_folder)+'_'+str(Path(file).relative_to(Path(subgroup_folder))).replace('/','_') 
-        if not os.path.exists(subgroup_folder+'/'+new_filename):  
+        new_filename = os.path.basename(subgroup_folder)+'_'+str(Path(file).relative_to(Path(subgroup_folder))).replace('/','_')
+        if not os.path.exists(subgroup_folder+'/'+new_filename):
             # print(f"Copy file {file} to {subgroup_folder+'/'+new_filename}")
-            shutil.copy2(file,subgroup_folder+'/'+new_filename) 
+            shutil.copy2(file,subgroup_folder+'/'+new_filename)

@@ -1,5 +1,3 @@
-from typing import Dict, List, Union
-
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
@@ -7,10 +5,10 @@ from psg_processing.utils import SleepStage
 @register_dataset("SOF")
 class SOF(BaseDataset):
     """SOF (Study of Osteoporotic Fractures) dataset"""
-    
+
     def __init__(self):
         super().__init__("SOF","SOF - Study of Osteoporotic Fractures")
-   
+
     def _setup_dataset_config(self):
         self.ann2label = {
             "Wake": SleepStage.W,
@@ -21,8 +19,8 @@ class SOF(BaseDataset):
             "REM sleep": SleepStage.REM,
             "Unscored": SleepStage.UNK,
         }
-        
-        
+
+
         self.intra_dataset_mapping = {
             'nasal_pressure': ['nasal_pressure', 'NASAL_PRESSURE'],
             'lchin': ['L Chin','EMG/L'],
@@ -50,29 +48,29 @@ class SOF(BaseDataset):
             "Leg/R": self.Mapping(self.TTRef.EMG_RLEG, None),
             "HR": self.Mapping(self.TTRef.HR, None),
         }
-        
-        
+
+
         self.channel_names = ['ROC', 'C3', 'LOC', 'A1', 'O1', 'O2', 'A2', 'C4',
                 'L Chin', 'Leg/L', 'R Chin', 'EMG/R', 'EMG/L', 'Leg/R',
                 'ECG1', 'ECG2', 'Thoracic', 'Abdominal', 'Airflow',
                 'NASAL PRESSURE', 'Nasal Pressure', 'Cannula Flow',
                 'SAO2', 'HR', 'CH30', 'Position', 'STAT', 'DHR']
-        
-        
-        self.channel_types ={'analog': ['NASAL PRESSURE', 'A2', 'DHR', 'HR', 'Leg/L', 'CH30', 'C4', 'L Chin', 'EMG/L', 'Leg/R', 'O2', 'EMG/R', 'ECG2', 
-                                        'R Chin', 'Cannula Flow', 'ECG1', 'ROC', 'Airflow', 'O1', 'C3', 'A1', 'Nasal Pressure', 'Abdominal', 'LOC', 
-                                        'Thoracic'], 
+
+
+        self.channel_types ={'analog': ['NASAL PRESSURE', 'A2', 'DHR', 'HR', 'Leg/L', 'CH30', 'C4', 'L Chin', 'EMG/L', 'Leg/R', 'O2', 'EMG/R', 'ECG2',
+                                        'R Chin', 'Cannula Flow', 'ECG1', 'ROC', 'Airflow', 'O1', 'C3', 'A1', 'Nasal Pressure', 'Abdominal', 'LOC',
+                                        'Thoracic'],
                              'digital': ['SAO2', 'STAT', 'Position']}
-        
-        
+
+
         self.channel_groups = {
             'eeg_eog': ['ROC', 'C3', 'LOC', 'A1', 'O1', 'O2', 'A2', 'C4'],
             'emg': ['L Chin', 'Leg/L', 'R Chin', 'EMG/R', 'EMG/L', 'Leg/R'],
             'ecg': ['ECG1', 'ECG2'],
             'thoraco_abdo_resp': ['Thoracic', 'Abdominal', 'Airflow'],
             'nasal_pressure': ['NASAL PRESSURE', 'Nasal Pressure']
-        }        
-        
+        }
+
         self.file_extensions = {
             'psg_ext': '*.edf',
             'ann_ext': '*-nsrr.xml'

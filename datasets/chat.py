@@ -9,10 +9,10 @@ from psg_processing.utils import SleepStage
 @register_dataset("CHAT")
 class CHAT(BaseDataset):
     """CHAT (CHILDHOOD ADENOTONSILLECTOMY TRIAL) dataset"""
-    
+
     def __init__(self):
         super().__init__("CHAT","CHAT - Childhood Adenotonsillectomy Trial")
-  
+
     def _setup_dataset_config(self):
         self.ann2label = {
             "Wake": SleepStage.W,
@@ -104,43 +104,43 @@ class CHAT(BaseDataset):
             "Chest": self.Mapping(self.TTRef.THORACIC, None),
             "CPAP": self.Mapping(self.TTRef.CPAP, None),
         }
-        
 
-        self.channel_names = ['ABD', 'AIR', 'AIRFLOW', 'Airflow', 'Airflow1', 'Airflow2', 'Airlfow', 'BPOSdc1', 'BPOSdc2', 'BciCap', 'BciEtCO2', 'Braebon', 'Braebon Bipolar', 
-                              'Braebon Body P', 'C-Pres', 'C3', 'C3-A2', 'C4', 'C4-A1', 'CANNULAFLOW', 'CAP', 'CCHIN', 'CChin', 'CFLOW', 'CFlow', 'CHEST', 'CHIN', 'CPAP', 'CPAP Flow', 
-                              'CPAP Leak', 'CPAP Pressure', 'CPAP Volume', 'CPress', 'CannnulaFlow', 'CannulaFLow', 'CannulaFlow', 'CannulaFow', 'Cannulaflow', 'Cap', 'Cchin', 'Chest', 
-                              'Chin', 'Compumedics', 'Compumedics Body', 'Cz', 'DC1', 'DC10', 'DC2', 'DC2-DCRef', 'DC3', 'DC4', 'DC4-DCRef', 'DC5', 'DC5-DCRef', 'DC6', 'DC6-DCRef', 
-                              'DC7', 'DC7-DCRef', 'DC8', 'DC9', 'DHR', 'E1', 'E2', 'ECG', 'ECG1', 'ECG2', 'ECG3', 'ECg2', 'EKG', 'ETC02', 'ETCO2', 'EXTSAT', 'Echin', 'EtC02', 'EtCO2', 
-                              'EtCo2', 'Event', 'F3', 'F3-A2', 'F4', 'F4-A1', 'F7', 'F7-', 'F8', 'FLOW', 'FZ', 'Flow DC7', 'Fp1', 'Fp2', 'Fpz', 'Fz', 'Gravity', 'Gravity X', 'Gravity Y', 
-                              'HEARTRATE', 'HR', 'Hr', 'LAT', 'LCHIN', 'LChin', 'LChin-Rchin', 'LEAK', 'LLEG', 'LLEG1', 'LLEG2', 'LLeg', 'LLeg1', 'LLeg2', 'Lchin', 'Leak', 'Light', 
-                              'Lleg', 'Lleg1', 'Lleg2', 'M1', 'M2', 'MASIMO', 'MaO2', 'ManPos', 'Masimo', 'NPAF', 'NotUsed', 'O1', 'O1-A2', 'O2', 'O2-A1', 'ORAL', 'OXER', 'OXER-DCRef', 
-                              'Oral', 'OxSTAT', 'P3', 'P4', 'PAP', 'PHOT', 'PHOT-NoRef', 'PLETHMASIMO', 'PN', 'PNEUMFLOW', 'POS', 'POSdc', 'POSdc1', 'PR', 'PULSE', 'PWF', 'PaO2', 'Pap', 
-                              'Plesmo', 'PletMasimo', 'Pleth', 'PlethMasimo', 'PlethMasino', 'PlethNellcor', 'Plethmasimo', 'Pluse', 'Position', 'Positon', 'Postion', 'Postition', 'Pro', 
-                              'Pro Tech Positio', 'ProTech Positio', 'ProTechPositione', 'Pulse', 'PulseMasimo', 'PulseNellcor', 'PulseNonin', 'Pulsemasimo', 'Pz', 'RAT', 'RCHIN', 
-                              'RChin', 'REF', 'REF X1', 'REFX1', 'RLEG', 'RLEG1', 'RLEG2', 'RLeg', 'RLeg1', 'RLeg2', 'RR', 'Rchiin', 'Rchin', 'Rleg', 'Rleg1', 'Rleg2', 'SA02masimo', 
-                              'SA02nonin', 'SAO2', 'SAO2External', 'SAO2Nellcor', 'SAO2masimo', 'SAO2ninon', 'SAO2noin', 'SAO2nonin', 'SNORE', 'SNORE 2', 'SNORE2', 'SUM', 'Sa02masimo', 
-                              'SaO2', 'SaO2Nellcor', 'SaO2Nonin', 'SenTec', 'SenTec CO2', 'Snore', 'Snore 2', 'Snore2', 'SpO2', 'SpO2 BB', 'Sum', 'T3', 'T3-A2', 'T4', 'T4-A1', 'T5', 'T6', 
-                              'TCCO2', 'TcCO2', 'X1 DC11', 'X1 DC12', 'X1 DC5', 'X1 DC6', 'X1 DC8', 'X4-Y4', 'X8-Y8', 'XFlow', 'XSum', 'cap', 'cchin', 'lleg1', 'm2', 'maskflow', 'notused', 
+
+        self.channel_names = ['ABD', 'AIR', 'AIRFLOW', 'Airflow', 'Airflow1', 'Airflow2', 'Airlfow', 'BPOSdc1', 'BPOSdc2', 'BciCap', 'BciEtCO2', 'Braebon', 'Braebon Bipolar',
+                              'Braebon Body P', 'C-Pres', 'C3', 'C3-A2', 'C4', 'C4-A1', 'CANNULAFLOW', 'CAP', 'CCHIN', 'CChin', 'CFLOW', 'CFlow', 'CHEST', 'CHIN', 'CPAP', 'CPAP Flow',
+                              'CPAP Leak', 'CPAP Pressure', 'CPAP Volume', 'CPress', 'CannnulaFlow', 'CannulaFLow', 'CannulaFlow', 'CannulaFow', 'Cannulaflow', 'Cap', 'Cchin', 'Chest',
+                              'Chin', 'Compumedics', 'Compumedics Body', 'Cz', 'DC1', 'DC10', 'DC2', 'DC2-DCRef', 'DC3', 'DC4', 'DC4-DCRef', 'DC5', 'DC5-DCRef', 'DC6', 'DC6-DCRef',
+                              'DC7', 'DC7-DCRef', 'DC8', 'DC9', 'DHR', 'E1', 'E2', 'ECG', 'ECG1', 'ECG2', 'ECG3', 'ECg2', 'EKG', 'ETC02', 'ETCO2', 'EXTSAT', 'Echin', 'EtC02', 'EtCO2',
+                              'EtCo2', 'Event', 'F3', 'F3-A2', 'F4', 'F4-A1', 'F7', 'F7-', 'F8', 'FLOW', 'FZ', 'Flow DC7', 'Fp1', 'Fp2', 'Fpz', 'Fz', 'Gravity', 'Gravity X', 'Gravity Y',
+                              'HEARTRATE', 'HR', 'Hr', 'LAT', 'LCHIN', 'LChin', 'LChin-Rchin', 'LEAK', 'LLEG', 'LLEG1', 'LLEG2', 'LLeg', 'LLeg1', 'LLeg2', 'Lchin', 'Leak', 'Light',
+                              'Lleg', 'Lleg1', 'Lleg2', 'M1', 'M2', 'MASIMO', 'MaO2', 'ManPos', 'Masimo', 'NPAF', 'NotUsed', 'O1', 'O1-A2', 'O2', 'O2-A1', 'ORAL', 'OXER', 'OXER-DCRef',
+                              'Oral', 'OxSTAT', 'P3', 'P4', 'PAP', 'PHOT', 'PHOT-NoRef', 'PLETHMASIMO', 'PN', 'PNEUMFLOW', 'POS', 'POSdc', 'POSdc1', 'PR', 'PULSE', 'PWF', 'PaO2', 'Pap',
+                              'Plesmo', 'PletMasimo', 'Pleth', 'PlethMasimo', 'PlethMasino', 'PlethNellcor', 'Plethmasimo', 'Pluse', 'Position', 'Positon', 'Postion', 'Postition', 'Pro',
+                              'Pro Tech Positio', 'ProTech Positio', 'ProTechPositione', 'Pulse', 'PulseMasimo', 'PulseNellcor', 'PulseNonin', 'Pulsemasimo', 'Pz', 'RAT', 'RCHIN',
+                              'RChin', 'REF', 'REF X1', 'REFX1', 'RLEG', 'RLEG1', 'RLEG2', 'RLeg', 'RLeg1', 'RLeg2', 'RR', 'Rchiin', 'Rchin', 'Rleg', 'Rleg1', 'Rleg2', 'SA02masimo',
+                              'SA02nonin', 'SAO2', 'SAO2External', 'SAO2Nellcor', 'SAO2masimo', 'SAO2ninon', 'SAO2noin', 'SAO2nonin', 'SNORE', 'SNORE 2', 'SNORE2', 'SUM', 'Sa02masimo',
+                              'SaO2', 'SaO2Nellcor', 'SaO2Nonin', 'SenTec', 'SenTec CO2', 'Snore', 'Snore 2', 'Snore2', 'SpO2', 'SpO2 BB', 'Sum', 'T3', 'T3-A2', 'T4', 'T4-A1', 'T5', 'T6',
+                              'TCCO2', 'TcCO2', 'X1 DC11', 'X1 DC12', 'X1 DC5', 'X1 DC6', 'X1 DC8', 'X4-Y4', 'X8-Y8', 'XFlow', 'XSum', 'cap', 'cchin', 'lleg1', 'm2', 'maskflow', 'notused',
                               'oral', 'pulsemasimo']
-        
-        
-        self.channel_types = {'analog': ['ABD', 'AIR', 'AIRFLOW', 'Airflow', 'Airflow1', 'Airflow2', 'Airlfow', 'BPOSdc1', 'BPOSdc2', 'BciCap', 'BciEtCO2', 'C-Pres', 'C3', 'C3-A2', 'C4', 
-                                         'C4-A1', 'CANNULAFLOW', 'CAP', 'CCHIN', 'CChin', 'CFLOW', 'CFlow', 'CHEST', 'CHIN', 'CPAP', 'CPAP Flow', 'CPAP Pressure', 'CPAP Volume', 'CPress', 
-                                         'CannnulaFlow', 'CannulaFLow', 'CannulaFlow', 'CannulaFow', 'Cannulaflow', 'Cap', 'Cchin', 'Chest', 'Chin', 'Compumedics', 'Compumedics Body', 'Cz', 
-                                         'DC1', 'DC10', 'DC2', 'DC2-DCRef', 'DC3', 'DC4', 'DC4-DCRef', 'DC5-DCRef', 'DC6', 'DC6-DCRef', 'DC7', 'DC7-DCRef', 'DC8', 'DC9', 'DHR', 'E1', 'E2', 
-                                         'ECG', 'ECG1', 'ECG2', 'ECG3', 'ECg2', 'EKG', 'ETC02', 'ETCO2', 'EXTSAT', 'Echin', 'EtC02', 'EtCO2', 'EtCo2', 'F3', 'F3-A2', 'F4', 'F4-A1', 'F7', 
-                                         'F7-', 'F8', 'FLOW', 'FZ', 'Fp1', 'Fp2', 'Fpz', 'Fz', 'Gravity', 'Gravity X', 'Gravity Y', 'LAT', 'LCHIN', 'LChin', 'LChin-Rchin', 'LEAK', 'LLEG', 
-                                         'LLEG1', 'LLEG2', 'LLeg', 'LLeg1', 'LLeg2', 'Lchin', 'Leak', 'Lleg', 'Lleg1', 'Lleg2', 'M1', 'M2', 'MASIMO', 'MaO2', 'Masimo', 'NPAF', 'NotUsed', 
-                                         'O1', 'O1-A2', 'O2', 'O2-A1', 'ORAL', 'Oral', 'P3', 'P4', 'PAP', 'PHOT', 'PHOT-NoRef', 'PLETHMASIMO', 'PN', 'PNEUMFLOW', 'POS', 'POSdc', 'POSdc1', 
-                                         'PWF', 'PaO2', 'Pap', 'PletMasimo', 'Pleth', 'PlethMasimo', 'PlethMasino', 'PlethNellcor', 'Plethmasimo', 'Position', 'Positon', 'Postition', 'Pro', 
-                                         'Pro Tech Positio', 'ProTech Positio', 'ProTechPositione', 'Pulse', 'PulseNonin', 'Pz', 'RAT', 'RCHIN', 'RChin', 'REF', 'REF X1', 'REFX1', 'RLEG', 
-                                         'RLEG1', 'RLEG2', 'RLeg', 'RLeg1', 'RLeg2', 'RR', 'Rchiin', 'Rchin', 'Rleg', 'Rleg1', 'Rleg2', 'SA02masimo', 'SA02nonin', 'SAO2', 'SAO2External', 
-                                         'SAO2masimo', 'SAO2nonin', 'SNORE', 'SNORE 2', 'SNORE2', 'SUM', 'Sa02masimo', 'SaO2', 'SaO2Nonin', 'Snore', 'Snore 2', 'Snore2', 'Sum', 'T3', 'T3-A2', 
-                                         'T4', 'T4-A1', 'T5', 'T6', 'TCCO2', 'TcCO2', 'X4-Y4', 'X8-Y8', 'cap', 'cchin', 'lleg1', 'm2', 'maskflow', 'notused', 'oral'], 
-                              'digital': ['Braebon', 'Braebon Bipolar', 'Braebon Body P', 'CPAP Leak', 'DC5', 'Event', 'Flow DC7', 'HEARTRATE', 'HR', 'Hr', 'Light', 'ManPos', 'OXER', 
-                              'OXER-DCRef', 'OxSTAT', 'PR', 'PULSE', 'Plesmo', 'Pluse', 'Postion', 'PulseMasimo', 'PulseNellcor', 'Pulsemasimo', 'SAO2Nellcor', 'SAO2ninon', 'SAO2noin', 
+
+
+        self.channel_types = {'analog': ['ABD', 'AIR', 'AIRFLOW', 'Airflow', 'Airflow1', 'Airflow2', 'Airlfow', 'BPOSdc1', 'BPOSdc2', 'BciCap', 'BciEtCO2', 'C-Pres', 'C3', 'C3-A2', 'C4',
+                                         'C4-A1', 'CANNULAFLOW', 'CAP', 'CCHIN', 'CChin', 'CFLOW', 'CFlow', 'CHEST', 'CHIN', 'CPAP', 'CPAP Flow', 'CPAP Pressure', 'CPAP Volume', 'CPress',
+                                         'CannnulaFlow', 'CannulaFLow', 'CannulaFlow', 'CannulaFow', 'Cannulaflow', 'Cap', 'Cchin', 'Chest', 'Chin', 'Compumedics', 'Compumedics Body', 'Cz',
+                                         'DC1', 'DC10', 'DC2', 'DC2-DCRef', 'DC3', 'DC4', 'DC4-DCRef', 'DC5-DCRef', 'DC6', 'DC6-DCRef', 'DC7', 'DC7-DCRef', 'DC8', 'DC9', 'DHR', 'E1', 'E2',
+                                         'ECG', 'ECG1', 'ECG2', 'ECG3', 'ECg2', 'EKG', 'ETC02', 'ETCO2', 'EXTSAT', 'Echin', 'EtC02', 'EtCO2', 'EtCo2', 'F3', 'F3-A2', 'F4', 'F4-A1', 'F7',
+                                         'F7-', 'F8', 'FLOW', 'FZ', 'Fp1', 'Fp2', 'Fpz', 'Fz', 'Gravity', 'Gravity X', 'Gravity Y', 'LAT', 'LCHIN', 'LChin', 'LChin-Rchin', 'LEAK', 'LLEG',
+                                         'LLEG1', 'LLEG2', 'LLeg', 'LLeg1', 'LLeg2', 'Lchin', 'Leak', 'Lleg', 'Lleg1', 'Lleg2', 'M1', 'M2', 'MASIMO', 'MaO2', 'Masimo', 'NPAF', 'NotUsed',
+                                         'O1', 'O1-A2', 'O2', 'O2-A1', 'ORAL', 'Oral', 'P3', 'P4', 'PAP', 'PHOT', 'PHOT-NoRef', 'PLETHMASIMO', 'PN', 'PNEUMFLOW', 'POS', 'POSdc', 'POSdc1',
+                                         'PWF', 'PaO2', 'Pap', 'PletMasimo', 'Pleth', 'PlethMasimo', 'PlethMasino', 'PlethNellcor', 'Plethmasimo', 'Position', 'Positon', 'Postition', 'Pro',
+                                         'Pro Tech Positio', 'ProTech Positio', 'ProTechPositione', 'Pulse', 'PulseNonin', 'Pz', 'RAT', 'RCHIN', 'RChin', 'REF', 'REF X1', 'REFX1', 'RLEG',
+                                         'RLEG1', 'RLEG2', 'RLeg', 'RLeg1', 'RLeg2', 'RR', 'Rchiin', 'Rchin', 'Rleg', 'Rleg1', 'Rleg2', 'SA02masimo', 'SA02nonin', 'SAO2', 'SAO2External',
+                                         'SAO2masimo', 'SAO2nonin', 'SNORE', 'SNORE 2', 'SNORE2', 'SUM', 'Sa02masimo', 'SaO2', 'SaO2Nonin', 'Snore', 'Snore 2', 'Snore2', 'Sum', 'T3', 'T3-A2',
+                                         'T4', 'T4-A1', 'T5', 'T6', 'TCCO2', 'TcCO2', 'X4-Y4', 'X8-Y8', 'cap', 'cchin', 'lleg1', 'm2', 'maskflow', 'notused', 'oral'],
+                              'digital': ['Braebon', 'Braebon Bipolar', 'Braebon Body P', 'CPAP Leak', 'DC5', 'Event', 'Flow DC7', 'HEARTRATE', 'HR', 'Hr', 'Light', 'ManPos', 'OXER',
+                              'OXER-DCRef', 'OxSTAT', 'PR', 'PULSE', 'Plesmo', 'Pluse', 'Postion', 'PulseMasimo', 'PulseNellcor', 'Pulsemasimo', 'SAO2Nellcor', 'SAO2ninon', 'SAO2noin',
                               'SaO2Nellcor', 'SenTec', 'SenTec CO2', 'SpO2', 'SpO2 BB', 'X1 DC11', 'X1 DC12', 'X1 DC5', 'X1 DC6', 'X1 DC8', 'XFlow', 'XSum', 'pulsemasimo']}
-    
+
         self.channel_groups = {
             'eeg_eog': ['C3', 'C3-A2', 'C4', 'C4-A1', 'F3', 'F3-A2', 'F4', 'F4-A1', 'F7', 'F8', 'FZ', 'Fp1', 'Fp2', 'Fpz', 'Fz', 'M1', 'M2','m2','O1', 'O1-A2', 'O2', 'O2-A1','P3','P4','T3','T3-A2','T4','T4-A1','T5','T6','Cz'],
             'emg': ['CCHIN', 'CChin','Cchin', 'cchin','LCHIN', 'LChin', 'Lchin','LLEG','LLeg','Lleg','LLEG1','LLeg1','Lleg1','lleg1','LLEG2','LLeg2','Lleg2','RCHIN', 'RChin', 'Rchin','Rchiin','RLEG','RLeg','Rleg','RLEG1','RLeg1','Rleg1','RLEG2','RLeg2','Rleg2' ],
@@ -148,8 +148,8 @@ class CHAT(BaseDataset):
             'thoraco_abdo_resp': ['ABD', 'AIR', 'AIRFLOW', 'Airflow', 'Airlfow','Airflow1','Airflow2','CHEST','Chest',],
             'nasal_pressure': ['CANNULAFLOW', 'CannnulaFlow', 'CannulaFLow', 'CannulaFlow', 'CannulaFow', 'Cannulaflow'],
             'snoring': ['SNORE', 'Snore','SNORE 2', 'Snore 2','SNORE2','Snore2']
-        }        
-        
+        }
+
         self.file_extensions = {
             'psg_ext': '*/*.edf',
             'ann_ext': '*/*-nsrr.xml'
@@ -161,7 +161,7 @@ class CHAT(BaseDataset):
             light_data = self._file_handler.get_signal_data(logger, psg_fname, "Light")
 
             light_signal = light_data["signal"]
-                
+
             # Lights Off when light signal is 1
             light_off_indices = np.flatnonzero(light_signal == 1)
 
@@ -170,15 +170,15 @@ class CHAT(BaseDataset):
                 light_off_idx = light_off_indices[0]
                 lights_off_sec = light_off_idx / light_data["sampling_rate"]
 
-                # Last occurrence of light off (1) 
+                # Last occurrence of light off (1)
                 light_on_idx = light_off_indices[-1] + 1
                 lights_on_sec = light_on_idx / light_data["sampling_rate"]
             else:
                 lights_off_sec = None
                 lights_on_sec = None
-            
+
             return lights_off_sec, lights_on_sec
-        
+
         else:
             logger.info(f"Light channel not found in {os.path.basename(psg_fname)}. Cannot determine light on/off times")
             return None, None

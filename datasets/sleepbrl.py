@@ -1,8 +1,7 @@
 import os
-import numpy as np
+
 import wfdb
-from typing import Dict, List, Optional, Tuple
-from datetime import datetime
+
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
@@ -10,10 +9,10 @@ from psg_processing.utils import SleepStage
 @register_dataset("SLEEPBRL")
 class SLEEPBRL(BaseDataset):
     """SLEEPBRL - Sleep Bioradiolocation Database dataset."""
-    
+
     def __init__(self):
         super().__init__("SLEEPBRL","SLEEPBRL - Sleep Bioradiolocation Database")
-  
+
     def _setup_dataset_config(self):
         self.ann2label = {
                 "W": SleepStage.W,
@@ -22,25 +21,25 @@ class SLEEPBRL(BaseDataset):
                 "3": SleepStage.N3,
                 "R": SleepStage.REM,
                 }
-        
+
         self.channel_names = ['S9', 'S14', 'S1', 'S10', 'S5', 'S6', 'S3',
                               'S15', 'S4', 'S13', 'S2', 'S11', 'S8', 'S7', 'S12', 'S16']
-        
-        
+
+
         self.channel_types = {'analog': ['S9', 'S14', 'S1', 'S10', 'S5', 'S6', 'S3',
                                           'S15', 'S4', 'S13', 'S2', 'S11', 'S8', 'S7', 'S12', 'S16'],
                              'digital': []}
 
-        
+
         self.channel_groups = {}
-        
-        
+
+
         self.file_extensions = {
             'psg_ext': '*.edf',
             'ann_ext': '*.edf.atr'
         }
 
-    
+
     def dataset_paths(self):
         return [
             '',
@@ -52,7 +51,7 @@ class SLEEPBRL(BaseDataset):
         Parse SLEEPBRL .atr annotation files.
         """
         ann_stage_events = []
-        
+
         record_name, extension = os.path.splitext(ann_fname)
         annot = wfdb.rdann(record_name, extension.strip('.'))
 
@@ -62,7 +61,7 @@ class SLEEPBRL(BaseDataset):
 
         for i, (sample, aux_note) in enumerate(zip(annot.sample, annot.aux_note)):
 
-            start = sample/fs 
+            start = sample/fs
 
             ann_stage_events.append({'Stage': aux_note,
                                         'Start': start,
@@ -73,5 +72,3 @@ class SLEEPBRL(BaseDataset):
 
         lights_off, lights_on = None, None
         return ann_stage_events, None, lights_off, lights_on
-
-    

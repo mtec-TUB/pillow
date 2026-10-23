@@ -1,13 +1,13 @@
 import os
-import numpy as np
-import pandas as pd
-import shutil
 from pathlib import Path
 from datetime import datetime, timedelta
-import pyedflib
-from typing import Dict, List, Optional, Tuple
-from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed
+
+import numpy as np
+import pandas as pd
+import pyedflib
+from tqdm import tqdm
+
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
@@ -15,7 +15,7 @@ from psg_processing.utils import SleepStage
 @register_dataset("FDCSR")
 class FDCSR(BaseDataset):
     """FDCSR (Forced Desynchrony with and without Chronic Sleep Restriction) dataset."""
-    
+
     def __init__(self):
         super().__init__("FDCSR","FDCSR - Forced Desynchrony with and without Chronic Sleep Restriction", keep_folder_structure = False)
         self.has_end_alignment = True
@@ -33,8 +33,8 @@ class FDCSR(BaseDataset):
             8: SleepStage.UNK,  # Lights Out
             9: SleepStage.UNK,  # Lights On
         }
-        
-        
+
+
         self.intra_dataset_mapping = {
             'Cz': ['Cz Mx', 'Cz Ax'],
             'Pz': ['Pz Mx', 'Pz Ax'],
@@ -50,7 +50,7 @@ class FDCSR(BaseDataset):
             'ROC': ['ROC Ax', 'E2 Mx'],
         }
 
-        # doi: 10.1038/npp.2010.63 
+        # doi: 10.1038/npp.2010.63
         self.inter_dataset_mapping = {
             "Cz": self.Mapping(self.TTRef.Cz, self.TTRef.LRPA),
             "Pz": self.Mapping(self.TTRef.Pz, self.TTRef.LRPA),
@@ -75,8 +75,8 @@ class FDCSR(BaseDataset):
             "ECG": self.Mapping(self.TTRef.ECG, None),
             "EMG sm": self.Mapping(self.TTRef.EMG_CHIN, None),
         }
-        
-        
+
+
         self.channel_names = [
             'ROC Ax', 'Cz Mx', 'E1 Mx', 'ROC A1', 'Oz Ax', 'Fz Ax', 'E2 Mx', 'Cz Ax',
             'C3 A2', 'O2 A1', 'O1 A2', 'C4 A1', 'C3 Mx', 'C4 Mx', 'Oz Mx', 'C4 Ax',
@@ -84,8 +84,8 @@ class FDCSR(BaseDataset):
             'O1 M2', 'C3 M2', 'P3 M2',  'P4 M1','O2 M1',  'E2 M1', 'E1 M2', 'LOC A2', 'C4 M1',
             'EMG sm', 'ECG', 'Marker', 'Ubatt'
         ]
-        
-        
+
+
         self.channel_types = {
             'analog': [
                 'ROC Ax', 'Cz Mx', 'E1 Mx', 'ROC A1', 'Oz Ax', 'Fz Ax', 'E2 Mx', 'Cz Ax',
@@ -96,7 +96,7 @@ class FDCSR(BaseDataset):
             ],
             'digital': ['Marker','Ubatt']
         }
-                
+
         self.channel_groups = {
             'eeg_eog': ['ROC Ax', 'Cz Mx', 'E1 Mx', 'ROC A1', 'Oz Ax', 'Fz Ax', 'E2 Mx', 'Cz Ax',
                 'C3 A2', 'O2 A1', 'O1 A2', 'C4 A1', 'C3 Mx', 'C4 Mx', 'Oz Mx', 'C4 Ax',
@@ -106,19 +106,19 @@ class FDCSR(BaseDataset):
             'emg': ['EMG sm'],
             'ecg': ['ECG']
         }
-        
-        
+
+
         self.file_extensions = {
             'psg_ext': '*/*.edf',
             'ann_ext': '*/*_score.csv'
         }
-        
+
     def dataset_paths(self):
         return [
             "subjects",
             "subjects"
         ]
-    
+
     def ann_parse(self, ann_fname: str):
         """
         Parse FDCSR annotation files with custom datetime handling.
@@ -126,12 +126,12 @@ class FDCSR(BaseDataset):
 
         # recordings only contain information about month and day (not year),
         # recordings took place between 2000 and 2016, default value 1900 to distinguish
-        study_start_datetime = datetime(year=1900,month=1,day=1)     
+        study_start_datetime = datetime(year=1900,month=1,day=1)
 
-        epoch_duration = 30  # FDCSR uses 30-second epochs   
+        epoch_duration = 30  # FDCSR uses 30-second epochs
 
         ann_df = pd.read_csv(ann_fname,sep=',',header=0)
-    
+
         ann_Startdatetime = study_start_datetime + timedelta(hours=ann_df.iloc[0]['labtime'])
 
         # round to full seconds (like in psg file)
@@ -148,14 +148,14 @@ class FDCSR(BaseDataset):
 
         ann_stage_events = []
         for i, row in ann_df.iterrows():
-            
+
             start = i * epoch_duration
             duration = epoch_duration
             stage = row['stage']
-            
+
             ann_stage_events.append({'Stage': stage,
                                     'Start': start,
-                                    'Duration': duration})  
+                                    'Duration': duration})
 
         lights_off = ann_df.loc[ann_df['stage'] == 8, 'labtime'].values
         if len(lights_off) == 1:
@@ -164,7 +164,7 @@ class FDCSR(BaseDataset):
             raise Exception(f"Expected exactly one 'Lights Off' event, found {len(lights_off)}")
         else:
             lights_off = None
-        
+
         lights_on = ann_df.loc[ann_df['stage'] == 9, 'labtime'].values
         if len(lights_on) == 1:
             lights_on = (study_start_datetime + timedelta(hours=lights_on[0])).time()
@@ -177,9 +177,9 @@ class FDCSR(BaseDataset):
 
     def preprocess(self, n_workers, data_dir, ann_dir):
         print("\n FDCSR files originally are stored in an unsupported format and therefor need to be preprocessed/resorted \n")
-        
+
         execute_preprocess = input("Do you want to perform the preprocessing now? (Y/N) ")
-        
+
         if str(execute_preprocess).lower() == "y":
             splitter = FDCSRSleepScoreSplitter(data_dir)
             unscored_files = splitter.process_sleep_scores(n_workers)
@@ -187,11 +187,11 @@ class FDCSR(BaseDataset):
                 print(f"{len(unscored_files)} unscored files were found.")
 
             print("Successfully ended preprocessing")
-            
+
             if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
                 return False
         return True
-            
+
 
 class FDCSRSleepScoreSplitter:
     """Handles splitting of FDCSR sleep score files and file organization."""
@@ -265,7 +265,7 @@ class FDCSRSleepScoreSplitter:
 
         hours = timedelta(hours=((edf_info["start labtime"]/24) - (edf_info["start labtime"]//24))*24) # remove full days
         start_lab_time = timedelta(seconds=round(hours.total_seconds()))
-        
+
         psg_f = pyedflib.EdfReader(str(edf_filepath))
         start_time_edf = psg_f.getStartdatetime()
         duration_edf = timedelta(seconds=psg_f.getFileDuration())

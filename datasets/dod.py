@@ -1,7 +1,8 @@
-import os
-import h5py
-from typing import Dict, List, Optional, Tuple
 from datetime import datetime
+import logging
+
+import h5py
+
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
@@ -48,14 +49,14 @@ class DOD(BaseDataset):
             logger.error(f"Error during signal extraction: {e}")
             raise
 
-    def get_file_info(self, logger, filepath):
+    def get_file_info(self, logger: logging.Logger, filepath):
         """Get start datetime and file duration."""
         try:
             with h5py.File(filepath, "r") as f:
 
                 start_time = f.attrs.get("start_time")
                 if start_time is None:
-                    logger.warning(f"No start_time attribute found, defaulting to datetime(1970, 1, 1)")
+                    logger.warning("No start_time attribute found, defaulting to datetime(1970, 1, 1)")
                     start_datetime = datetime(1970, 1, 1)
                 else:
                     start_datetime = datetime.fromtimestamp(start_time)
@@ -63,7 +64,7 @@ class DOD(BaseDataset):
                 file_duration = f.attrs.get("duration")
 
         except Exception as e:
-            logger.error(f"Error during file info retrieval: {e}")
+            logger.error("Error during file info retrieval: %s", e)
             raise
 
         return {"start_datetime": start_datetime, "file_duration": file_duration}
@@ -114,7 +115,7 @@ class DOD(BaseDataset):
 @register_dataset("DOD-O")
 class DODO(DOD):
     """DOD-O (Dreem Open Dataset - Obstructive) dataset."""
-    
+
     def __init__(self):
         super().__init__("DOD-O","DOD-O - Dreem Open Dataset - Obstructive")
 
@@ -127,8 +128,8 @@ class DODO(DOD):
             4: SleepStage.REM,   # REM sleep
             -1: SleepStage.UNK,   # Unscored
         }
-        
-        
+
+
         self.intra_dataset_mapping = {
             "O1_M1": ["eeg/O1_M1"],
             "C4_M1": ["eeg/C4_M1"],
@@ -160,8 +161,8 @@ class DODO(DOD):
             "ECG": self.Mapping(self.TTRef.ECG, None),
             "EMG": self.Mapping(self.TTRef.EMG_CHIN, None)
         }
-        
-        
+
+
         self.channel_names = [
             'eeg/C4_M1', 'eeg/F3_O1', 'eeg/O1_M2',
             'eeg/F4_O2', 'eeg/F3_F4', 'eeg/C3_M2', 'eeg/F3_M2',
@@ -170,35 +171,35 @@ class DODO(DOD):
             'emg/EMG',
             'emg/ECG'
         ]
-        
-        
+
+
         self.channel_types = {
             'analog': [
-                'eeg/O2_M1', 'emg/ECG', 'emg/EMG', 'eeg/C4_M1', 
-                'eeg/F3_O1', 'eeg/O1_M2', 'eog/EOG1', 'eeg/F4_O2', 
+                'eeg/O2_M1', 'emg/ECG', 'emg/EMG', 'eeg/C4_M1',
+                'eeg/F3_O1', 'eeg/O1_M2', 'eog/EOG1', 'eeg/F4_O2',
                 'eeg/F3_F4', 'eog/EOG2', 'eeg/C3_M2', 'eeg/F3_M2',
             ],
             'digital': []
         }
-    
-        
+
+
         self.channel_groups = {
             'eeg_eog': ['eeg/C4_M1', 'eeg/F3_O1', 'eeg/O1_M2', 'eog/EOG1', 'eeg/F4_O2', 'eeg/F3_F4', 'eog/EOG2', 'eeg/C3_M2', 'eeg/F3_M2', 'eeg/O2_M1'],
             'emg': ['emg/EMG'],
             'ecg': ['emg/ECG']
         }
 
-                
+
         self.file_extensions = {
             'psg_ext': '*.h5',
             'ann_ext': '*.h5'  # Annotations are embedded in data H5 files
         }
-        
+
 
 @register_dataset("DOD-H")
 class DODH(DOD):
     """DOD-H (Dreem Open Dataset - Healthy) dataset."""
-    
+
     def __init__(self):
         super().__init__("DOD-H","DOD-H - Dreem Open Dataset - Healthy")
 
@@ -211,7 +212,7 @@ class DODH(DOD):
             4: SleepStage.REM,   # REM sleep
             -1: SleepStage.UNK,   # Unscored
         }
-        
+
         self.intra_dataset_mapping = {
             "F4_O2": ["eeg/F4_O2"],
             "FP2_F4": ["eeg/FP2_F4"],
@@ -249,14 +250,14 @@ class DODH(DOD):
             "ECG": self.Mapping(self.TTRef.ECG, None),
             "EMG": self.Mapping(self.TTRef.EMG_CHIN, None)
         }
-        
+
         self.channel_names = [
             'eeg/F4_O2', 'eeg/FP2_F4', 'eeg/F3_M2', 'eeg/F3_O1',
             'eeg/F4_M1', 'eeg/C3_M2', 'eeg/FP1_M2', 'eeg/F3_F4',
             'eeg/FP2_O2', 'eeg/FP1_O1', 'eeg/FP2_M1', 'eeg/FP1_F3',
             'eog/EOG1', 'eog/EOG2', 'emg/EMG', 'emg/ECG'
         ]
-        
+
         self.channel_types = {
             'analog': [
                 'eeg/F4_O2', 'eeg/FP2_F4', 'emg/EMG', 'eeg/F3_M2',
@@ -266,13 +267,13 @@ class DODH(DOD):
             ],
             'digital': []
         }
-        
+
         self.channel_groups = {
             'eeg_eog': ['eeg/F4_O2', 'eeg/FP2_F4', 'eeg/F3_M2', 'eeg/F3_O1', 'eeg/F4_M1', 'eeg/C3_M2', 'eeg/FP1_M2', 'eeg/F3_F4', 'eeg/FP2_O2', 'eeg/FP1_O1', 'eeg/FP2_M1', 'eeg/FP1_F3', 'eog/EOG2', 'eog/EOG1'],
             'emg': ['emg/EMG'],
             'ecg': ['emg/ECG']
         }
-        
+
         self.file_extensions = {
             'psg_ext': '*.h5',
             'ann_ext': '*.h5'  # Annotations are embedded in data H5 files

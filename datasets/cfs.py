@@ -1,5 +1,6 @@
 import os
-from typing import Dict, List
+import logging
+
 import numpy as np
 
 from datasets.base import BaseDataset
@@ -47,20 +48,20 @@ class CFS(BaseDataset):
             "EMG1": self.Mapping(self.TTRef.EMG_CHIN, self.TTRef.Fpz),
             "SNORE": self.Mapping(self.TTRef.SNORE, None),
         }
-        
-        
+
+
         self.channel_names = ['L Leg', 'PAP FLOW', 'SNORE', 'PlethWV', 'POSITION', 'Masimo', 'NASAL PRES', 'SUM', 'ABDO EFFORT', 'PULSE',
                 'THOR EFFORT', 'SpO2', 'SaO2', 'OX STATUS', 'HRate', 'Light', 'R Leg', 'AIRFLOW',
                 'M2', 'C4', 'C3', 'EMG3', 'ECG2', 'ROC', 'LOC', 'ECG1', 'EMG1', 'EMG2', 'M1']
-        
-        
+
+
         self.channel_types = {
             'analog': ['L Leg', 'M2', 'PAP FLOW', 'C4', 'SNORE', 'C3', 'EMG3', 'PlethWV', 'Masimo', 'ECG2', 'NASAL PRES', 'ROC', 'SUM', 'ABDO EFFORT',
                        'LOC', 'ECG1', 'PULSE', 'THOR EFFORT', 'EMG1', 'SaO2', 'HRate', 'EMG2', 'M1', 'R Leg', 'AIRFLOW'],
             'digital': ['POSITION', 'SpO2', 'OX STATUS', 'Light']
         }
-        
-        
+
+
         self.channel_groups = {
             'eeg_eog': ['M2', 'C4', 'C3', 'M1', 'ROC', 'LOC'],
             'emg': ['L Leg', 'EMG3', 'R Leg', 'EMG2', 'EMG1'],
@@ -68,21 +69,20 @@ class CFS(BaseDataset):
             'thoraco_abdo_resp': ['ABDO EFFORT', 'THOR EFFORT', 'AIRFLOW'],
             'nasal_pressure': ['NASAL PRES'],
             'snoring': ['SNORE']
-        }                
-        
+        }
+
         self.file_extensions = {
             'psg_ext': '*.edf',
             'ann_ext': '*-nsrr.xml'
         }
 
-
-    def get_light_times(self, logger, psg_fname):
+    def get_light_times(self, logger: logging.Logger, psg_fname):
         if "Light" in self._file_handler.get_channels(logger, psg_fname):
 
             light_data = self._file_handler.get_signal_data(logger, psg_fname, "Light")
 
             light_signal = light_data["signal"]
-                
+
             # Lights Off when light signal is 1
             light_off_indices = np.flatnonzero(light_signal == 1)
 
@@ -91,17 +91,15 @@ class CFS(BaseDataset):
                 light_off_idx = light_off_indices[0]
                 lights_off_sec = light_off_idx / light_data["sampling_rate"]
 
-                # Last occurrence of light off (1) 
+                # Last occurrence of light off (1)
                 light_on_idx = light_off_indices[-1] + 1
                 lights_on_sec = light_on_idx / light_data["sampling_rate"]
             else:
                 lights_off_sec = None
                 lights_on_sec = None
-            
-            return lights_off_sec, lights_on_sec
-        
-        else:
-            logger.info(f"Light channel not found in {os.path.basename(psg_fname)}. Cannot determine light on/off times")
-            return None, None
 
-        
+            return lights_off_sec, lights_on_sec
+
+        else:
+            logger.info("Light channel not found in %s. Cannot determine light on/off times", os.path.basename(psg_fname))
+            return None, None

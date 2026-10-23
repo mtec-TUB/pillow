@@ -1,7 +1,7 @@
 import os
+from datetime import datetime, timedelta
 
 import pandas as pd
-from datetime import datetime, timedelta
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -11,7 +11,7 @@ from psg_processing.utils import SleepStage
 @register_dataset("PSG_IPA")
 class PSG_IPA(BaseDataset):
     """PSG-IPA - A PolySomnoGraphic Inter-scorer Performance Assessment database"""
-    
+
     def __init__(self):
         super().__init__("PSG_IPA","PSG-IPA - A PolySomnoGraphic Inter-scorer Performance Assessment database", keep_folder_structure=False)
         self.has_end_alignment = True
@@ -41,25 +41,25 @@ class PSG_IPA(BaseDataset):
             'Resp abdomen': self.Mapping(self.TTRef.ABDOMINAL, None),
             'Resp chest': self.Mapping(self.TTRef.THORACIC, None),
         }
-        
 
-        self.channel_names = ['EEG F4-M1', 'EEG C4-M1', 'EEG O2-M1', 'EMG chin', 'EOG E1-M2', 'EOG E2-M2', 'ECG', 'EMG LAT', 'EMG RAT', 'Resp nasal', 
+
+        self.channel_names = ['EEG F4-M1', 'EEG C4-M1', 'EEG O2-M1', 'EMG chin', 'EOG E1-M2', 'EOG E2-M2', 'ECG', 'EMG LAT', 'EMG RAT', 'Resp nasal',
                               'Resp abdomen', 'Resp chest', 'SaO2', 'EEG Cz-M1']
-        
-        
-        self.channel_types = {'analog': ['EEG F4-M1', 'EEG C4-M1', 'EEG O2-M1', 'EMG chin', 'EOG E1-M2', 'EOG E2-M2', 'ECG', 'EMG LAT', 'EMG RAT', 
+
+
+        self.channel_types = {'analog': ['EEG F4-M1', 'EEG C4-M1', 'EEG O2-M1', 'EMG chin', 'EOG E1-M2', 'EOG E2-M2', 'ECG', 'EMG LAT', 'EMG RAT',
                                          'Resp nasal', 'Resp abdomen', 'Resp chest', 'EEG Cz-M1'],
                               'digital': ['SaO2']}
-    
-        
+
+
         self.channel_groups = {
             'eeg_eog': ['EEG F4-M1', 'EEG C4-M1', 'EEG O2-M1', 'EOG E1-M2', 'EOG E2-M2', 'EEG Cz-M1'],
             'emg': ['EMG chin', 'EMG LAT', 'EMG RAT'],
             'ecg': ['ECG'],
             'thoraco_abdo_resp': ['Resp nasal', 'Resp abdomen', 'Resp chest'],
-        }        
-        
-        
+        }
+
+
         self.file_extensions = {
             'psg_ext': '**/PSG/*.edf',
             'ann_ext': '**/Annotations/semiauto/*_semiauto_scorer1.txt' # use Scorer 1 with semiautomatic annotations (computer aided)
@@ -67,7 +67,7 @@ class PSG_IPA(BaseDataset):
 
     def dataset_paths(self):
         return ['', '']
-    
+
     def get_file_identifier(self, psg_fname=None, ann_fname=None):
         psg_id, ann_id = None, None
         if psg_fname:
@@ -77,15 +77,16 @@ class PSG_IPA(BaseDataset):
             ann_ext = self.file_extensions['ann_ext'].split('*')[-1]
             ann_id = os.path.basename(ann_fname).split(ann_ext)[0]
         return psg_id, ann_id
-    
+
     def ann_parse(self, ann_fname):
         annot = pd.read_csv(ann_fname,sep=',', header=0,skipinitialspace=True)
 
         ann_stage_events = []
         first_row = annot.iloc[0]
         ann_Startdatetime = datetime.strptime(first_row['Date'] + ' ' + first_row['Time'],'%d.%m.%y %H.%M.%S')
-        
-        for i, row in annot.iterrows():
+        lights_off, lights_on = None, None
+
+        for _, row in annot.iterrows():
             label = str(row['Annotation'])
             if label == 'Lights off':
                 lights_off = ann_Startdatetime + timedelta(seconds=row['Recording onset'])
@@ -99,4 +100,3 @@ class PSG_IPA(BaseDataset):
                                             'Duration': duration})
 
         return ann_stage_events, ann_Startdatetime, lights_off, lights_on
-    

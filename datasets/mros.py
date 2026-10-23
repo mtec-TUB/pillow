@@ -1,15 +1,11 @@
-import os
-from typing import Dict, List, Tuple, Union
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
-
-import numpy as np
 from psg_processing.utils import SleepStage
 
 @register_dataset("MROS")
 class MROS(BaseDataset):
     """MROS (MrOS Sleep Study) dataset."""
-    
+
     def __init__(self):
         super().__init__("MROS","MROS - MrOS Sleep Study")
         self.has_end_alignment = True
@@ -24,8 +20,8 @@ class MROS(BaseDataset):
             "REM sleep": SleepStage.REM,
             "Unscored": SleepStage.UNK,
         }
-        
-        
+
+
         self.intra_dataset_mapping = {
                 'ECGR': ['ECG R','ECGR'],
                 'ECGL': ['ECGL','ECG L'],
@@ -43,7 +39,7 @@ class MROS(BaseDataset):
                 'A2': ['A2', 'M2'],
                 }
 
-        # https://sleepdata.org/datasets/mros/pages/equipment-mros1.md and https://sleepdata.org/datasets/mros/pages/equipment-mros2.md 
+        # https://sleepdata.org/datasets/mros/pages/equipment-mros1.md and https://sleepdata.org/datasets/mros/pages/equipment-mros2.md
         self.inter_dataset_mapping = {
             "C3": self.Mapping(self.TTRef.C3, self.TTRef.Fpz),
             "C3-A2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
@@ -65,19 +61,19 @@ class MROS(BaseDataset):
             "ECGR": self.Mapping(self.TTRef.ECG, None), # most frequently used ECG channel
             "HR": self.Mapping(self.TTRef.HR, None),
         }
-        
-        
+
+
         self.channel_names = ['STAT', 'M1', 'Chest', 'DHR', 'CH37', 'ECG R', 'R Chin', 'Leg R', 'LegL', 'M2', 'ECGL', 'C4', 'Airflow', 'CH36', 'ECG L', 'HR', 'Thoracic',
                 'Abdominal', 'SaO2', 'ECGR', 'L Chin', 'SpO2', 'LChin', 'LegR', 'SUM', 'ROC', 'Position', 'RChin', 'Cannula Flow', 'E1', 'CannulaFlow', 'LOC',
                 'C3', 'Leg L', 'E2', 'ABD','ECG L-ECG R','A2','A1','L Chin-R Chin','C3-A2','C4-A1']
-        
-        
+
+
         self.channel_types = {'analog': ['M1', 'Chest', 'DHR', 'CH37', 'ECG R', 'R Chin', 'Leg R', 'LegL', 'M2', 'ECGL', 'C4', 'Airflow', 'CH36', 'ECG L', 'Thoracic',
-                           'Abdominal', 'ECGR', 'L Chin', 'LChin', 'LegR', 'SUM', 'ROC', 'RChin', 'Cannula Flow', 'E1', 'CannulaFlow', 'LOC', 'C3', 'Leg L', 
-                           'E2', 'ABD', 'HR','ECG L-ECG R','A2','A1','L Chin-R Chin','C3-A2','C4-A1'], 
+                           'Abdominal', 'ECGR', 'L Chin', 'LChin', 'LegR', 'SUM', 'ROC', 'RChin', 'Cannula Flow', 'E1', 'CannulaFlow', 'LOC', 'C3', 'Leg L',
+                           'E2', 'ABD', 'HR','ECG L-ECG R','A2','A1','L Chin-R Chin','C3-A2','C4-A1'],
                 'digital': ['STAT', 'SpO2', 'SaO2', 'Position']}
-        
-        
+
+
         self.channel_groups = {
             'eeg_eog': ['E1','LOC','E2','ROC', 'M1', 'M2',  'C4','C3'],
             'emg': ['R Chin', 'RChin', 'LChin', 'L Chin', 'LegL', 'Leg L', 'Leg R', 'LegR'],
@@ -85,7 +81,7 @@ class MROS(BaseDataset):
             'thoraco_abdo_resp': ['Abdominal', 'ABD', 'Chest', 'Thoracic'],
             'nasal_pressure': ['Cannula Flow', 'CannulaFlow', 'CH37']
         }
-        
+
         self.file_extensions = {
             'psg_ext': '**/*.edf',
             'ann_ext': '**/*-nsrr.xml'

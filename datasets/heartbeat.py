@@ -1,5 +1,4 @@
 import os
-from typing import Tuple
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -8,10 +7,10 @@ from datasets.registry import register_dataset
 @register_dataset("HEARTBEAT")
 class HEARTBEAT(BaseDataset):
     """HEARTBEAT (Heart Biomarker Evaluation in Apnea Treatment) dataset"""
-    
+
     def __init__(self):
         super().__init__("HEARTBEAT","HEARTBEAT - Heart Biomarker Evaluation in Apnea Treatment")
-  
+
     def _setup_dataset_config(self):
         self.ann2label = {} # No sleep stage annotations available for this dataset
 
@@ -42,19 +41,19 @@ class HEARTBEAT(BaseDataset):
             "SpO2": self.Mapping(self.TTRef.SPO2, None),
         }
 
-        self.channel_names = ['0-1v DC', 'Abdomen', 'Abdomen_EG', 'Activity', 'Activity_EG', 'Battery', 'CPAP_PDS', 'Differential Pre', 'EKG', 'EKG_EG', 'Elevation', 
-                              'Flattening', 'Flow', 'Flow_EG', 'Gravity X', 'Gravity Y', 'Nasal', 'Nasal_EG', 'Phase', 'Position', 'Position_EG', 'Pulse', 'Pulse_EG', 
-                              'RD-Pleth', 'RD-Pleth_EG', 'RD-Quality', 'RMI', 'RR', 'Snore', 'Snore_EG', 'SpO2', 'SpO2-BB', 'SpO2-Quality', 'SpO2-Quality_EG', 'SpO2_EG', 
+        self.channel_names = ['0-1v DC', 'Abdomen', 'Abdomen_EG', 'Activity', 'Activity_EG', 'Battery', 'CPAP_PDS', 'Differential Pre', 'EKG', 'EKG_EG', 'Elevation',
+                              'Flattening', 'Flow', 'Flow_EG', 'Gravity X', 'Gravity Y', 'Nasal', 'Nasal_EG', 'Phase', 'Position', 'Position_EG', 'Pulse', 'Pulse_EG',
+                              'RD-Pleth', 'RD-Pleth_EG', 'RD-Quality', 'RMI', 'RR', 'Snore', 'Snore_EG', 'SpO2', 'SpO2-BB', 'SpO2-Quality', 'SpO2-Quality_EG', 'SpO2_EG',
                               'Thermistor', 'Thermistor_EG', 'Thorax', 'Thorax_EG', 'Tidal Volume', 'XFlow', 'XFlow_EG', 'XSum', 'XSum_EG']
-        
-        
-        self.channel_types = {'analog': ['0-1v DC', 'Abdomen', 'Abdomen_EG', 'Activity', 'Activity_EG', 'Battery', 'CPAP_PDS', 'Differential Pre', 'EKG', 'EKG_EG', 'Elevation', 
-                                         'Flattening', 'Flow', 'Flow_EG', 'Gravity X', 'Gravity Y', 'Nasal', 'Nasal_EG', 'Phase', 'Position', 'Position_EG', 'Pulse', 
-                                         'RD-Pleth', 'RMI', 'RR', 'Snore', 'Thermistor', 'Thermistor_EG', 'Thorax', 'Thorax_EG', 'Tidal Volume', 'XFlow', 'XFlow_EG', 'XSum', 
-                                         'XSum_EG'], 
+
+
+        self.channel_types = {'analog': ['0-1v DC', 'Abdomen', 'Abdomen_EG', 'Activity', 'Activity_EG', 'Battery', 'CPAP_PDS', 'Differential Pre', 'EKG', 'EKG_EG', 'Elevation',
+                                         'Flattening', 'Flow', 'Flow_EG', 'Gravity X', 'Gravity Y', 'Nasal', 'Nasal_EG', 'Phase', 'Position', 'Position_EG', 'Pulse',
+                                         'RD-Pleth', 'RMI', 'RR', 'Snore', 'Thermistor', 'Thermistor_EG', 'Thorax', 'Thorax_EG', 'Tidal Volume', 'XFlow', 'XFlow_EG', 'XSum',
+                                         'XSum_EG'],
                               'digital': ['Pulse_EG', 'RD-Pleth_EG', 'RD-Quality', 'Snore_EG', 'SpO2', 'SpO2-BB', 'SpO2-Quality', 'SpO2-Quality_EG', 'SpO2_EG']}
-    
-        
+
+
         self.channel_groups = {
             'eeg_eog': [],
             'emg': [ ],
@@ -62,9 +61,9 @@ class HEARTBEAT(BaseDataset):
             'thoraco_abdo_resp': ['Flow', 'Flow_EG', 'Thorax','Thorax_EG','Abdomen','Abdomen_EG',],
             'nasal_pressure': ['Nasal','Nasal_EG'],
             'snoring': ['Snore','Snore_EG',]
-        }        
+        }
 
-        
+
         self.file_extensions = {
             'psg_ext': '**/*.edf',
             'ann_ext': '*-nsrr.xml' # not available for this dataset, just for consistency

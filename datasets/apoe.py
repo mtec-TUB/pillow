@@ -1,8 +1,8 @@
 import os
-from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 import csv
 from pathlib import Path
+
 import pandas as pd
 
 from datasets.base import BaseDataset
@@ -29,8 +29,8 @@ class APOE(BaseDataset):
                             8: SleepStage.UNK,
                             10: SleepStage.UNK,
                         }
-        
-        
+
+
         self.intra_dataset_mapping = {'flow': ['Flow II', 'FLOW'],
                             'thorax': ['Chest', 'THOR'],
                             'LOC_A2': ['LOC-A2', 'LOC/A2', 'L-EOG','LOC'],
@@ -56,7 +56,7 @@ class APOE(BaseDataset):
                             'TcCO2': ['TcpCO2'],
                             'PAP Flow': ['PAP Flow', 'PAP Patient Flow'],
                             }
-        
+
         self.inter_dataset_mapping = {
             'abdomen': self.Mapping(self.TTRef.ABDOMINAL, None),
             'thorax': self.Mapping(self.TTRef.THORACIC, None),
@@ -94,30 +94,30 @@ class APOE(BaseDataset):
             'O1-x': self.Mapping(self.TTRef.O1, None),
             'O2-x': self.Mapping(self.TTRef.O2, None),
         }
-        
+
         self.channel_names = [ 'Abdmn',  'Abdomen','ABDOM','Abdominal', 'Airflow', 'RAT-L','THOR', 'RIC','Flow II',
                             'RAT-U', 'Chin-R','EtCO2', 'L/RAT',  'LOC', 'Chin-L',  'EKG', 'Chin-Ctr',  'Chin EMG', 'Chin2 EMG',
-                            'Nasal-Sum','PAP Pressure','CANNULA',  'JAWAC Sensor', 'PAP Patient Flow','Nasal-Left', 'Arm', 
-                            'Pulse Rate', 'Pressure', 'Snore', 'Nasal-Right', 'PAP Tidal Volume', 'MIC2', 'Line','LAT-L', 'SpO2', 
-                            'FLOW',  'Mic', 'ARM', 'Esophageal Press', 'VPW','PAP Flow', 'LAT-U', 'Nasal Pressure', 'RIC-L', 
+                            'Nasal-Sum','PAP Pressure','CANNULA',  'JAWAC Sensor', 'PAP Patient Flow','Nasal-Left', 'Arm',
+                            'Pulse Rate', 'Pressure', 'Snore', 'Nasal-Right', 'PAP Tidal Volume', 'MIC2', 'Line','LAT-L', 'SpO2',
+                            'FLOW',  'Mic', 'ARM', 'Esophageal Press', 'VPW','PAP Flow', 'LAT-U', 'Nasal Pressure', 'RIC-L',
                             'TcCO2', 'MIC1', 'Arms', 'Oral Thermistor', 'Bar', 'PES',  'Oral2', 'blood pressure',  'CHEST #1',
-                            'Pulse Transit Ti', 'TcpCO2', 'Cannula', 'Position', 'RIC-U',  'PAP Leak', 'FP-?',  'Snore2',  'T3', 
+                            'Pulse Transit Ti', 'TcpCO2', 'Cannula', 'Position', 'RIC-U',  'PAP Leak', 'FP-?',  'Snore2',  'T3',
                             'Chest','ROC/A1', 'ROC','ROC-A1','R-EOG','LOC/A2','L-EOG','C4/A1','F4/A1','C4-A1','Fp2-C4', 'C3-O1',
-                            'F1-A2', 'C4-A2','T4-O2','F2-C4', 'F3-A2', 'C3-A1', 'F3/A2', '01-A2','F4-A1', 'F2-T4','FP1-T3', 
+                            'F1-A2', 'C4-A2','T4-O2','F2-C4', 'F3-A2', 'C3-A1', 'F3/A2', '01-A2','F4-A1', 'F2-T4','FP1-T3',
                             'T3-O1','Fz-A2', 'C3-A2', 'FP1-C3', 'C3/A2', 'LOC-A2','Fz-A1', 'O1/A2','FP2-C4', 'O2/A1','Fp1-C3', 'O1-x','O2-x']
-        
-        
+
+
         self.channel_types = {'analog': ['LOC', 'ROC/A1', 'VPW', 'ROC', 'T4-O2', 'Pulse Rate', 'O1/A2', 'F4-A1', 'Chin-L', 'Snore', 'Chin2 EMG', 'Abdominal',
-                           'LOC-A2', 'F1-A2', 'FLOW', 'L-EOG', 'RIC-L', 'RIC', 'RAT-U', 'C3-A1', 'Bar', 'C3/A2', 'ARM', 'Fz-A2', 'FP2-C4', 
-                           'RAT-L', 'Fz-A1', 'Fp1-C3', 'Nasal-Right', 'Cannula', 'Snore2', 'F4/A1', 'Nasal Pressure', 'Fp2-C4', 'O2/A1', 'Airflow', 
+                           'LOC-A2', 'F1-A2', 'FLOW', 'L-EOG', 'RIC-L', 'RIC', 'RAT-U', 'C3-A1', 'Bar', 'C3/A2', 'ARM', 'Fz-A2', 'FP2-C4',
+                           'RAT-L', 'Fz-A1', 'Fp1-C3', 'Nasal-Right', 'Cannula', 'Snore2', 'F4/A1', 'Nasal Pressure', 'Fp2-C4', 'O2/A1', 'Airflow',
                            'C4-A2', 'Chin-Ctr', 'Abdomen', 'EKG', 'Chin EMG', 'Chest', 'EtCO2', 'Nasal-Sum', 'ROC-A1', 'F3-A2', 'T3', 'Position',
                            'MIC2', 'THOR', 'CHEST #1', 'LOC/A2', 'Oral Thermistor', 'Mic', 'R-EOG', 'C4/A1', 'CANNULA', 'LAT-U', 'F2-C4', 'Line',
                            'PAP Leak', 'Abdmn', 'Chin-R', 'ABDOM', 'F3/A2', 'Flow II', 'LAT-L', 'FP1-C3', 'FP1-T3', 'PAP Pressure', 'PES', 'F2-T4',
                            'O2-x', 'Pulse Transit Ti', 'C3-O1', 'L/RAT', 'C4-A1', 'C3-A2', 'O1-x', '01-A2', 'Arm', 'SpO2', 'FP-?', 'Arms', 'blood pressure',
-                           'Esophageal Press', 'Nasal-Left', 'T3-O1', 'Oral2', 'MIC1', 'RIC-U'], 
+                           'Esophageal Press', 'Nasal-Left', 'T3-O1', 'Oral2', 'MIC1', 'RIC-U'],
                 'digital': ['PAP Flow', 'TcCO2', 'PAP Tidal Volume', 'JAWAC Sensor', 'PAP Patient Flow', 'Pressure', 'TcpCO2']}
-        
-        
+
+
         self.channel_groups = {
             'eeg_eog': ['LOC','T3','ROC/A1','ROC','ROC-A1','R-EOG','LOC/A2','L-EOG','C4/A1','F4/A1','C4-A1','Fp2-C4', 'C3-O1',
                         'F1-A2', 'C4-A2','T4-O2','F2-C4', 'F3-A2', 'C3-A1', 'F3/A2', '01-A2','F4-A1', 'F2-T4','FP1-T3', 'T3-O1','Fz-A2', 'C3-A2', 'FP1-C3', 'C3/A2',
@@ -128,13 +128,13 @@ class APOE(BaseDataset):
             'nasal_pressure': ['Nasal Pressure'],
             'snoring': ['Snore', 'Snore2']
         }
-             
-        
+
+
         self.file_extensions = {
             'psg_ext': '*.EDF',
             'ann_ext': '*.STA'
         }
-        
+
 
     def dataset_paths(self):
         """Dataset paths for APOE dataset"""
@@ -142,7 +142,7 @@ class APOE(BaseDataset):
             "original/PSG",
             "original/PSG"
         ]
-    
+
     def get_light_times(self, logger, psg_fname):
         basename = Path(psg_fname).stem
         file = Path(psg_fname).parent / f"{basename}.EVTS"
@@ -150,7 +150,7 @@ class APOE(BaseDataset):
         if not file.exists():
             logger.warning(f"Event file not found for {os.path.basename(psg_fname)}. Expected at {file}. Cannot determine light times.")
             return None, None
-        
+
         events = pd.read_csv(file, sep=',', header=0, skiprows=1)
         lights_off_sec = events.loc[events["Event"] == "Lights Off", "Start Time"].values
         if lights_off_sec.size == 1:
@@ -187,17 +187,17 @@ class APOE(BaseDataset):
         """
         Parse APOE STA annotation files.
         STA files contain space or tab-separated values with epoch number and sleep stage.
-        
+
         Args:
             ann_fname: Path to STA annotation file
             epoch_duration: Duration of each epoch in seconds (default: 30)
-            
+
         Returns:
             Tuple of (sleep_stage_events, start_datetime)
         """
         ann_stage_events = []
         epoch_duration = 30  # APOE uses 30-second epochs
-        
+
         with open(ann_fname, 'r') as file:
             # Try space delimiter first
             for row in csv.reader(file, delimiter=" ", skipinitialspace=True):
@@ -210,5 +210,5 @@ class APOE(BaseDataset):
                         'Start': start,
                         'Duration': epoch_duration
                     })
-            
+
         return ann_stage_events, None, None, None  # APOE doesn't provide start datetime in STA files

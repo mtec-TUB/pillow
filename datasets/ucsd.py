@@ -14,7 +14,7 @@ class UCSD(BaseDataset):
         self.has_end_alignment = True
 
         self._file_handler = EEGLABHandler()
-    
+
     def _setup_dataset_config(self):
         self.ann2label = {1: SleepStage.W,
                           3: SleepStage.N1,
@@ -23,31 +23,31 @@ class UCSD(BaseDataset):
                           2: SleepStage.REM,
                           0: SleepStage.UNK
                           }
-        
+
         # 33-channel data is not included in this release, maybe updated in the future, see https://doi.org/10.18112/openneuro.ds006695.v1.0.2
         self.channel_names = ['FP1-AFz', 'FP2-AFz', 'FF']
-        
+
         # see https://doi.org/10.3389/frsle.2024.1349537
         self.inter_dataset_mapping = {
             'FP1-AFz': self.Mapping(self.TTRef.Fp1, self.TTRef.AFz),
             'FP2-AFz': self.Mapping(self.TTRef.Fp2, self.TTRef.AFz),
             'FF': self.Mapping(self.TTRef.Fp1, self.TTRef.Fp2),
         }
-        
-        self.channel_types = {'analog':['FP1-AFz', 'FP2-AFz', 'FF'], 
+
+        self.channel_types = {'analog':['FP1-AFz', 'FP2-AFz', 'FF'],
                               'digital': []}
-        
-        
+
+
         self.channel_groups = {'eeg_eog': ['FP1-AFz', 'FP2-AFz', 'FF'],
                                 }
-                
+
         self.file_extensions = {'psg_ext': '**/*.set',
                                 'ann_ext': '**/*.set'} # annotations embedded in same file
-        
+
 
     def dataset_paths(self):
         return ['', '']
-    
+
     def ann_parse(self, ann_fname):
         mat = read_mat(ann_fname, variable_names=['VisualHypnogram'])
 

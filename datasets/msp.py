@@ -1,10 +1,10 @@
 """
 MSP - Maternal Sleep in Pregnancy and the Fetus
 """
-import os
-import pandas as pd
-from typing import Dict, List, Optional, Tuple
 from datetime import datetime
+
+import pandas as pd
+
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
@@ -12,7 +12,7 @@ from psg_processing.utils import SleepStage
 @register_dataset("MSP")
 class MSP(BaseDataset):
     """MSP (Maternal Sleep in Pregnancy and the Fetus) dataset."""
-    
+
     def __init__(self):
         super().__init__("MSP","MSP - Maternal Sleep in Pregnancy and the Fetus")
         self.has_end_alignment = True
@@ -46,41 +46,41 @@ class MSP(BaseDataset):
             "EMG2": self.Mapping(self.TTRef.EMG_RCHIN, None),
             "HR": self.Mapping(self.TTRef.HR, None),
         }
-        
+
         self.channel_names =  ['RAT', 'LAT', 'EMG2', 'EMG1', 'ECG', 'abdomen', 'thorax', 'nasal_pres',
-                               'pulse', 'F4_M1', 'ROC', 'O2_M1', 'HR', 'thermistor', 'O1_M2', 'C4_M1', 
+                               'pulse', 'F4_M1', 'ROC', 'O2_M1', 'HR', 'thermistor', 'O1_M2', 'C4_M1',
                                'SpO2', 'LOC', 'fetal_HR', 'F3_M2', 'C3_M2'
                                ]
-        
-        
-        self.channel_types = {'analog': ['O1_M2', 'nasal_pres', 'LOC', 'RAT', 'ECG', 'ROC', 'fetal_HR', 'C3_M2', 
-                                        'HR', 'C4_M1', 'abdomen', 'LAT', 'thermistor', 'thorax', 'O2_M1', 'F4_M1', 
+
+
+        self.channel_types = {'analog': ['O1_M2', 'nasal_pres', 'LOC', 'RAT', 'ECG', 'ROC', 'fetal_HR', 'C3_M2',
+                                        'HR', 'C4_M1', 'abdomen', 'LAT', 'thermistor', 'thorax', 'O2_M1', 'F4_M1',
                                         'EMG1', 'EMG2', 'F3_M2'
-                                        ], 
+                                        ],
                               'digital': ['SpO2', 'pulse']
                               }
-        
-        
+
+
         self.channel_groups = {'eeg_eog': ['F4_M1','ROC','O2_M1','O1_M2', 'C4_M1','LOC','F3_M2', 'C3_M2'],
                                 'emg': ['RAT', 'LAT', 'EMG2', 'EMG1'],
                                 'ecg': ['ECG'],
                                 'thoraco_abdo_resp': ['abdomen', 'thorax'],
                                 'nasal_pressure': ['nasal_pres']
                                 }
-        
-        
+
+
         self.file_extensions = {
                                 'psg_ext': '*.edf',
                                 'ann_ext': '*.annot'
                                 }
-        
+
 
     def dataset_paths(self):
         return [
             'polysomnography',
             'polysomnography'
         ]
-        
+
     def ann_parse(self, ann_fname: str):
         """
         function to parse the annotation file of the dataset into sleep stage events with start and duration
@@ -92,7 +92,7 @@ class MSP(BaseDataset):
         ann_Startdatetime, lights_off, lights_on = None, None, None
 
         ann_stage_events = []
-        for i,row in ann_df.iterrows():
+        for _,row in ann_df.iterrows():
             event = row['class']
             if event == 'lights_off':
                 lights_off = datetime.strptime(row['start'],'%H:%M:%S').time()
@@ -102,8 +102,8 @@ class MSP(BaseDataset):
                 # if event not in self.ann2label:
                 #     print(event)
                 #     raise Exception
-                start = datetime.strptime(row['start'],'%H:%M:%S') 
-                if ann_Startdatetime == None:
+                start = datetime.strptime(row['start'],'%H:%M:%S')
+                if ann_Startdatetime is None:
                     ann_Startdatetime = start
                 end =  datetime.strptime(row['stop'],'%H:%M:%S')
                 duration = int((end - start).seconds)
@@ -113,4 +113,3 @@ class MSP(BaseDataset):
                                         'Duration': duration})
 
         return ann_stage_events, ann_Startdatetime, lights_off, lights_on
-        

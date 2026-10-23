@@ -1,9 +1,6 @@
 """
 MNC - Mignot Nature Communications
 """
-
-import os
-from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 import xml.etree.ElementTree as ET
 
@@ -15,7 +12,7 @@ from psg_processing.utils import SleepStage
 @register_dataset("MNC")
 class MNC(BaseDataset):
     """MNC - Mignot Nature Communications"""
-    
+
     def __init__(self):
         super().__init__("MNC","MNC - Mignot Nature Communications",keep_folder_structure=False)
 
@@ -67,23 +64,23 @@ class MNC(BaseDataset):
             "pap_flow": self.Mapping(self.TTRef.CPAP, None),
             "hr": self.Mapping(self.TTRef.HR, None),
         }
-        
-        
+
+
         self.channel_names = ['O1', 'ECG', 'F3', 'activity', 'lleg1_2', 'ECG2', 'position', 'therm', 'etco2', 'lleg_r', 'ECG1', 'cchin_l',
                               'M1', 'lleg', 'F4', 'tvol', 'light', 'pap_pres', 'sum', 'rleg', 'abdomen', 'pap_flow', 'gravx', 'leak', 'E1',
                               'rleg2', 'phase', 'PTT', 'spo2', 'pulse', 'elevation', 'rchin_c', 'cs_LOC', 'cs_EMG', 'lchin', 'cchin', 'r_r',
                               'pleth', 'gravy', 'lleg1', 'thorax', 'E2', 'C3', 'C4', 'ECG1_2', 'spo2bb', 'cs_ECG', 'O2', 'cs_ROC', 'M2',
                               'rleg1', 'cs_EEG', 'ECG3', 'chin', 'snore', 'hr', 'flow', 'rleg1_2', 'nas_pres', 'rchin']
-        
-        
-        self.channel_types = {'analog': ['etco2', 'flow', 'lleg1_2', 'ECG1', 'rleg', 'ECG3', 'rchin', 'E2', 'activity', 'E1', 'snore', 
-                                         'gravy', 'tvol', 'chin', 'lleg1', 'ECG1_2', 'cchin', 'C4', 'lchin', 'pleth', 'abdomen', 'rchin_c', 
-                                         'F3', 'rleg1_2', 'spo2', 'r_r', 'pap_pres', 'cchin_l', 'thorax', 'C3', 'cs_ECG', 'cs_LOC', 'cs_EEG', 
-                                         'M1', 'gravx', 'F4', 'pap_flow', 'O2', 'rleg1', 'rleg2', 'therm', 'hr', 'M2', 'sum', 'O1', 'leak', 
+
+
+        self.channel_types = {'analog': ['etco2', 'flow', 'lleg1_2', 'ECG1', 'rleg', 'ECG3', 'rchin', 'E2', 'activity', 'E1', 'snore',
+                                         'gravy', 'tvol', 'chin', 'lleg1', 'ECG1_2', 'cchin', 'C4', 'lchin', 'pleth', 'abdomen', 'rchin_c',
+                                         'F3', 'rleg1_2', 'spo2', 'r_r', 'pap_pres', 'cchin_l', 'thorax', 'C3', 'cs_ECG', 'cs_LOC', 'cs_EEG',
+                                         'M1', 'gravx', 'F4', 'pap_flow', 'O2', 'rleg1', 'rleg2', 'therm', 'hr', 'M2', 'sum', 'O1', 'leak',
                                          'phase', 'cs_EMG', 'ECG', 'cs_ROC', 'lleg_r', 'light', 'elevation', 'lleg', 'PTT', 'nas_pres', 'ECG2', 'pulse'],
                              'digital': ['spo2bb', 'position']}
-        
-        
+
+
         self.channel_groups = {
             'eeg_eog': ['C4', 'cs_LOC', 'E1','E2', 'F3','O2','cs_ROC','cs_EEG', 'F4', 'C3', 'O1', 'O2','M1','M2'],
             'emg': ['rleg1_2','rleg2','rleg', 'lleg1','lleg_r','rchin','cchin', 'cs_EMG','lleg1_2', 'rleg1','lchin','lleg',  'cchin_l', 'chin','rchin_c'],
@@ -92,13 +89,13 @@ class MNC(BaseDataset):
             'nasal_pressure': ['nas_pres',],
             'snoring': ['snore']
         }
-        
-        
+
+
         self.file_extensions = {
             'psg_ext': "**/*.edf",
             'ann_ext': "**/*.xml"
         }
-    
+
 
     def dataset_paths(self):
         return [
@@ -109,7 +106,7 @@ class MNC(BaseDataset):
     def ann_parse(self, ann_fname: str):
         """
         function to parse the annotation file of the dataset into sleep stage events with start and duration
-    
+
         """
         ann_stage_events = []
         ann_startdatetime = None

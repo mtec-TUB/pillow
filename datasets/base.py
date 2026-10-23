@@ -1,11 +1,13 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List
 import logging
-import numpy as np
+
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from enum import Enum, auto
+
+import numpy as np
 
 from psg_processing.utils import Alignment, SleepStage
 from .file_handlers import EDFHandler
@@ -20,6 +22,8 @@ class BaseDataset(ABC):
         self.dset_name = dset_name
         self.dataset_name = dataset_name_long
         self.keep_folder_structure = keep_folder_structure  # save files in the same subfolder structure as they were found
+
+        self.dset_dir = None # is set in process_dataset()
 
         # Alignment flags — set to True in subclass __init__ for datasets that are known to
         # have signal/label length mismatches at the front or end.  If False (default) and a
@@ -48,15 +52,15 @@ class BaseDataset(ABC):
     def get_channels(self, logger, filepath):
         """Extract channel information from PSG file."""
         return self._file_handler.get_channels(logger, filepath)
-    
+
     def read_signal(self, logger, filepath, channel):
         """Read signal data for a specific channel."""
         return self._file_handler.read_signal(logger, filepath, channel)
-    
+
     def get_file_info(self, logger, filepath):
         """Get start datetime and file duration."""
         return self._file_handler.get_file_info(logger, filepath)
-    
+
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for processing."""
         return self._file_handler.get_signal_data(logger, filepath, channel)
@@ -74,7 +78,6 @@ class BaseDataset(ABC):
         - self.channel_groups: Dict[str, List[str]]
         - self.intra_dataset_mapping: Dict[str, List[str]]
         """
-        pass
 
     def _validate_ann2label(self):
         """Ensure every ann2label value is a universal SleepStage label."""
@@ -110,7 +113,7 @@ class BaseDataset(ABC):
         data_dir = os.path.join("polysomnography", "edfs")
         ann_dir = os.path.join("polysomnography", "annotations-events-nsrr")
         return data_dir, ann_dir
-    
+
     def map_channel(self, channel):
         """Harmonize channel name using intra- and inter-dataset mappings.
         Intra-dataset mapping maps channel names within the same dataset to a common name (e.g., 'ECG R' and 'ECGR' both map to 'ECGR').
@@ -143,14 +146,14 @@ class BaseDataset(ABC):
         def __init__(self, ref1, ref2):
             self.ref1 = ref1
             self.ref2 = ref2
-        
+
         def __eq__(self, other):
             return (self.ref1, self.ref2) == (other.ref1, other.ref2)
-        
+
         def get_mapping(self):
             return f"{self.ref1}-{self.ref2}" if self.ref2 is not None else f"{self.ref1}"
-        
-    class TTRef(Enum):        
+
+    class TTRef(Enum):
         # 10-10 EEG system for scalp PSG
 
         """
@@ -159,10 +162,10 @@ class BaseDataset(ABC):
         T4 is now T8
         T5 is now P7
         T6 is now P8"
-        
+
         Source: https://en.wikipedia.org/wiki/10%E2%80%9320_system_(EEG)
         """
-        
+
         Nz = auto()
         Fpz = auto()
         Fp1 = auto()
@@ -237,10 +240,10 @@ class BaseDataset(ABC):
         LPA = auto() # Same as A1 in 10-20 system
         RPA = auto() # Same as A2 in 10-20 system
         LRPA = auto() # Linked mastoids
-        
+
         EL = auto() # LOC, E1
         ER = auto() # ROC, E2
-        
+
         # Computed linked Ear and Linked Ear Reference. May be rare, and so far is only in MASS. Can only find this article describing it: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5479869/
         CLE = auto()
         LER = auto()
@@ -260,7 +263,7 @@ class BaseDataset(ABC):
         SNORE = auto()
         POSITION = auto()
         HR = auto() # Heart Rate
-        
+
         def __str__(self):
             return self.name
 
@@ -286,7 +289,7 @@ class BaseDataset(ABC):
                 - 'Stage' (str): sleep stage name (only keys from defined self.ann2label are valid)
                 - 'Start' (float): onset time in seconds, relative to the first sleep stage event.
                 - 'Duration' (float): duration in seconds
-            ann_startdatetime (datetime.timedelta): start_onset of the recording in seconds 
+            ann_startdatetime (datetime.timedelta): start_onset of the recording in seconds
             lights_off (float): lights_off time in seconds
             lights_on (float): lights_on time in seconds
         """
@@ -381,7 +384,7 @@ class BaseDataset(ABC):
 
             total_duration += ann_duration
 
-            logger.debug("Include onset:{}, duration:{}, label:{} ({})".format(onset_sec, ann_duration, label, ann_str))
+            logger.debug("Include onset:%d, duration:%d, label:%d (%s)", onset_sec, ann_duration, label, ann_str)
 
         return np.concatenate(labels)
 

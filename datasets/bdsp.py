@@ -235,7 +235,7 @@ class BDSP(BaseDataset):
             "file_extensions": {'psg_ext': 'I0004/**/*-PSG_eeg.edf',
                                 'ann_ext': 'I0004/**/*-psg_sleep_annotations.csv'},
         }
-    
+
     def _config_i0006(self):
         # TODO: fill in real ann2label/mappings/channel names/types/groups for I0006
         return {
@@ -280,7 +280,7 @@ class BDSP(BaseDataset):
             ann_df.at[ann_df.index[101], 'Epoch'] = '102'
             ann_df['Epoch'] = ann_df['Epoch'].astype('int64')
 
-        for i, row in ann_df.iterrows():
+        for _, row in ann_df.iterrows():
 
             start = (row["Epoch"] - 1) * epoch_duration     # 1-based indexing
             stage = row['Stage']

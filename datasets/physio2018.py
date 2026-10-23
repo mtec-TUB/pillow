@@ -1,17 +1,16 @@
 import os
+
 import wfdb
-from typing import Dict, List, Tuple
-from datetime import datetime, date
+
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
-
 from datasets.file_handlers import WFDBHandler
 from psg_processing.utils import SleepStage
 
 @register_dataset("PHYSIO2018")
 class Physio2018(BaseDataset):
     """Physio2018 (PhysioNet Challenge 2018) dataset."""
-    
+
     def __init__(self):
         super().__init__("PHYSIO2018","Physio2018 - PhysioNet Challenge 2018", keep_folder_structure = False)
         self.has_front_alignment = True
@@ -27,16 +26,16 @@ class Physio2018(BaseDataset):
                 "N3": SleepStage.N3,
                 "R": SleepStage.REM,
                 }
-        
-        
-        self.channel_names = ['ABD', 'E1-M2', 'C3-M2', 'ECG', 'O2-M1', 'O1-M2', 'F3-M2', 'C4-M1', 
+
+
+        self.channel_names = ['ABD', 'E1-M2', 'C3-M2', 'ECG', 'O2-M1', 'O1-M2', 'F3-M2', 'C4-M1',
                 'F4-M1', 'SaO2', 'AIRFLOW', 'Chin1-Chin2', 'CHEST']
-        
-        
+
+
         self.channel_types = {'analog': ['ABD', 'E1-M2', 'C3-M2', 'ECG', 'O2-M1', 'O1-M2', 'F3-M2', 'C4-M1', 'F4-M1', 'AIRFLOW', 'Chin1-Chin2', 'CHEST'],
                 'digital': ['SaO2']}
-        
-        
+
+
         self.channel_groups = {
             'eeg_eog': ['E1-M2', 'C3-M2','O2-M1', 'O1-M2', 'F3-M2', 'C4-M1', 'F4-M1'],
             'emg': ['Chin1-Chin2'],
@@ -45,7 +44,7 @@ class Physio2018(BaseDataset):
         }
 
         self.inter_dataset_mapping = {
-            "F3-M2": self.Mapping(self.TTRef.F3, self.TTRef.RPA), 
+            "F3-M2": self.Mapping(self.TTRef.F3, self.TTRef.RPA),
             "F4-M1": self.Mapping(self.TTRef.F4, self.TTRef.LPA),
             "C3-M2": self.Mapping(self.TTRef.C3, self.TTRef.RPA),
             "C4-M1": self.Mapping(self.TTRef.C4, self.TTRef.LPA),
@@ -59,41 +58,41 @@ class Physio2018(BaseDataset):
             "AIRFLOW": self.Mapping(self.TTRef.AIRFLOW, None),
             "SaO2": self.Mapping(self.TTRef.SPO2, None),
         }
-        
+
         self.file_extensions = {
             'psg_ext': '**/*.hea',
             'ann_ext': '**/*.arousal'
         }
-    
+
     def dataset_paths(self):
         return [
             '1.0.0',
             '1.0.0'
         ]
-    
+
     def ann_parse(self, ann_fname: str):
         """
         Parse Physio2018 annotation files.
         """
         ann_stage_events = []
-        
+
         record_name, extension = os.path.splitext(ann_fname)
         annot = wfdb.rdann(record_name, extension.strip('.'))
-        
+
         fs = annot.fs
 
         epoch_duration = 30  # Physio2018 uses default 30-second epochs, is calculated afterwards
-        
+
         start_time_label = None
 
         for i, (sample, aux_note) in enumerate(zip(annot.sample, annot.aux_note)):
             if not any(note in aux_note for note in ['resp_hypoventilation','resp_cheynestokesbreath','arousal_bruxism','arousal_noise','arousal_plm','arousal_snore','arousal_rera','arousal_spontaneous','resp_partialobstructive','resp_centralapnea','resp_mixedapnea','resp_obstructiveapnea','resp_hypopnea']):
                 if aux_note not in self.ann2label:
-                       print(aux_note)
-                       raise Exception
-                    
+                    print(aux_note)
+                    raise Exception
+
                 start = sample
-                if start_time_label == None:
+                if start_time_label is None:
                     start_time_label = start
                 ann_stage_events.append({'Stage': aux_note,
                                             'Start': float(start - start_time_label)/fs,
@@ -103,5 +102,3 @@ class Physio2018(BaseDataset):
             ann_stage_events[i]['Duration'] = ann_stage_events[i+1]['Start'] - event['Start']
 
         return ann_stage_events, float(start_time_label) / fs, None, None
-    
-

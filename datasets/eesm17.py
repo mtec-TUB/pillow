@@ -1,12 +1,11 @@
 import os
-from typing import Any, Dict, List, Optional, Tuple
-import pandas as pd
 from pathlib import Path
 import glob
 
+import pandas as pd
+
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
-
 from datasets.file_handlers import EEGLABHandler
 from psg_processing.utils import SleepStage
 
@@ -14,7 +13,7 @@ from psg_processing.utils import SleepStage
 @register_dataset("EESM17")
 class EESM17(BaseDataset):
     """Ear-EEG Sleep Monitoring 2017 (EESM17) dataset"""
-    
+
     def __init__(self):
         super().__init__("EESM17","Ear-EEG Sleep Monitoring 2017 (EESM17)", keep_folder_structure=False)
         self.has_front_alignment = True
@@ -32,12 +31,12 @@ class EESM17(BaseDataset):
                         7: SleepStage.UNK,   # Artefact
                         8: SleepStage.UNK,   # Unknown
                         }
-        
-        
-        self.channel_names = ['LOC', 'OSAT', 'DIF3', 'DIF2', 'CHIN12', 'ERB1', 'ERK', 'O1', 'A2', 'ELE', 'DC1', 'ELA', 'ELB', 'PR', 'O2', 'ERE', 
-                              'ROC', 'ELG', 'ERI', 'C4', 'ERB', 'ELK', 'DIF4', 'ERA', 'A1', 'DC3', 'C3', 'ELI', 'F3', 'Event', 'ERG', 'ELB1', 
+
+
+        self.channel_names = ['LOC', 'OSAT', 'DIF3', 'DIF2', 'CHIN12', 'ERB1', 'ERK', 'O1', 'A2', 'ELE', 'DC1', 'ELA', 'ELB', 'PR', 'O2', 'ERE',
+                              'ROC', 'ELG', 'ERI', 'C4', 'ERB', 'ELK', 'DIF4', 'ERA', 'A1', 'DC3', 'C3', 'ELI', 'F3', 'Event', 'ERG', 'ELB1',
                               'F4', 'DC4', 'DC2']
-        
+
         self.inter_dataset_mapping = {
             "F3": self.Mapping(self.TTRef.F3, None),
             "F4": self.Mapping(self.TTRef.F4, None),
@@ -53,24 +52,24 @@ class EESM17(BaseDataset):
             "CHIN12": self.Mapping(self.TTRef.EMG_LCHIN, self.TTRef.EMG_RCHIN),
             "PR": self.Mapping(self.TTRef.HR, None),
         }
-        
-        self.channel_types = {'analog': ['C4', 'ELG', 'DC3', 'ERI', 'DC2', 'F4', 'ELK', 'O2', 'ERA', 'ELB', 'ERB', 'O1', 'A1', 'C3', 'ELA', 'ROC', 'DC1', 
-                                         'ERK', 'ERG', 'LOC', 'DIF4', 'ELI', 'ELB1', 'DC4', 'ELE', 'ERE', 'DIF3', 'A2', 'F3', 'DIF2', 'CHIN12', 'ERB1'], 
+
+        self.channel_types = {'analog': ['C4', 'ELG', 'DC3', 'ERI', 'DC2', 'F4', 'ELK', 'O2', 'ERA', 'ELB', 'ERB', 'O1', 'A1', 'C3', 'ELA', 'ROC', 'DC1',
+                                         'ERK', 'ERG', 'LOC', 'DIF4', 'ELI', 'ELB1', 'DC4', 'ELE', 'ERE', 'DIF3', 'A2', 'F3', 'DIF2', 'CHIN12', 'ERB1'],
                               'digital': ['OSAT', 'Event', 'PR']}
-        
-        
-        self.channel_groups = {'eeg_eog': ['C4', 'ELG', 'ERI', 'F4', 'ELK', 'O2', 'ERA', 'ELB', 'ERB', 'O1', 'A1', 'C3', 'ELA', 'ROC', 
+
+
+        self.channel_groups = {'eeg_eog': ['C4', 'ELG', 'ERI', 'F4', 'ELK', 'O2', 'ERA', 'ELB', 'ERB', 'O1', 'A1', 'C3', 'ELA', 'ROC',
                                          'ERK', 'ERG', 'LOC', 'ELI', 'ELB1', 'ELE', 'ERE',  'A2', 'F3', 'ERB1'],
                                 'emg': ['CHIN12',],
                                 }
-                
-        
+
+
         self.file_extensions = {'psg_ext': '**/*_eeg.set',
-                                'ann_ext': '**/*_acq-scoring_events.tsv'} 
-        
+                                'ann_ext': '**/*_acq-scoring_events.tsv'}
+
     def dataset_paths(self):
         return ['', '']
-    
+
     def ann_parse(self, ann_fname):
         annot = pd.read_csv(ann_fname,sep='\t', header=0)
 
@@ -78,12 +77,12 @@ class EESM17(BaseDataset):
 
         # Start time of labels is "Lights Off" marker in sleep events file
         try:
-            base_folder = Path(ann_fname).parent 
+            base_folder = Path(ann_fname).parent
             events_file = glob.glob(os.path.join(base_folder, "*sleep_events.tsv"))[0]
             events = pd.read_csv(events_file,sep='\t', header=0)
             start_time = events["onset"][events["trial_type"] == "Lights Off"].iloc[0]
-        except:
-            print(f"Error while trying to retrieve Lights Off marker for {ann_fname}")
+        except Exception as e:
+            print(f"Error while trying to retrieve Lights Off marker for {ann_fname}: {e}")
 
 
         for i, row in annot.iterrows():
@@ -94,7 +93,7 @@ class EESM17(BaseDataset):
             ann_stage_events.append({'Stage': stage,
                                         'Start': start,
                                         'Duration': duration})
-        
+
         for i, event in enumerate(ann_stage_events[:-1]):
             ann_stage_events[i]['Duration'] = ann_stage_events[i+1]['Start'] - event['Start']
 
@@ -106,7 +105,7 @@ class EESM17(BaseDataset):
             lights_off = lights_off.iloc[0]
         else:
             raise Exception(f"Expected exactly one 'Lights Off' event in {events_file}, but found {len(lights_off)}.")
-        
+
         lights_on = events.loc[events['trial_type'] == 'Lights On', 'onset']
         if len(lights_on) == 1:
             lights_on = lights_on.iloc[0]
@@ -114,4 +113,3 @@ class EESM17(BaseDataset):
             raise Exception(f"Expected exactly one 'Lights On' event in {events_file}, but found {len(lights_on)}.")
 
         return ann_stage_events, start_time, lights_off, lights_on
-    

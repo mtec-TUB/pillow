@@ -1,7 +1,8 @@
 import os
-import pandas as pd
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+
+import pandas as pd
+
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
@@ -9,7 +10,7 @@ from psg_processing.utils import SleepStage
 @register_dataset("HMC")
 class HMC(BaseDataset):
     """HMC (Haaglanden Medisch Centrum sleep staging database) dataset."""
-    
+
     def __init__(self):
         super().__init__("HMC","HMC - Haaglanden Medisch Centrum sleep staging database")
         self.has_end_alignment = True
@@ -33,31 +34,31 @@ class HMC(BaseDataset):
             "EMG chin": self.Mapping(self.TTRef.EMG_CHIN, None),
             "ECG": self.Mapping(self.TTRef.ECG, None)
         }
-        
+
         self.channel_names = [
             'EEG C4-M1', 'EEG F4-M1', 'EEG O2-M1', 'EEG C3-M2',
             'EOG E1-M2', 'EOG E2-M2',
             'EMG chin',
             'ECG'
         ]
-        
-        
+
+
         self.channel_types = {
             'analog': [
-                'EOG E1-M2', 'EEG C4-M1', 'EEG F4-M1', 'EEG O2-M1', 'EOG E2-M2', 
+                'EOG E1-M2', 'EEG C4-M1', 'EEG F4-M1', 'EEG O2-M1', 'EOG E2-M2',
                 'EEG C3-M2', 'EMG chin', 'ECG'
             ],
             'digital': []
         }
-        
-        
+
+
         self.channel_groups = {
             'eeg_eog': ['EOG E1-M2', 'EEG C4-M1', 'EEG F4-M1', 'EEG O2-M1', 'EOG E2-M2', 'EEG C3-M2'],
             'emg': ['EMG chin'],
             'ecg': ['ECG']
         }
-        
-        
+
+
         self.file_extensions = {
             'psg_ext': '*[!sleepscoring].edf',
             'ann_ext': '*_sleepscoring.txt'
@@ -72,20 +73,20 @@ class HMC(BaseDataset):
             ann_ext = "_sleepscoring.txt"
             ann_id = ann_fname.split(ann_ext)[0]
         return psg_id, ann_id
-    
+
     def dataset_paths(self):
         return [
             os.path.join('1.1', 'recordings'),
             os.path.join('1.1', 'recordings')
         ]
-    
+
     def ann_parse(self, ann_fname: str):
         """
         Parse HMC CSV annotation files.
-        
+
         Args:
             ann_fname: Path to CSV annotation file
-            
+
         Returns:
             Tuple of (sleep_stage_events, start_datetime)
         """
@@ -94,8 +95,9 @@ class HMC(BaseDataset):
         ann_stage_events = []
         first_row = annot.iloc[0]
         ann_Startdatetime = datetime.strptime(first_row['Date'] + ' ' + first_row['Time'],'%d.%m.%y %H.%M.%S')
-        
-        for i, row in annot.iterrows():
+        lights_off, lights_on = None, None
+
+        for _, row in annot.iterrows():
             if row['Annotation'] == 'Lights off':
                 lights_off = ann_Startdatetime + timedelta(seconds=row['Recording onset'])
             elif row['Annotation'] == 'Lights on':

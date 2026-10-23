@@ -1,14 +1,15 @@
 import os
+from pathlib import Path
+import glob
+import shutil
+from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from tqdm import tqdm
 from scipy.interpolate import interp1d
 import numpy as np
 import pandas as pd
-from pathlib import Path
-from tqdm import tqdm
-import glob
-import shutil
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timezone
+
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
@@ -16,7 +17,7 @@ from psg_processing.utils import SleepStage
 @register_dataset("MMASH")
 class MMASH(BaseDataset):
     """MMASH - Multilevel Monitoring of Activity and Sleep in Healthy People dataset."""
-    
+
     def __init__(self):
         super().__init__("MMASH","MMASH - Multilevel Monitoring of Activity and Sleep in Healthy People")
         self.has_end_alignment = True
@@ -45,7 +46,7 @@ class MMASH(BaseDataset):
 
         actigraph_file = filepath.replace('user_info', 'Actigraph')
         if os.path.exists(actigraph_file):
-            channels.extend(['Axis1', 'Axis2', 'Axis3', 'Steps', 'HR', 'Inclinometer Off', 'Inclinometer Standing', 
+            channels.extend(['Axis1', 'Axis2', 'Axis3', 'Steps', 'HR', 'Inclinometer Off', 'Inclinometer Standing',
                              'Inclinometer Sitting', 'Inclinometer Lying', 'Vector Magnitude'])
 
         return channels
@@ -82,7 +83,7 @@ class MMASH(BaseDataset):
             f = interp1d(times, signal, kind='nearest', fill_value='extrapolate')
             signal_interpl = f(np.arange(start_timestamp, end_timestamp, 1))
         return signal_interpl
-    
+
     def get_file_info(self, logger, filepath):
         """Get start datetime and file duration."""
         rr_file = filepath.replace('user_info', 'RR')
@@ -113,13 +114,13 @@ class MMASH(BaseDataset):
 
         if start_time is None:
             raise ValueError(f"No valid start time found in either RR or Actigraph files for {filepath}")
-        
+
 
         file_duration = (end_time - start_time).total_seconds()
 
         return {"start_datetime": start_time,
                 "file_duration": file_duration}
-    
+
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for specific channel."""
         # Get start time to align signals from different files
@@ -134,10 +135,10 @@ class MMASH(BaseDataset):
             df = pd.read_csv(file, header=0)
 
             # Adjust days to be either 1 or 2, because some files have values like -29 for second day
-            df.loc[df["day"]!= 1, 'day'] = 2   
+            df.loc[df["day"]!= 1, 'day'] = 2
             # Some rows have the same timestamp because there is one row per heart beat, so ibi_s values are averaged per second
             df_seconds = df.groupby(['day','time'])['ibi_s'].mean().reset_index()
-            
+
             # Convert 'time' and 'day' to timestamps
             times = (
                     pd.to_datetime(df_seconds['time'], format='%H:%M:%S', utc=True)
@@ -151,7 +152,7 @@ class MMASH(BaseDataset):
         else:
             file = filepath.replace('user_info', 'Actigraph')
             df = pd.read_csv(file, header=0)
-            df.loc[df["day"]!= 1, 'day'] = 2   
+            df.loc[df["day"]!= 1, 'day'] = 2
             times = (
                     pd.to_datetime(df['time'], format='%H:%M:%S', utc=True)
                     + pd.to_timedelta(df['day'] - 1, unit='D')       # add day offset
@@ -172,27 +173,27 @@ class MMASH(BaseDataset):
         self.ann2label = {"W": SleepStage.W,
                           "Sleep": SleepStage.SLEEP}
 
-        
-        self.channel_names =  ['Axis1', 'Axis2', 'Axis3', 'Steps', 'HR', 'Inclinometer Off', 'Inclinometer Standing', 
+
+        self.channel_names =  ['Axis1', 'Axis2', 'Axis3', 'Steps', 'HR', 'Inclinometer Off', 'Inclinometer Standing',
                              'Inclinometer Sitting', 'Inclinometer Lying', 'Vector Magnitude','ibi_s']
-        
-        
-        self.channel_types = {'analog': ['ibi_s', 'Axis1', 'Axis2', 'Axis3', 'HR', 'Vector Magnitude'], 
+
+
+        self.channel_types = {'analog': ['ibi_s', 'Axis1', 'Axis2', 'Axis3', 'HR', 'Vector Magnitude'],
                             'digital': ['Steps', 'Inclinometer Off', 'Inclinometer Standing', 'Inclinometer Sitting', 'Inclinometer Lying']}
-        
-        
+
+
         self.channel_groups = {}
-        
-        
+
+
         self.file_extensions = {
                                 'psg_ext': 'DataPaper/**/user_info.csv',    # used as common reference per user (channels are derived from RR.csv and Actigraph.csv)
                                 'ann_ext': 'DataPaper/**/sleep.csv' # contains only sleep statistics, no annotations
                                 }
-        
+
 
     def dataset_paths(self):
         return ['', '']
-    
+
     def ann_parse(self, ann_fname):
         """ MMASH does not have sleep stage annotations, but sleep statistics (TIB, WASO, Sleep Onset, etc.)
         This function will create annotations based on these statistics, assigning Wake (W) for non-sleep periods
@@ -208,15 +209,15 @@ class MMASH(BaseDataset):
         sleep_df = pd.read_csv(ann_fname, sep=',', header=0)
         if len(sleep_df) == 0:
             return [], start_time, None, None  # No sleep data available (e.g. user 11)
-        
-        lights_off = datetime.strptime(sleep_df['In Bed Time'][0], '%H:%M') + pd.Timedelta(days=0 if sleep_df['In Bed Date'][0] == 1 else 1) 
+
+        lights_off = datetime.strptime(sleep_df['In Bed Time'][0], '%H:%M') + pd.Timedelta(days=0 if sleep_df['In Bed Date'][0] == 1 else 1)
         lights_on = datetime.strptime(sleep_df['Out Bed Time'].iloc[-1], '%H:%M') + pd.Timedelta(days=0 if sleep_df['Out Bed Date'][0] == 1 else 1)
 
         ann_stage_events = []
         # annotate with wake from recording start till recording stop
         n_epochs_pre_sleep = int((end_time - start_time).total_seconds() // 30)
         ann_stage_events.extend([{'Stage': 'W', 'Start': idx*30, 'Duration': 30} for idx in range(0,n_epochs_pre_sleep)])
-        
+
         # annotate sleep phases with label 'Sleep'
         for _, row in sleep_df.iterrows():
             phase_start = datetime.strptime(row['Onset Time'], '%H:%M') + pd.Timedelta(days=0 if row['Onset Date'] == 1 else 1)
@@ -226,12 +227,12 @@ class MMASH(BaseDataset):
             ann_stage_events[start_epoch:end_epoch] = [{'Stage': 'Sleep', 'Start': idx*30, 'Duration': 30} for idx in range(start_epoch, end_epoch)]
 
         return ann_stage_events, start_time, lights_off, lights_on
-    
+
     def preprocess(self, n_workers, data_dir, ann_dir):
         print("\n MMASH files do not have unique filenames ... \n")
-        
+
         execute_preprocess = input("Do you want to perform the processing on copied and renamed files (if not, the results will be stored in user_id subfolders)? (Y/N) ")
-        
+
         if str(execute_preprocess).lower() == "y":
             organizer = MMASHRenaming(data_dir)
             organizer.rename_files(n_workers)
@@ -242,9 +243,9 @@ class MMASH(BaseDataset):
             self.keep_folder_structure = False
         else:
             self.keep_folder_structure = True
-        
+
         return True
-            
+
 
 class MMASHRenaming:
     """Handles renaming of MMASH dataset files."""
@@ -278,16 +279,16 @@ class MMASHRenaming:
                 with ThreadPoolExecutor(max_workers=n_workers) as executor:
                     futures = [executor.submit(self._copy_file, renamed_dir, file, user) for file in files]
                     for future in as_completed(futures):
-                        future.result()  
+                        future.result()
             except KeyboardInterrupt:
                 print("Preprocessing interrupted by user. Shutting down...")
-                executor.shutdown(cancel_futures=True)            
-                
+                executor.shutdown(cancel_futures=True)
+
         print('Resorting done, if you want you can delete the duplicates at their original location.')
 
     def _copy_file(self, renamed_dir, file, user):
         new_filename = os.path.basename(user)+'_'+str(os.path.basename(file))
 
-        if not os.path.exists(renamed_dir / new_filename):  
+        if not os.path.exists(renamed_dir / new_filename):
             # print(f"Copy file {file} to {subgroup_folder+'/'+new_filename}")
-            shutil.copy2(file, renamed_dir / new_filename) 
+            shutil.copy2(file, renamed_dir / new_filename)

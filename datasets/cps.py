@@ -1,13 +1,12 @@
 import os
 from datetime import datetime, date
-import numpy as np
+
 import pandas as pd
 
 from datasets.base import BaseDataset
-from psg_processing.utils import Alignment, SleepStage
 from datasets.registry import register_dataset
-
 from datasets.file_handlers import WFDBHandler
+from psg_processing.utils import SleepStage
 
 
 @register_dataset("CPS")
@@ -62,22 +61,22 @@ class CPS(BaseDataset):
             "SPO2": self.Mapping(self.TTRef.SPO2, None),
             "Pos.": self.Mapping(self.TTRef.POSITION, None),
         }
-        
-        self.channel_names = ['Akku', 'Licht', 'O2', 'EMG', 'C3:A2', 'A2', 'EOGr', 'C3', 'O2:A1', 'A1', 
-                'C4:A1', 'EOGl:A2', 'C4', 'F4', 'F4:A1', 'EOGl:A1', 'EMG+', 
+
+        self.channel_names = ['Akku', 'Licht', 'O2', 'EMG', 'C3:A2', 'A2', 'EOGr', 'C3', 'O2:A1', 'A1',
+                'C4:A1', 'EOGl:A2', 'C4', 'F4', 'F4:A1', 'EOGl:A1', 'EMG+',
                 'A1:O2', 'EOGr:A1', 'EOGl', 'EOGr:A2', 'ECG 2', 'EMG-',
-                'PLMr', 'PLMl', 'Druck Snore', 'Pleth', 'RIP.Thrx', 'Summe RIPs', 'Pulse', 
+                'PLMr', 'PLMl', 'Druck Snore', 'Pleth', 'RIP.Thrx', 'Summe RIPs', 'Pulse',
                 'Druck Flow', 'RIP.Abdom', 'Flow Th', 'Beweg.', 'Schnarc', 'SPO2', 'Pos.']
-        
+
         self.channel_types = {
-            'analog': ['Akku', 'Licht', 'O2', 'EMG', 'C3:A2', 'A2', 'EOGr', 'C3', 'O2:A1', 'A1', 
-                       'C4:A1', 'EOGl:A2', 'C4', 'F4', 'F4:A1', 'EOGl:A1', 'EMG+', 
+            'analog': ['Akku', 'Licht', 'O2', 'EMG', 'C3:A2', 'A2', 'EOGr', 'C3', 'O2:A1', 'A1',
+                       'C4:A1', 'EOGl:A2', 'C4', 'F4', 'F4:A1', 'EOGl:A1', 'EMG+',
                        'A1:O2', 'EOGr:A1', 'EOGl', 'EOGr:A2', 'ECG 2', 'EMG-',
-                       'PLMr', 'PLMl', 'Druck Snore', 'Pleth', 'RIP.Thrx', 'Summe RIPs', 'Pulse', 
+                       'PLMr', 'PLMl', 'Druck Snore', 'Pleth', 'RIP.Thrx', 'Summe RIPs', 'Pulse',
                        'Druck Flow', 'RIP.Abdom', 'Flow Th', 'Beweg.', 'Schnarc', 'SPO2', 'Pos.'],
             'digital': []
         }
-        
+
         self.channel_groups = {
             'eeg_eog': ['O2', 'C3:A2', 'A2', 'EOGr', 'C3', 'O2:A1', 'A1', 'C4:A1', 'EOGl:A2', 'C4', 'F4', 'F4:A1', 'EOGl:A1', 'A1:O2', 'EOGr:A1', 'EOGl', 'EOGr:A2'],
             'emg': ['EMG', 'EMG+', 'EMG-', 'PLMr', 'PLMl'],
@@ -86,8 +85,8 @@ class CPS(BaseDataset):
             'nasal_pressure': ['Druck Snore'],
             'snoring': ['Schnarc']
         }
-        
-                
+
+
         self.file_extensions = {
             'psg_ext': '*/PSG/*.hea',
             'ann_ext': '*/PSG/Analysedaten/Schlafprofil.txt'
@@ -108,15 +107,15 @@ class CPS(BaseDataset):
             os.path.join("1.0.0", "data"),
             os.path.join("1.0.0", "data")
         ]
-    
+
     def ann_parse(self, ann_fname: str):
         """
         Parse CPS annotation files.
         CPS uses semicolon-separated CSV files with German sleep stage names.
-        
+
         Args:
             ann_fname: Path to annotation file (Schlafprofil.txt)
-            
+
         Returns:
             Tuple of (sleep_stage_events, start_datetime)
         """
@@ -124,17 +123,17 @@ class CPS(BaseDataset):
         ann_startdatetime = None
 
         epoch_duration = 30  # CPS uses 30-second epochs
-        
-        data = pd.read_csv(ann_fname, sep=";", names=['Timestamp', 'Stage'], 
-                            skipinitialspace=True, skiprows=6)
-        
 
-        for i, row in data.iterrows():
+        data = pd.read_csv(ann_fname, sep=";", names=['Timestamp', 'Stage'],
+                            skipinitialspace=True, skiprows=6)
+
+
+        for _, row in data.iterrows():
             stage = row['Stage']
             # use 1970 instead of actual date because edf stores 1970-01-01 for all files (easier comparison)
             start = datetime.combine(date(1970,1,1),datetime.strptime(row['Timestamp'], '%H:%M:%S,%f').time())
 
-            if ann_startdatetime == None:
+            if ann_startdatetime is None:
                 ann_startdatetime = start
 
             ann_stage_events.append({
@@ -151,7 +150,7 @@ class CPS(BaseDataset):
             if len(lights_off) >= 1:
                 # take first of available lights off markers (in some recorings, two markers occur, reason unknown)
                 lights_off = datetime.strptime(lights_off.iloc[0], '%H:%M:%S,%f').time()
-            
+
             lights_on = marker_df.loc[marker_df['Event'] == "Licht an", "Timestamp"]
             if len(lights_on) == 1:
                 lights_on = datetime.strptime(lights_on.iloc[0], '%H:%M:%S,%f').time()
@@ -159,6 +158,5 @@ class CPS(BaseDataset):
                 lights_on = None
         else:
             raise Exception(f"Marker file not found: {marker_file}")    # should not occur
-        
+
         return ann_stage_events, ann_startdatetime, lights_off, lights_on
-    

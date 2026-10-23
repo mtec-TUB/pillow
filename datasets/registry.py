@@ -1,15 +1,15 @@
 """
 Registry system for datasets.
 """
-
 import importlib
-from typing import Dict, Type, Optional
+from typing import Dict, Type
+
 from datasets.base import BaseDataset
 
 
 class DatasetRegistry:
     """Registry for datasets"""
-    
+
     _datasets: Dict[str, Type[BaseDataset]] = {}
     # Maps dataset name -> module name (e.g. "bdsp"), discovered without importing
     # the module, so a dataset's script (and its imports) is only loaded on demand.
@@ -35,7 +35,7 @@ class DatasetRegistry:
             raise ValueError(f"Dataset '{name}' is not registered. Please choose from: "
                              f"{', '.join(cls.list_datasets())}")
         return cls._datasets[name]
-    
+
     @classmethod
     def list_datasets(cls):
         """List all registered datasets"""

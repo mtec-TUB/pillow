@@ -1,6 +1,7 @@
 import os
-import numpy as np
 from datetime import timedelta
+
+import numpy as np
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -14,15 +15,15 @@ class SIEFERT(BaseDataset):
         super().__init__("SIEFERT","Siefert2024 (ds005121)", keep_folder_structure=False)
 
         self._file_handler = BRAINVISIONHandler()
-    
+
     def _setup_dataset_config(self):
         self.ann2label = {} # no annotations available
-        
-        self.channel_names = ['Fp1', 'Fz', 'F3', 'F7', 'FT9', 'FC5', 'FC1', 'C3', 'T7', 'TP9', 'CP5', 'CP1', 'Pz', 'P3', 'P7', 'O1', 'Oz', 
-                              'O2', 'P4', 'P8', 'TP10', 'CP6', 'CP2', 'Cz', 'C4', 'T8', 'FT10', 'FC6', 'FC2', 'F4', 'F8', 'Fp2', 'AF7', 
-                              'AF3', 'AFz', 'F1', 'F5', 'FT7', 'FC3', 'FCz', 'C1', 'C5', 'TP7', 'CP3', 'P1', 'P5', 'PO7', 'PO3', 'POz', 'PO4', 
+
+        self.channel_names = ['Fp1', 'Fz', 'F3', 'F7', 'FT9', 'FC5', 'FC1', 'C3', 'T7', 'TP9', 'CP5', 'CP1', 'Pz', 'P3', 'P7', 'O1', 'Oz',
+                              'O2', 'P4', 'P8', 'TP10', 'CP6', 'CP2', 'Cz', 'C4', 'T8', 'FT10', 'FC6', 'FC2', 'F4', 'F8', 'Fp2', 'AF7',
+                              'AF3', 'AFz', 'F1', 'F5', 'FT7', 'FC3', 'FCz', 'C1', 'C5', 'TP7', 'CP3', 'P1', 'P5', 'PO7', 'PO3', 'POz', 'PO4',
                               'PO8', 'P6', 'P2', 'CPz', 'CP4', 'TP8', 'C6', 'C2', 'FC4', 'FT8', 'F6', 'F2', 'AF4', 'AF8', 'SW filtered']
-        
+
         # See https://doi.org/10.1523/JNEUROSCI.0022-24.2024 and _eeg.json files
         self.inter_dataset_mapping = {
             'Fp1': self.Mapping(self.TTRef.Fp1, self.TTRef.FCz),
@@ -91,26 +92,26 @@ class SIEFERT(BaseDataset):
             'AF8': self.Mapping(self.TTRef.AF8, self.TTRef.FCz),
             'SW filtered': self.Mapping(self.TTRef.Fz, None),   #Fz referenced to average of linked mastoids and filtered, used for SO detection
         }
-        
-        self.channel_types = {'analog': ['Fp1', 'Fz', 'F3', 'F7', 'FT9', 'FC5', 'FC1', 'C3', 'T7', 'TP9', 'CP5', 'CP1', 'Pz', 'P3', 'P7', 'O1', 
-                                         'Oz', 'O2', 'P4', 'P8', 'TP10', 'CP6', 'CP2', 'Cz', 'C4', 'T8', 'FT10', 'FC6', 'FC2', 'F4', 'F8', 'Fp2', 
-                                         'AF7', 'AF3', 'AFz', 'F1', 'F5', 'FT7', 'FC3', 'FCz', 'C1', 'C5', 'TP7', 'CP3', 'P1', 'P5', 'PO7', 'PO3', 'POz', 
-                                         'PO4', 'PO8', 'P6', 'P2', 'CPz', 'CP4', 'TP8', 'C6', 'C2', 'FC4', 'FT8', 'F6', 'F2', 'AF4', 'AF8', 'SW filtered'], 
+
+        self.channel_types = {'analog': ['Fp1', 'Fz', 'F3', 'F7', 'FT9', 'FC5', 'FC1', 'C3', 'T7', 'TP9', 'CP5', 'CP1', 'Pz', 'P3', 'P7', 'O1',
+                                         'Oz', 'O2', 'P4', 'P8', 'TP10', 'CP6', 'CP2', 'Cz', 'C4', 'T8', 'FT10', 'FC6', 'FC2', 'F4', 'F8', 'Fp2',
+                                         'AF7', 'AF3', 'AFz', 'F1', 'F5', 'FT7', 'FC3', 'FCz', 'C1', 'C5', 'TP7', 'CP3', 'P1', 'P5', 'PO7', 'PO3', 'POz',
+                                         'PO4', 'PO8', 'P6', 'P2', 'CPz', 'CP4', 'TP8', 'C6', 'C2', 'FC4', 'FT8', 'F6', 'F2', 'AF4', 'AF8', 'SW filtered'],
                             'digital': []}
-        
-        
-        self.channel_groups = {'eeg_eog': ['Fp1', 'Fz', 'F3', 'F7', 'FT9', 'FC5', 'FC1', 'C3', 'TP9', 'CP5', 'CP1', 'Pz', 'P3', 'P7', 'O1', 
-                                         'Oz', 'O2', 'P4', 'P8', 'TP10', 'CP6', 'CP2', 'Cz', 'C4', 'FT10', 'FC6', 'FC2', 'F4', 'F8', 'Fp2', 
-                                         'AF7', 'AF3', 'AFz', 'F1', 'F5', 'FT7', 'FC3', 'FCz', 'C1', 'C5', 'TP7', 'CP3', 'P1', 'P5', 'PO7', 'PO3', 'POz', 
+
+
+        self.channel_groups = {'eeg_eog': ['Fp1', 'Fz', 'F3', 'F7', 'FT9', 'FC5', 'FC1', 'C3', 'TP9', 'CP5', 'CP1', 'Pz', 'P3', 'P7', 'O1',
+                                         'Oz', 'O2', 'P4', 'P8', 'TP10', 'CP6', 'CP2', 'Cz', 'C4', 'FT10', 'FC6', 'FC2', 'F4', 'F8', 'Fp2',
+                                         'AF7', 'AF3', 'AFz', 'F1', 'F5', 'FT7', 'FC3', 'FCz', 'C1', 'C5', 'TP7', 'CP3', 'P1', 'P5', 'PO7', 'PO3', 'POz',
                                          'PO4', 'PO8', 'P6', 'P2', 'CPz', 'CP4', 'TP8', 'C6', 'C2', 'FC4', 'FT8', 'F6', 'F2', 'AF4', 'AF8', 'SW filtered'],
                                 'emg': ['T7','T8',]}
-                
+
         self.file_extensions = {'psg_ext': '**/*run-01_eeg.vhdr',
                                 'ann_ext': '*stages'} # no annotations, just for consistency
-        
+
     def get_file_info(self, logger, filepath):
         """Get start datetime and file duration."""
-        
+
         run_02_psg = filepath.replace("run-01_eeg.vhdr", "run-02_eeg.vhdr")
         if os.path.exists(run_02_psg):
             run_01_info = self._file_handler.get_file_info(logger, filepath)
@@ -128,9 +129,9 @@ class SIEFERT(BaseDataset):
                 "start_datetime": run_01_starttime,
                 "file_duration": run_01_duration + missing_time.total_seconds() + run_02_duration
             }
-        else:
-            return self._file_handler.get_file_info(logger, filepath)
-    
+
+        return self._file_handler.get_file_info(logger, filepath)
+
     def get_signal_data(self, logger, filepath, channel):
         run_02_psg = filepath.replace("run-01_eeg.vhdr", "run-02_eeg.vhdr")
         if os.path.exists(run_02_psg):
@@ -151,9 +152,8 @@ class SIEFERT(BaseDataset):
                 "sampling_rate": run_01_signal["sampling_rate"],
                 "unit": run_01_signal["unit"],
             }
-        else:
-            return self._file_handler.get_signal_data(logger, filepath, channel)
 
+        return self._file_handler.get_signal_data(logger, filepath, channel)
 
     def dataset_paths(self):
         return ['', '']

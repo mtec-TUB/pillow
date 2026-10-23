@@ -1,9 +1,10 @@
 import os
 import shutil
-import moabb
-from mne.io import read_raw_edf
-from moabb.datasets import Rodrigues2017
 from pathlib import Path
+
+import moabb
+from moabb.datasets import Rodrigues2017
+from mne.io.edf import read_raw_edf
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -14,10 +15,10 @@ print(moabb.__version__)
 @register_dataset("RODRIGUES2017")
 class RODRIGUES2017(BaseDataset):
     """Rodrigues2017 dataset"""
-    
+
     def __init__(self):
         super().__init__("RODRIGUES2017","MNE-BIDS-rodrigues2017", keep_folder_structure=False)
-  
+
     def _setup_dataset_config(self):
         self.ann2label = {
             "W": SleepStage.W,
@@ -42,20 +43,20 @@ class RODRIGUES2017(BaseDataset):
             "Oz": self.Mapping(self.TTRef.Oz, self.TTRef.RPA),
             "O2": self.Mapping(self.TTRef.O2, self.TTRef.RPA),
         }
-        
+
 
         self.channel_names = ['Fp1', 'Fp2', 'Fc5', 'Fz', 'Fc6', 'T7', 'Cz', 'T8', 'P7', 'P3', 'Pz', 'P4', 'P8', 'O1', 'Oz', 'O2']
-        
-        
-        self.channel_types = {'analog': ['Fp1', 'Fp2', 'Fc5', 'Fz', 'Fc6', 'T7', 'Cz', 'T8', 'P7', 'P3', 'Pz', 'P4', 'P8', 'O1', 'Oz', 'O2'], 
+
+
+        self.channel_types = {'analog': ['Fp1', 'Fp2', 'Fc5', 'Fz', 'Fc6', 'T7', 'Cz', 'T8', 'P7', 'P3', 'Pz', 'P4', 'P8', 'O1', 'Oz', 'O2'],
                               'digital': []}
-    
-        
-        
+
+
+
         self.channel_groups = {
             'eeg_eog':  ['Fp1', 'Fp2', 'Fc5', 'Fz', 'Fc6', 'T7', 'Cz', 'T8', 'P7', 'P3', 'Pz', 'P4', 'P8', 'O1', 'Oz', 'O2'],
-        }        
-        
+        }
+
         self.file_extensions = {'psg_ext': '**/*_eeg.edf',
                                 'ann_ext': '**/*_eeg.edf'} # no annotations, but we know all epochs are Wake
 
@@ -64,10 +65,10 @@ class RODRIGUES2017(BaseDataset):
             "",
             ""
         ]
-    
+
     def ann_parse(self, ann_fname):
         # Not a real parsing function since there are no annotations, but we know all epochs are Wake
-        
+
         file_duration = read_raw_edf(ann_fname, preload=False, verbose=False).duration
 
         epoch_duration = 30
@@ -79,9 +80,9 @@ class RODRIGUES2017(BaseDataset):
 
 
     def preprocess(self, n_workers, data_dir, ann_dir):
-        
+
         execute_preprocess = input(f"Do you want to download the Rodrigues2017 dataset now to your specified base directory ({data_dir})? (Y/N) ")
-        
+
         if str(execute_preprocess).lower() == "y":
 
             dataset = Rodrigues2017()
@@ -94,4 +95,3 @@ class RODRIGUES2017(BaseDataset):
             if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
                 return False
         return True
-    

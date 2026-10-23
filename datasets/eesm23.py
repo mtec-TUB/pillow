@@ -1,21 +1,18 @@
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-import pandas as pd
 from decimal import Decimal
+from pathlib import Path
+
+import pandas as pd
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
-
 from datasets.file_handlers import EEGLABHandler
-
 from datasets.eesm19 import EESM_Preprocessor
 from psg_processing.utils import SleepStage
-
 
 @register_dataset("EESM23")
 class EESM23(BaseDataset):
     """Ear-EEG Sleep Monitoring 2023 (EESM23) dataset"""
-    
+
     def __init__(self):
         super().__init__("EESM23","Ear-EEG Sleep Monitoring 2023 (EESM23)", keep_folder_structure=False)
         self.has_front_alignment = True
@@ -32,8 +29,8 @@ class EESM23(BaseDataset):
                         "REM": SleepStage.REM,   # REM sleep
                         "Artefact": SleepStage.UNK,
                         }
-        
-        
+
+
         self.channel_names = ['EOGr', 'EMGc', 'EMGl', 'C4', 'F3', 'EMGr', 'C3', 'M1', 'F4', 'EOGl', 'O2', 'RT', 'LT', 'LB', 'RB', 'O1', 'ELE', 'M2']
 
         self.inter_dataset_mapping = {
@@ -51,19 +48,19 @@ class EESM23(BaseDataset):
             "EMGl": self.Mapping(self.TTRef.EMG_LCHIN, None),
             "EMGr": self.Mapping(self.TTRef.EMG_RCHIN, None),
         }
-        
-        
-        self.channel_types = {'analog': ['C3', 'F4', 'F3', 'O2', 'RT', 'O1', 'LB', 'LT', 'EMGr', 'EOGl', 'EOGr', 'EMGl', 'EMGc', 'C4', 'RB', 'M1', 'M2','ELE'], 
+
+
+        self.channel_types = {'analog': ['C3', 'F4', 'F3', 'O2', 'RT', 'O1', 'LB', 'LT', 'EMGr', 'EOGl', 'EOGr', 'EMGl', 'EMGc', 'C4', 'RB', 'M1', 'M2','ELE'],
                               'digital': []}
-        
+
         self.channel_groups = {'eeg_eog': ['C3', 'F4', 'F3', 'O2', 'RT', 'O1', 'LB', 'LT', 'EOGl', 'EOGr', 'C4', 'RB', 'M1', 'M2','ELE'],
                                 'emg': ['EMGl', 'EMGr', 'EMGc'],
                                 }
-                
-        
+
+
         self.file_extensions = {'psg_ext': '**/*_eeg.set',
                                 'ann_ext': '**/*_task-sleep_acq-scoring_events.tsv'}
-        
+
     def get_file_identifier(self, psg_fname=None, ann_fname=None):
         psg_id, ann_id = None, None
         if psg_fname:
@@ -71,13 +68,13 @@ class EESM23(BaseDataset):
         if ann_fname:
             ann_id = Path(ann_fname).parent
         return psg_id, ann_id
-    
+
     def dataset_paths(self):
         return [
             '',
             ''
         ]
-    
+
     def ann_parse(self, ann_fname):
         annot = pd.read_csv(ann_fname,sep='\t', header=0)
 
@@ -85,10 +82,10 @@ class EESM23(BaseDataset):
         start_time_label = None
 
         start_time_label = None
-        for i, row in annot.iterrows():
+        for _, row in annot.iterrows():
             start = round(row['onset'])
 
-            if start_time_label == None:
+            if start_time_label is None:
                 start_time_label = Decimal(str(start))
 
             duration = row['duration']
@@ -96,10 +93,10 @@ class EESM23(BaseDataset):
             ann_stage_events.append({'Stage': stage,
                                         'Start': float(Decimal(str(start)) - start_time_label),
                                         'Duration': duration})
-            
+
         lights_off = float(start_time_label)        # see EESM23/code/dataset_preparation/BIDS_unittests_EESM23.py
 
         return ann_stage_events, float(start_time_label), lights_off, None
-    
+
     def preprocess(self, n_workers, data_dir, ann_dir):
         return EESM_Preprocessor(self).preprocess(n_workers, data_dir, ann_dir)

@@ -22,7 +22,7 @@ class BESTAIR(BaseDataset):
             "REM sleep": SleepStage.REM,
             "Unscored": SleepStage.UNK,
         }
-        
+
         # https://gitlab-scm.partners.org/zzz-public/nsrr/-/blob/master/studies/legacy/bestair/sigs.alias.1
         self.intra_dataset_mapping = {
             'abdomen': ['abdomen', 'Abdomen', 'ABDOMEN', 'Effort Abd', 'X21'],
@@ -104,37 +104,37 @@ class BESTAIR(BaseDataset):
             'flow': self.Mapping(self.TTRef.AIRFLOW, None),
             'pap_flow': self.Mapping(self.TTRef.CPAP , None),
         }
-        
-        
-        self.channel_names = ['LOC', 'E1-M2', 'M2-X3', 'M2-F3', 'E2-M2', 'M1-X1', 
-                'M1-O2', 'O1-M2', 'X1', 'M2-C3', 'EEG O2-M1', 'EEG C4-M1', 'M1-X4', 
+
+
+        self.channel_names = ['LOC', 'E1-M2', 'M2-X3', 'M2-F3', 'E2-M2', 'M1-X1',
+                'M1-O2', 'O1-M2', 'X1', 'M2-C3', 'EEG O2-M1', 'EEG C4-M1', 'M1-X4',
                 'C3-M2', 'X2', 'EEG F4-M1', 'C4-M1', 'M1-C4', 'EEG M1-M2',
-                'M2-PG1', 'M1-F4', 'F4-M1', 'EEG C3-M2', 'EOG Right', 
-                'F3-M2', 'M2-X2', 'EEG O1-M2', 'ROC', 'T2-T1', 'T3-T2', 'EOG Left', 'M1-PG2', 'O2-M1',  
+                'M2-PG1', 'M1-F4', 'F4-M1', 'EEG C3-M2', 'EOG Right',
+                'F3-M2', 'M2-X2', 'EEG O1-M2', 'ROC', 'T2-T1', 'T3-T2', 'EOG Left', 'M1-PG2', 'O2-M1',
                 'EEG F3-M2', 'M2-O1', 'EMG Chin', 'Leg L-LEG', 'xPAP IPAP', 'Effort Tho', 'ABDOMEN', 'CFLOW', 'DHR', 'DC03', 'Tidal Volume', 'R-R',
                 'THORAX', 'Leak', 'Phase', 'Body', 'Snore', 'Chin', 'SpO2', 'Sum', 'Effort Abd', 'DC07', 'Thermistor',
                 'EKG', 'RD-Pleth', 'CHIN', 'Flow Patient 2', 'RMI', 'FLOW', 'L-LEG', 'SNORE', 'SpO2-BB', 'BODY', 'Activity',
-                'XSum', 'SpO2-Quality', 'SAO2', 'CHIN2', 'DC04', 'THO', 'Pulse', 'L-Leg', 'SAO2W', 'Battery', 'XFlow', 
-                'Gravity Y', 'DC05', 'Thorax', 'CPAP', 'Position', 'DC02', 'NAF', 'Gravity X', 'Elevation', 
+                'XSum', 'SpO2-Quality', 'SAO2', 'CHIN2', 'DC04', 'THO', 'Pulse', 'L-Leg', 'SAO2W', 'Battery', 'XFlow',
+                'Gravity Y', 'DC05', 'Thorax', 'CPAP', 'Position', 'DC02', 'NAF', 'Gravity X', 'Elevation',
                 'CHIN 2', 'RD-Quality', 'CFlow', 'Flow Patient 3', 'RR', 'xPAP EPAP', 'EMG Chin 2', 'R-LEG', 'R-Leg',
                 'Nasal', 'Flow Patient 1', 'DC01', 'Flow', 'Abdomen', 'SaO2', 'ECG', 'EMG Chin 1', 'Differential Pre', 'X6-X5',
                 'X15', 'X18', 'X16', 'X3', 'X7', 'X5', 'X19', 'X4', 'X21', 'X17', 'X6', 'X7-X6', 'X20']
-        
+
         self.channel_types = {
             'analog': ['RMI', 'RR', 'L-Leg', 'Flow Patient 2', 'Flow', 'E2-M2', 'Position', 'M1-X4', 'X15', 'Gravity Y', 'X1', 'SNORE',
                        'DC07', 'Battery', 'CFLOW', 'EEG O1-M2', 'Pulse', 'X7', 'DC04', 'X21', 'M1-F4', 'THO', 'F4-M1', 'M2-X3', 'THORAX',
-                       'Nasal', 'EEG F3-M2', 'XFlow', 'M2-O1', 'ROC', 'EEG M1-M2', 'EEG C4-M1', 'X20', 'M2-PG1', 'M1-PG2', 'M1-O2', 
+                       'Nasal', 'EEG F3-M2', 'XFlow', 'M2-O1', 'ROC', 'EEG M1-M2', 'EEG C4-M1', 'X20', 'M2-PG1', 'M1-PG2', 'M1-O2',
                        'Thorax', 'DHR', 'Phase', 'Snore', 'M2-F3', 'X4', 'EOG Right', 'FLOW', 'X5', 'CFlow', 'EEG F4-M1', 'Elevation',
                        'E1-M2', 'X7-X6', 'X6', 'NAF', 'X18', 'X19', 'ECG', 'EMG Chin', 'EEG C3-M2', 'EOG Left', 'R-R', 'Gravity X', 'Sum',
                        'CHIN2', 'X17', 'F3-M2', 'Thermistor', 'L-LEG', 'Flow Patient 3', 'O2-M1', 'CPAP', 'CHIN', 'X6-X5', 'EKG', 'EEG O2-M1',
                        'X16', 'R-Leg', 'Leg L-LEG', 'X3', 'C4-M1', 'Chin', 'O1-M2', 'Tidal Volume', 'Effort Abd', 'C3-M2', 'EMG Chin 2', 'DC03',
-                       'CHIN 2', 'LOC', 'M2-C3', 'Activity', 'XSum', 'M1-C4', 'M2-X2', 'X2', 'ABDOMEN', 'M1-X1', 'Abdomen', 'T2-T1', 'T3-T2', 'EMG Chin 1', 
-                       'Effort Tho', 'R-LEG', 'Differential Pre'], 
-            'digital': ['Body', 'SAO2', 'SAO2W', 'DC01', 'BODY', 'DC05', 'SpO2', 'RD-Pleth', 'xPAP IPAP', 'Flow Patient 1', 'xPAP EPAP', 'Leak', 
+                       'CHIN 2', 'LOC', 'M2-C3', 'Activity', 'XSum', 'M1-C4', 'M2-X2', 'X2', 'ABDOMEN', 'M1-X1', 'Abdomen', 'T2-T1', 'T3-T2', 'EMG Chin 1',
+                       'Effort Tho', 'R-LEG', 'Differential Pre'],
+            'digital': ['Body', 'SAO2', 'SAO2W', 'DC01', 'BODY', 'DC05', 'SpO2', 'RD-Pleth', 'xPAP IPAP', 'Flow Patient 1', 'xPAP EPAP', 'Leak',
                         'SpO2-BB', 'SpO2-Quality', 'DC02', 'RD-Quality', 'SaO2']
         }
-    
-        
+
+
         self.channel_groups =  {
             'eeg_eog': ['LOC', 'E1-M2', 'M2-X3', 'M2-F3', 'E2-M2', 'M1-X1', 'M1-O2', 'O1-M2', 'X1', 'M2-C3', 'EEG O2-M1', 'EEG C4-M1', 'M1-X4', 'C3-M2', 'X2', 'EEG F4-M1', 'C4-M1', 'M1-C4', 'EEG M1-M2', 'M2-PG1', 'M1-F4', 'F4-M1', 'EEG C3-M2', 'EOG Right', 'F3-M2', 'M2-X2', 'EEG O1-M2', 'ROC', 'T2-T1', 'EOG Left', 'M1-PG2', 'O2-M1', 'EEG F3-M2', 'M2-O1'],
             'emg': ['CHIN', 'Chin', 'EMG Chin', 'CHIN2', 'CHIN 2', 'X5', 'EMG Chin 2', 'X7', 'X7-X6', 'EMG Chin 1', 'X6', 'X6-X5', 'Leg L-LEG', 'L-Leg', 'L-LEG', 'X17', 'R-Leg', 'R-LEG', 'X16'],
@@ -143,7 +143,7 @@ class BESTAIR(BaseDataset):
             'nasal_pressure': ['DC03', 'Nasal', 'NAF', 'Flow Patient 3', 'Flow Patient'],
             'snoring': ['Snore', 'SNORE', 'X18']
         }
-                
+
         self.file_extensions = {
             'psg_ext': '**/*.edf',
             'ann_ext': '**/*-nsrr.xml'

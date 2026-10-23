@@ -1,7 +1,8 @@
 import os
-from mne import read_annotations
+
+from mne.annotations import read_annotations
 import pandas as pd
-from typing import Dict, List, Optional, Tuple
+
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
@@ -9,7 +10,7 @@ from psg_processing.utils import SleepStage
 @register_dataset("SLEEP-EDFX")
 class SleepEDFX(BaseDataset):
     """Sleep-EDFX dataset."""
-    
+
     def __init__(self):
         super().__init__("SLEEP-EDFX","Sleep-EDFX - Sleep-EDF Expanded")
         self.has_front_alignment = True
@@ -28,36 +29,36 @@ class SleepEDFX(BaseDataset):
         }
 
         self.inter_dataset_mapping = {
-            "EOG horizontal": self.Mapping(self.TTRef.EL, self.TTRef.ER), 
+            "EOG horizontal": self.Mapping(self.TTRef.EL, self.TTRef.ER),
             "EEG Fpz-Cz": self.Mapping(self.TTRef.Fpz, self.TTRef.Cz),
             "EEG Pz-Oz": self.Mapping(self.TTRef.Pz, self.TTRef.Oz),
             'EMG submental': self.Mapping(self.TTRef.EMG_CHIN, None),
         }
 
         self.channel_names =  [
-            'EMG submental', 'Resp oro-nasal', 'EOG horizontal', 'Temp rectal', 
+            'EMG submental', 'Resp oro-nasal', 'EOG horizontal', 'Temp rectal',
             'EEG Pz-Oz', 'Event marker', 'EEG Fpz-Cz', 'Marker'
         ]
-        
+
         self.channel_types = {
             'analog': [
-                'Resp oro-nasal', 'EEG Fpz-Cz', 'Temp rectal', 'EOG horizontal', 
+                'Resp oro-nasal', 'EEG Fpz-Cz', 'Temp rectal', 'EOG horizontal',
                 'EMG submental', 'EEG Pz-Oz', 'Event marker'
-            ], 
+            ],
             'digital': ['Marker']
         }
-        
+
         self.channel_groups = {
             'eeg_eog': ['EOG horizontal', 'EEG Fpz-Cz', 'EEG Pz-Oz'],
             'emg': ['EMG submental'],
             'thoraco_abdo_resp': ['Resp oro-nasal']
         }
-    
+
         self.file_extensions = {
             'psg_ext': '**/*0-PSG.edf',
             'ann_ext': '**/*-Hypnogram.edf'
         }
-        
+
     def get_file_identifier(self, psg_fname=None, ann_fname=None):
         psg_id, ann_id = None, None
         if psg_fname:
@@ -67,13 +68,13 @@ class SleepEDFX(BaseDataset):
             ann_ext = self.file_extensions['ann_ext'].split('*')[-1]
             ann_id = ann_fname.split(ann_ext)[0][:-1]
         return psg_id, ann_id
-    
+
     def dataset_paths(self):
         return [
             '1.0.0',
             '1.0.0'
         ]
-    
+
     def get_light_times(self, logger, psg_fname):
 
         psg_fname = os.path.basename(psg_fname)
@@ -94,16 +95,16 @@ class SleepEDFX(BaseDataset):
                 raise Exception
         else:
             raise Exception
-        
+
         return lights_off, None
-    
+
     def ann_parse(self, ann_fname: str):
         """
         Parse Sleep-EDF-2018 EDF annotation files using MNE.
-        
+
         Args:
             ann_fname: Path to EDF hypnogram file
-            
+
         Returns:
             Tuple of (sleep_stage_events, start_datetime)
         """
@@ -114,9 +115,9 @@ class SleepEDFX(BaseDataset):
         ann_stages = ann_f.description
 
         ann_start_time = ann_onsets[0]
-        
+
         ann_stage_events = []
-        
+
         for i in range(len(ann_onsets)-1):
 
             ann_stage_event = {
@@ -133,7 +134,7 @@ class SleepEDFX(BaseDataset):
                     'Duration': ann_onsets[i+1] - (ann_onsets[i] + ann_durations[i])
                 }
                 ann_stage_events.append(ann_stage_event)
-        
+
         # add last ann_stage_event because loop stopped before
         ann_stage_events.append({
                 'Stage': ann_stages[-1],
@@ -141,5 +142,3 @@ class SleepEDFX(BaseDataset):
                 'Duration': ann_durations[-1]
         })
         return ann_stage_events, ann_start_time, None, None
-
-

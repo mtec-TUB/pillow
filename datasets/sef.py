@@ -1,9 +1,10 @@
 import os
 from pathlib import Path
-import pandas as pd
 import glob
-from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed
+
+import pandas as pd
+from tqdm import tqdm
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -19,7 +20,7 @@ class SEF(BaseDataset):
         self.has_end_alignment = True
 
         self._file_handler = BRAINVISIONHandler()
-    
+
     def _setup_dataset_config(self):
         self.ann2label = {"W": SleepStage.W,
                           "W (uncertain)": SleepStage.W,
@@ -36,10 +37,10 @@ class SEF(BaseDataset):
                           "3 (unscorable)": SleepStage.UNK,
                           "2 or 3 (unscorable)": SleepStage.UNK,
                           }
-        
-        self.channel_names = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8', 'T7', 'T8', 'P7', 'P8', 'Fz', 'Cz', 
+
+        self.channel_names = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8', 'T7', 'T8', 'P7', 'P8', 'Fz', 'Cz',
                               'Pz', 'Oz', 'FC1', 'FC2', 'CP1', 'CP2', 'FC5', 'FC6', 'CP5', 'CP6', 'TP9', 'TP10', 'EOG', 'ECG']
-        
+
         # see https://doi.org/10.1016/j.neuroimage.2022.119720
         self.inter_dataset_mapping = {
             'Fp1': self.Mapping(self.TTRef.Fp1, self.TTRef.FCz),
@@ -75,21 +76,21 @@ class SEF(BaseDataset):
             'EOG': self.Mapping(self.TTRef.EL, self.TTRef.FCz), # not sure
             'ECG': self.Mapping(self.TTRef.ECG, None),
         }
-        
-        self.channel_types = {'analog': ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8', 'T7', 'T8', 'P7', 'P8', 'Fz', 
-                                         'Cz', 'Pz', 'Oz', 'FC1', 'FC2', 'CP1', 'CP2', 'FC5', 'FC6', 'CP5', 'CP6', 'TP9', 'TP10', 'EOG', 'ECG'], 
+
+        self.channel_types = {'analog': ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8', 'T7', 'T8', 'P7', 'P8', 'Fz',
+                                         'Cz', 'Pz', 'Oz', 'FC1', 'FC2', 'CP1', 'CP2', 'FC5', 'FC6', 'CP5', 'CP6', 'TP9', 'TP10', 'EOG', 'ECG'],
                             'digital': []}
-        
-        
+
+
         self.channel_groups = {'eeg_eog': ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8', 'T7', 'T8', 'P7', 'P8', 'Fz', 'Cz', 'Pz', 'Oz', 'FC1', 'FC2', 'CP1', 'CP2', 'FC5', 'FC6', 'CP5', 'CP6', 'TP9', 'TP10', 'EOG'],
                                 'ecg': ['ECG']}
-                
+
         self.file_extensions = {'psg_ext': '**/*_eeg.vhdr',
                                 'ann_ext': '**/*_stages.tsv'} # no annotations
-    
+
     def dataset_paths(self):
         return ['', '']
-    
+
     def ann_parse(self, ann_fname):
         ann_df = pd.read_csv(ann_fname, sep='\t', header=0)
 
@@ -97,7 +98,7 @@ class SEF(BaseDataset):
         start_time = None
         epoch_duration = 30
 
-        for i, row in ann_df.iterrows():
+        for _, row in ann_df.iterrows():
             try:
                 start = int(row['epoch_start_time_sec'])
                 stage = str(row['30-sec_epoch_sleep_stage'])
@@ -114,13 +115,13 @@ class SEF(BaseDataset):
                                         'Duration': epoch_duration})
 
         return ann_stage_events, start_time, None, None
-    
+
     def preprocess(self, n_workers, data_dir, ann_dir):
         print("\n SEF annotation files originally are stored in an unsupported way and therefor need to be preprocessed/splitted ... \n \
               This will not modify the original file content")
-        
+
         execute_preprocess = input("Do you want to perform the preprocessing now? (Y/N) ")
-        
+
         if str(execute_preprocess).lower() == "y":
             organizer = SEFFileOrganizer(data_dir, self.file_extensions)
             organizer.organize_files(n_workers)
@@ -128,7 +129,7 @@ class SEF(BaseDataset):
             if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
                 return False
         return True
-    
+
 class SEFFileOrganizer:
     def __init__(self, base_dir, file_extensions):
         self.base_dir = base_dir
@@ -147,7 +148,7 @@ class SEFFileOrganizer:
         except KeyboardInterrupt:
             print("Preprocessing interrupted by user. Shutting down...")
             executor.shutdown(cancel_futures=True)
-        
+
         print("Finished organizing files.")
 
     def _process_single_file(self, psg_file):
@@ -176,7 +177,3 @@ class SEFFileOrganizer:
             all_annot_subj = pd.read_csv(annot_file, sep='\t', header=0)
             annot_task = all_annot_subj[all_annot_subj['session'] == task_id]
             annot_task.to_csv(target_annot_path, sep='\t', index=False)
-
-
-
-

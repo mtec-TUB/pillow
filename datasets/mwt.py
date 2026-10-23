@@ -1,9 +1,9 @@
 """
 MWT - Maintenance of Wakefulness Test
 """
+import logging
+from typing import Dict, List
 
-from typing import Dict, List, Tuple
-from datetime import datetime
 from scipy.io import loadmat
 import numpy as np
 
@@ -38,14 +38,14 @@ class MWT(BaseDataset):
         }
 
         self.channel_names = ['E1', 'E2', 'eeg_O1', 'eeg_O2']
-    
-        
+
+
         self.channel_types = {'analog': ['eeg_O1', 'E2', 'E1', 'eeg_O2'], 'digital': []}
 
-                
-        
+
+
         self.channel_groups = {'eeg_eog': ['E1', 'E2', 'eeg_O1', 'eeg_O2']}
-        
+
         self.file_extensions = {'psg_ext': '*.mat',
                                 'ann_ext': '*.mat'
                             }
@@ -55,34 +55,34 @@ class MWT(BaseDataset):
             '',
             ''
         ]
-    
-    def get_channels(self, logger, filepath):
+
+    def get_channels(self, logger: logging.Logger, filepath):
         """Extract channel names and frequencies from mat files."""
         try:
             psg_f = loadmat(filepath)['Data']
             return psg_f.dtype.names
         except Exception as e:
-            logger.error(f"Error reading mat file: {e}")
+            logger.error("Error reading mat file: %s", e)
             return []
 
-    def read_signal(self, logger, filepath, channel):
+    def read_signal(self, logger: logging.Logger, filepath, channel):
         """Read signal from Mat file for specific channel."""
         try:
             psg_f = loadmat(filepath)['Data']
             if channel in psg_f.dtype.names:
                 return psg_f[0,0][channel][:, 0]
         except Exception as e:
-            logger.error(f"Error reading mat signal: {e}")
+            logger.error("Error reading mat signal: %s", e)
         return None
-    
-    def get_file_info(self, logger, filepath):
+
+    def get_file_info(self, logger: logging.Logger, filepath):
         """Get start datetime and file duration."""
         start_datetime = None
         psg_f = loadmat(filepath)['Data']
         file_duration = psg_f[0,0]['num_Labels'][0,0] / psg_f[0,0]['fs'][0,0]
         return {"start_datetime": start_datetime, "file_duration": file_duration}
 
-    def get_signal_data(self, logger, filepath, channel):
+    def get_signal_data(self, logger: logging.Logger, filepath, channel):
         """Get complete EDF signal information for processing."""
         try:
             psg_f = loadmat(filepath)['Data']
@@ -90,10 +90,10 @@ class MWT(BaseDataset):
             signal = psg_f[0,0][channel][:, 0]
             samples = psg_f[0,0]['num_Labels'][0,0]
             assert len(signal) == samples
-            logger.info(f"Select channel samples: {samples}")
+            logger.info("Select channel samples: %d", samples)
 
             sampling_rate = psg_f[0,0]['fs'][0,0]
-            file_duration = samples / sampling_rate
+            # file_duration = samples / sampling_rate
 
             return {
                 "signal": signal,
@@ -101,18 +101,18 @@ class MWT(BaseDataset):
                 "sampling_rate": float(sampling_rate)
             }
         except Exception as e:
-            logger.error(f"Error processing mat file: {e}")
+            logger.error("Error processing mat file: %s", e)
             raise
-    
+
     def ann_parse(self, ann_fname: str):
         """
         Parse MWT annotation files.
         """
         ann_stage_events = []
-        
+
         ann_f = loadmat(ann_fname)['Data']
         fs = int(ann_f[0,0]['fs'][0,0])
-        
+
         epoch_duration = 30
 
         for scorer_label in ['labels_O1', 'labels_O2']:
@@ -147,7 +147,7 @@ class MWT(BaseDataset):
 
 
         return ann_stage_events, None, None, None
-    
+
     def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int):
         """
         Convert multi-scorer sleep stage events to epoch-wise labels for ISRUC dataset.
@@ -195,6 +195,5 @@ class MWT(BaseDataset):
             labels[1] = np.pad(labels[1], (0, max_len - len(labels[1])), mode='constant', constant_values=SleepStage.UNK)
 
         labels = np.array(labels).T  # Transpose to (n_epochs, n_scorers)
-        
-        return labels
 
+        return labels

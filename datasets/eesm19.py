@@ -1,26 +1,24 @@
 import os
+from pathlib import Path
+from typing import Dict, List
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
 import numpy as np
 from scipy.interpolate import interp1d
 import pandas as pd
-from decimal import Decimal
-from mne.io import read_raw_eeglab
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from mne.io.eeglab import read_raw_eeglab
 from tqdm import tqdm
-from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from psg_processing.core import DatasetExplorer
+from psg_processing.utils import SleepStage
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
-
 from datasets.file_handlers import EEGLABHandler
-from psg_processing.utils import SleepStage
-
 
 @register_dataset("EESM19")
 class EESM19(BaseDataset):
     """Ear-EEG Sleep Monitoring 2019 (EESM19) dataset"""
-    
+
     def __init__(self):
         super().__init__("EESM19","Ear-EEG Sleep Monitoring 2019 (EESM19)", keep_folder_structure=False)
         self.has_front_alignment = True
@@ -37,11 +35,11 @@ class EESM19(BaseDataset):
                         2: SleepStage.REM,   # REM sleep
                         7: SleepStage.UNK,    # Artefact
                         }
-        
-        
-        self.channel_names = ['ERC', 'ELC', 'EOGl', 'ELA', 'O2', 'EMGr', 'EMGl', 'ELT', 'M1', 'C3', 'EOGr', 'O1', 'C4', 'ERA', 'EMGc', 'ERE', 
+
+
+        self.channel_names = ['ERC', 'ELC', 'EOGl', 'ELA', 'O2', 'EMGr', 'EMGl', 'ELT', 'M1', 'C3', 'EOGr', 'O1', 'C4', 'ERA', 'EMGc', 'ERE',
                               'ERT', 'F4', 'ELE', 'ELI', 'ELB', 'ERI', 'ERB', 'M2', 'F3']
-        
+
         self.inter_dataset_mapping = {
             "F3": self.Mapping(self.TTRef.F3, None),
             "F4": self.Mapping(self.TTRef.F4, None),
@@ -57,27 +55,27 @@ class EESM19(BaseDataset):
             "EMGl": self.Mapping(self.TTRef.EMG_LCHIN, None),
             "EMGr": self.Mapping(self.TTRef.EMG_RCHIN, None),
         }
-        
-        self.channel_types = {'analog': ['ELA', 'ELT', 'C3', 'ERC', 'EMGc', 'ERB', 'M2', 'ERE', 'M1', 'O1', 'ELB', 'EOGr', 'C4', 'O2', 'ELC', 
-                                         'F3', 'ERA', 'EMGl', 'EMGr', 'EOGl', 'ERT', 'ELE', 'ERI', 'ELI', 'F4'], 
+
+        self.channel_types = {'analog': ['ELA', 'ELT', 'C3', 'ERC', 'EMGc', 'ERB', 'M2', 'ERE', 'M1', 'O1', 'ELB', 'EOGr', 'C4', 'O2', 'ELC',
+                                         'F3', 'ERA', 'EMGl', 'EMGr', 'EOGl', 'ERT', 'ELE', 'ERI', 'ELI', 'F4'],
                               'digital': []}
-        
-        
-        self.channel_groups = {'eeg_eog': ['ERC', 'ELC', 'EOGl', 'ELA', 'O2', 'ELT', 'M1', 'C3', 'EOGr', 'O1', 'C4', 'ERA', 'ERE', 
+
+
+        self.channel_groups = {'eeg_eog': ['ERC', 'ELC', 'EOGl', 'ELA', 'O2', 'ELT', 'M1', 'C3', 'EOGr', 'O1', 'C4', 'ERA', 'ERE',
                               'ERT', 'F4', 'ELE', 'ELI', 'ELB', 'ERI', 'ERB', 'M2', 'F3'],
                                 'emg': ['EMGl', 'EMGr', 'EMGc'],
                                 }
-                
-        
+
+
         self.file_extensions = {'psg_ext': '**/*task-sleep_acq-*_eeg.set',  # include PSG and earEEG files, but exclude ‘auditory steady state responses’ (ASSR) and electrodeTestLab files
-                                'ann_ext': '**/*scoring1_events.tsv'} 
-        
+                                'ann_ext': '**/*scoring1_events.tsv'}
+
     def dataset_paths(self):
         return [
             '',
             ''
         ]
-    
+
     def get_file_identifier(self, psg_fname=None, ann_fname=None):
         psg_id, ann_id = None, None
         if psg_fname:
@@ -85,7 +83,7 @@ class EESM19(BaseDataset):
         if ann_fname:
             ann_id = Path(ann_fname).parent
         return psg_id, ann_id
-    
+
     def ann_parse(self, ann_fname):
 
         base_fname = ann_fname.replace('scoring1_events.tsv','')
@@ -97,10 +95,10 @@ class EESM19(BaseDataset):
         if os.path.exists(ann_fname1):
             annot = pd.read_csv(ann_fname1,sep='\t', header=0)
             start_time_label = None
-            for i, row in annot.iterrows():
+            for _, row in annot.iterrows():
                 start = round(row['onset'])
 
-                if start_time_label == None:
+                if start_time_label is None:
                     start_time_label = start
 
                 duration = row['duration']
@@ -108,16 +106,16 @@ class EESM19(BaseDataset):
                 ann_stage_events_1.append({'Stage': stage,
                                             'Start': start - start_time_label,
                                             'Duration': duration})
-            
+
 
         ann_fname2 = base_fname + 'scoring2_events.tsv'
         if os.path.exists(ann_fname2):
             start_time_label = None
             annot2 = pd.read_csv(ann_fname2,sep='\t', header=0)
-            for i, row in annot2.iterrows():
+            for _, row in annot2.iterrows():
                 start = round(row['onset'])
 
-                if start_time_label == None:
+                if start_time_label is None:
                     start_time_label = start
 
                 duration = row['duration']
@@ -125,7 +123,7 @@ class EESM19(BaseDataset):
                 ann_stage_events_2.append({'Stage': stage,
                                             'Start': start - start_time_label,
                                             'Duration': duration})
-                
+
         events_file = ann_fname.replace("scoring1_events", "diary_events")
         events = pd.read_csv(events_file,sep='\t', header=0)
 
@@ -134,9 +132,9 @@ class EESM19(BaseDataset):
             lights_off = lights_off.iloc[0]
         else:
             raise Exception(f"Expected exactly one 'Lights Out' event in {events_file}, but found {len(lights_off)}.")
-            
+
         return [ann_stage_events_1, ann_stage_events_2], start_time_label, lights_off, None
-    
+
     def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int):
         """
         Convert multi-scorer sleep stage events to epoch-wise labels for ISRUC dataset.
@@ -184,9 +182,9 @@ class EESM19(BaseDataset):
             labels[1] = np.pad(labels[1], (0, max_len - len(labels[1])), mode='constant', constant_values=SleepStage.UNK)
 
         labels = np.array(labels).T  # Transpose to (n_epochs, n_scorers)
-        
+
         return labels
-    
+
     def preprocess(self, n_workers, data_dir, ann_dir):
         return EESM_Preprocessor(self).preprocess(n_workers, data_dir, ann_dir)
 
@@ -197,12 +195,12 @@ class EESM_Preprocessor:
 
     def preprocess(self, n_workers, data_dir, ann_dir):
         print("\n Files originally contain NaN values in signals. \n")
-        
+
         execute_preprocess = input("Do you want to interpolate over these NaN values now (as recommended from the dataset authors)? (Y/N) ")
-        
+
         if str(execute_preprocess).lower() == "y":
-            
-            explorer = Dataset_Explorer(
+
+            explorer = DatasetExplorer(
                 logger=None,
                 dataset = self.dataset,
                 data_dir=data_dir,
@@ -221,41 +219,42 @@ class EESM_Preprocessor:
             except KeyboardInterrupt:
                 print("Preprocessing interrupted by user. Shutting down...")
                 executor.shutdown(cancel_futures=True)
-            
+
             if str(input("Do you want to continue with processing now? (Y/N) ")).lower() == "n":
                 return False
-        
+
         if str(input("Do you want to use the interpolated files for processing (if existing)? (Y/N) ")).lower() == "y":
             self.dataset.file_extensions['psg_ext'] = self.dataset.file_extensions['psg_ext'].replace('*.set','*_interpolated.set')
         return True
-    
 
+
+    # https://gitlab.au.dk/au207178/eesm_quality_demo/
     def interpolate_file(self, psg_fname):
         # Get files using dataset-specific extensions
 
-            path,ext = os.path.splitext(psg_fname)
-            output_path = os.path.join(path + '_interpolated' + ext)
-            if os.path.exists(output_path):
-                # print(f"Interpolated file already exists: {output_path}, skipping interpolation for this file.")
-                return
-            
-            try:
-                raw_data = read_raw_eeglab(psg_fname, verbose=False, preload=True)
-            except Exception as e:
-                print(f"Error reading {psg_fname} with MNE: {e}. Skipping interpolation for this file.")
-                return
+        path,ext = os.path.splitext(psg_fname)
+        output_path = os.path.join(path + '_interpolated' + ext)
+        if os.path.exists(output_path):
+            # print(f"Interpolated file already exists: {output_path}, skipping interpolation for this file.")
+            return
 
-            signals = raw_data.get_data()
-            fs = raw_data.info['sfreq']
+        try:
+            raw_data = read_raw_eeglab(psg_fname, verbose=False, preload=True)
+        except Exception as e:
+            print(f"Error reading {psg_fname} with MNE: {e}. Skipping interpolation for this file.")
+            return
 
-            signals_interpolated = self.interpolateOverNans(signals, fs)
-                
-            raw_data._data= signals_interpolated
-            raw_data.export(output_path, fmt='eeglab', verbose=False,overwrite=True)
-            # print(f"Interpolated file saved as {output_path}")
+        signals = raw_data.get_data()
+        fs = raw_data.info['sfreq']
 
+        signals_interpolated = self.interpolateOverNans(signals, fs)
 
-    def findRuns(self,input,noWarning=False):
+        raw_data._data = signals_interpolated
+        raw_data.export(output_path, fmt='eeglab', verbose=False,overwrite=True)
+        # print(f"Interpolated file saved as {output_path}")
+
+    # https://gitlab.au.dk/au207178/eesm_quality_demo/
+    def findRuns(self, input, noWarning=False):
 
         runStarts=[]
         runLengths=[]

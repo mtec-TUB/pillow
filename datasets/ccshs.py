@@ -5,15 +5,13 @@ from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
 
-
-
 @register_dataset("CCSHS")
 class CCSHS(BaseDataset):
     """CCSHS (CCSHS - Cleveland Children's Sleep and Health Study) dataset"""
-    
+
     def __init__(self):
         super().__init__("CCSHS","CCSHS - Cleveland Children's Sleep and Health Study")
-  
+
     def _setup_dataset_config(self):
         self.ann2label = {
             "Wake": SleepStage.W,
@@ -49,19 +47,19 @@ class CCSHS(BaseDataset):
             "ABDO EFFORT": self.Mapping(self.TTRef.ABDOMINAL, None),
             "THOR EFFORT": self.Mapping(self.TTRef.THORACIC, None),
         }
-        
 
-        self.channel_names = ['C3', 'EMG3', 'OX STATUS', 'PTT', 'A1', 'SUM', 'EMG1', 'ECG2', 'LEFT LEG1', 'ABDO EFFORT', 'POSITION', 'THOR EFFORT', 'Light', 
-                              'L Leg', 'DHR', 'LOC', 'A2', 'LEFT LEG2', 'AIRFLOW', 'SpO2', 'RIGHT LEG2', 'ECG1', 'C4', 'HRate', 'SNORE', 'RIGHT LEG1', 'ROC', 
+
+        self.channel_names = ['C3', 'EMG3', 'OX STATUS', 'PTT', 'A1', 'SUM', 'EMG1', 'ECG2', 'LEFT LEG1', 'ABDO EFFORT', 'POSITION', 'THOR EFFORT', 'Light',
+                              'L Leg', 'DHR', 'LOC', 'A2', 'LEFT LEG2', 'AIRFLOW', 'SpO2', 'RIGHT LEG2', 'ECG1', 'C4', 'HRate', 'SNORE', 'RIGHT LEG1', 'ROC',
                               'PlethWV', 'position', 'EMG2', 'NASAL PRES', 'PULSE', 'R Leg']
-        
-        
-        self.channel_types = {'analog': ['PlethWV', 'RIGHT LEG1', 'C3', 'ECG2', 'C4', 'LEFT LEG1', 'ABDO EFFORT', 'SUM', 'R Leg', 'A2', 'ECG1', 'LEFT LEG2', 
-                                         'RIGHT LEG2', 'SNORE', 'ROC', 'EMG3', 'EMG2', 'AIRFLOW', 'L Leg', 'THOR EFFORT', 'A1', 'LOC', 'NASAL PRES', 'EMG1'], 
+
+
+        self.channel_types = {'analog': ['PlethWV', 'RIGHT LEG1', 'C3', 'ECG2', 'C4', 'LEFT LEG1', 'ABDO EFFORT', 'SUM', 'R Leg', 'A2', 'ECG1', 'LEFT LEG2',
+                                         'RIGHT LEG2', 'SNORE', 'ROC', 'EMG3', 'EMG2', 'AIRFLOW', 'L Leg', 'THOR EFFORT', 'A1', 'LOC', 'NASAL PRES', 'EMG1'],
                               'digital': ['PULSE', 'DHR', 'SpO2', 'OX STATUS', 'position', 'Light', 'HRate', 'PTT', 'POSITION']}
-    
-        
-        
+
+
+
         self.channel_groups = {
             'eeg_eog': ['C3','A1','LOC', 'A2','C4','ROC', ],
             'emg': ['EMG3','EMG1','LEFT LEG1','L Leg','LEFT LEG2','RIGHT LEG2','RIGHT LEG1','EMG2','R Leg' ],
@@ -69,8 +67,8 @@ class CCSHS(BaseDataset):
             'thoraco_abdo_resp': ['ABDO EFFORT','THOR EFFORT','AIRFLOW',],
             'nasal_pressure': ['NASAL PRES',],
             'snoring': ['SNORE',]
-        }        
-        
+        }
+
         self.file_extensions = {
             'psg_ext': '*.edf',
             'ann_ext': '*-nsrr.xml'
@@ -91,7 +89,7 @@ class CCSHS(BaseDataset):
                 light_off_idx = light_off_indices[0]
                 lights_off_sec = light_off_idx / light_data["sampling_rate"]
 
-                # Last occurrence of light off (1) 
+                # Last occurrence of light off (1)
                 light_on_idx = light_off_indices[-1] + 1
                 lights_on_sec = light_on_idx / light_data["sampling_rate"]
             else:
@@ -99,7 +97,7 @@ class CCSHS(BaseDataset):
                 lights_on_sec = None
 
             return lights_off_sec, lights_on_sec
-        
+
         else:
             logger.info(f"Light channel not found in {os.path.basename(psg_fname)}. Cannot determine light on/off times")
             return None, None

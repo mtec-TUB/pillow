@@ -15,25 +15,25 @@ class BOAS(BaseDataset):
         # File "sub-72_task-Sleep_acq-psg_eeg.edf" is shorter than the corresponding headband file
         # We will truncate all channels to the shortest signal length to ensure alignment across channels
         self.shortest_signal_length = None
-    
+
     def _setup_dataset_config(self):
         self.ann2label = {0: SleepStage.W,
                           1: SleepStage.N1,
                           2: SleepStage.N2,
-                          3: SleepStage.N3,   
+                          3: SleepStage.N3,
                           4: SleepStage.REM,
                           8: SleepStage.UNK,
-                          -2: SleepStage.UNK 
-        }        
-        
-        self.channel_names = ['HB_1', 'HB_2', 'PSG_F3', 'PSG_F4', 'PSG_C3', 'PSG_C4', 'PSG_O1', 'PSG_O2', 'PSG_EOG', 'PSG_EMG', 'PSG_THER', 'PSG_THOR', 
-                              'PSG_ABD', 'HB_IMU_1', 'HB_IMU_2', 'HB_IMU_3', 'HB_IMU_4', 'HB_IMU_5', 'HB_IMU_6', 'HB_PULSE', 'PSG_PULSE', 'PSG_BEAT', 
+                          -2: SleepStage.UNK
+        }
+
+        self.channel_names = ['HB_1', 'HB_2', 'PSG_F3', 'PSG_F4', 'PSG_C3', 'PSG_C4', 'PSG_O1', 'PSG_O2', 'PSG_EOG', 'PSG_EMG', 'PSG_THER', 'PSG_THOR',
+                              'PSG_ABD', 'HB_IMU_1', 'HB_IMU_2', 'HB_IMU_3', 'HB_IMU_4', 'HB_IMU_5', 'HB_IMU_6', 'HB_PULSE', 'PSG_PULSE', 'PSG_BEAT',
                               'PSG_SPO2', 'PSG_EOGL', 'PSG_EOGR', 'PSG_CAN']
-        
+
         self.hb_channel_names = ['HB_1', 'HB_2','HB_IMU_1', 'HB_IMU_2', 'HB_IMU_3', 'HB_IMU_4', 'HB_IMU_5', 'HB_IMU_6', 'HB_PULSE']
-        self.psg_channel_names = ['PSG_F3', 'PSG_F4', 'PSG_C3', 'PSG_C4', 'PSG_O1', 'PSG_O2', 'PSG_EOG', 'PSG_EMG', 'PSG_THER', 'PSG_THOR', 
+        self.psg_channel_names = ['PSG_F3', 'PSG_F4', 'PSG_C3', 'PSG_C4', 'PSG_O1', 'PSG_O2', 'PSG_EOG', 'PSG_EMG', 'PSG_THER', 'PSG_THOR',
                                  'PSG_ABD','PSG_PULSE', 'PSG_BEAT', 'PSG_SPO2', 'PSG_EOGL', 'PSG_EOGR', 'PSG_CAN' ]
-        
+
         # see README
         self.inter_dataset_mapping = {
             'PSG_F3': self.Mapping(self.TTRef.F3, None),
@@ -54,21 +54,21 @@ class BOAS(BaseDataset):
             'HB_1': self.Mapping(self.TTRef.AF7, None),
             'HB_2': self.Mapping(self.TTRef.AF8, None),
         }
-        
-        self.channel_types = {'analog': ['HB_1', 'HB_2', 'PSG_F3', 'PSG_F4', 'PSG_C3', 'PSG_C4', 'PSG_O1', 'PSG_O2', 'PSG_EOG', 'PSG_EMG', 'PSG_THER', 
-                                         'PSG_THOR', 'PSG_ABD', 'HB_IMU_1', 'HB_IMU_2', 'HB_IMU_3', 'HB_IMU_4', 'HB_IMU_5', 'HB_IMU_6', 'HB_PULSE', 
-                                         'PSG_PULSE', 'PSG_BEAT', 'PSG_SPO2', 'PSG_EOGL', 'PSG_EOGR', 'PSG_CAN'], 
+
+        self.channel_types = {'analog': ['HB_1', 'HB_2', 'PSG_F3', 'PSG_F4', 'PSG_C3', 'PSG_C4', 'PSG_O1', 'PSG_O2', 'PSG_EOG', 'PSG_EMG', 'PSG_THER',
+                                         'PSG_THOR', 'PSG_ABD', 'HB_IMU_1', 'HB_IMU_2', 'HB_IMU_3', 'HB_IMU_4', 'HB_IMU_5', 'HB_IMU_6', 'HB_PULSE',
+                                         'PSG_PULSE', 'PSG_BEAT', 'PSG_SPO2', 'PSG_EOGL', 'PSG_EOGR', 'PSG_CAN'],
                               'digital': []}
-        
-        
+
+
         self.channel_groups = {'eeg_eog': ['PSG_F3', 'PSG_F4', 'PSG_C3', 'PSG_C4', 'PSG_O1', 'PSG_O2', 'PSG_EOG','HB_1', 'HB_2','PSG_EOGL', 'PSG_EOGR', ],
                                 'emg': ['PSG_EMG',],
                                 'thoraco_abdo_resp': ['PSG_CAN','PSG_THER', 'PSG_THOR', 'PSG_ABD',],
                                 }
-                
+
         self.file_extensions = {'psg_ext': '**/*psg_eeg.edf',
-                                'ann_ext': '**/*psg_events.tsv'} 
-        
+                                'ann_ext': '**/*psg_events.tsv'}
+
 
     # Use custom file handlers because channels are split into two separate EDF files (PSG and Headband)
     def get_channels(self, logger, filepath):
@@ -79,14 +79,14 @@ class BOAS(BaseDataset):
         headband_channels = self._file_handler.get_channels(logger, headband_filepath)
         all_channels = psg_channels + headband_channels
         if len(all_channels) > len(set(all_channels)):
-            raise ValueError(f"Duplicate channel names found in PSG and Headband files. Please check the files and ensure unique channel names.")
-        
+            raise ValueError("Duplicate channel names found in PSG and Headband files. Please check the files and ensure unique channel names.")
+
         # Find the shortest signal length across all channels
         channel_lengths = [len(self.read_signal(logger, filepath, ch)) for ch in all_channels]
         self.shortest_signal_length = min(channel_lengths)
 
         return all_channels
-    
+
     def read_signal(self, logger, filepath, channel):
         """Read signal data for a specific channel."""
         if channel in self.psg_channel_names:
@@ -96,7 +96,7 @@ class BOAS(BaseDataset):
             return self._file_handler.read_signal(logger, headband_filepath, channel)
         else:
             raise ValueError(f"Channel {channel} not found in either PSG or Headband channel list")
-    
+
     def get_file_info(self, logger, filepath):
         """Get start datetime and file duration."""
         psg_info = self._file_handler.get_file_info(logger, filepath)
@@ -107,7 +107,7 @@ class BOAS(BaseDataset):
         headband_info = self._file_handler.get_file_info(logger, headband_filepath)
         hb_start_datetime = headband_info["start_datetime"].replace(tzinfo=None)
         hb_duration = headband_info["file_duration"]
-        
+
         if psg_duration != hb_duration:
             logger.warning(f"Duration of PSG file ({psg_duration} sec) and Headband file ({hb_duration} sec) do not match. They will be aligned using the shorter duration.")
             psg_info["file_duration"] = min(psg_duration, hb_duration)
@@ -116,8 +116,8 @@ class BOAS(BaseDataset):
             logger.error(f"Start datetimes of PSG ({psg_start_datetime}) and Headband ({hb_start_datetime}) files do not match.")
             raise ValueError(f"Start datetimes of PSG ({psg_start_datetime}) and Headband ({hb_start_datetime}) files do not match.")
         else:
-            return psg_info            
-    
+            return psg_info
+
     def get_signal_data(self, logger, filepath, channel):
         """Get complete signal information for processing."""
         if channel in self.psg_channel_names:
@@ -128,7 +128,7 @@ class BOAS(BaseDataset):
         else:
             logger.error(f"Channel {channel} not found in either PSG or Headband channel list")
             raise ValueError(f"Channel {channel} not found in either PSG or Headband channel list")
-        
+
         if len(signal_data["signal"]) > self.shortest_signal_length:
             signal_data["file_duration"] = self.shortest_signal_length / signal_data["sampling_rate"]
             logger.warning(f"Truncating signal for channel {channel} to shortest signal ({signal_data["file_duration"]} sec) to ensure alignment across channels.")
@@ -138,7 +138,7 @@ class BOAS(BaseDataset):
 
     def dataset_paths(self):
         return ['', '']
-    
+
     def ann_parse(self, ann_fname):
         # Reads only the scorings of human experts (in *_psg_events.tsv), AI scores in *_psg_events.tsv and *_headband_events.tsv are ignored
         annot = pd.read_csv(ann_fname,sep='\t', header=0)
@@ -147,7 +147,7 @@ class BOAS(BaseDataset):
 
         start_time = None
 
-        for i, row in annot.iterrows():
+        for _, row in annot.iterrows():
             start = float(row['onset'])
             if start_time is None:
                 start_time = start

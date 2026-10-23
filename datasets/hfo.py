@@ -1,5 +1,6 @@
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
@@ -18,11 +19,11 @@ class HFO(BaseDataset):
         self.ann2label = {"N2": SleepStage.N2,
                           "N3": SleepStage.N3,
                           "REM": SleepStage.REM,
-        }        
-        
-        self.channel_names = ['Fp1', 'A2', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'T3', 'C3', 'Cz', 'C4', 'T4', 'T5', 'P3', 'Pz', 'P4', 'T6', 
+        }
+
+        self.channel_names = ['Fp1', 'A2', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'T3', 'C3', 'Cz', 'C4', 'T4', 'T5', 'P3', 'Pz', 'P4', 'T6',
                               'O1', 'A1', 'O2', 'T1', 'T2', 'Cz2']
-        
+
         # see README
         self.inter_dataset_mapping = {
             'Fp1': self.Mapping(self.TTRef.Fp1, None),
@@ -47,19 +48,19 @@ class HFO(BaseDataset):
             'A1': self.Mapping(self.TTRef.LPA, None),
             'O2': self.Mapping(self.TTRef.O2, None),
         }
-        
-        self.channel_types = {'analog': ['Fp1', 'A2', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'T3', 'C3', 'Cz', 'C4', 'T4', 'T5', 'P3', 'Pz', 'P4', 'T6', 
-                              'O1', 'A1', 'O2', 'T1', 'T2', 'Cz2'], 
+
+        self.channel_types = {'analog': ['Fp1', 'A2', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'T3', 'C3', 'Cz', 'C4', 'T4', 'T5', 'P3', 'Pz', 'P4', 'T6',
+                              'O1', 'A1', 'O2', 'T1', 'T2', 'Cz2'],
                               'digital': []}
-        
-        
-        self.channel_groups = {'eeg_eog': ['Fp1', 'A2', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'T3', 'C3', 'Cz', 'C4', 'T4', 'T5', 'P3', 'Pz', 'P4', 'T6', 
+
+
+        self.channel_groups = {'eeg_eog': ['Fp1', 'A2', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'T3', 'C3', 'Cz', 'C4', 'T4', 'T5', 'P3', 'Pz', 'P4', 'T6',
                               'O1', 'A1', 'O2', 'T1', 'T2', 'Cz2'],
                                 }
-                
+
         self.file_extensions = {'psg_ext': '**/*hfo_eeg.edf',
-                                'ann_ext': '**/DataIntervals.tsv'} 
-        
+                                'ann_ext': '**/DataIntervals.tsv'}
+
     def get_file_identifier(self, psg_fname=None, ann_fname=None):
         psg_id, ann_id = None, None
         if psg_fname:
@@ -70,7 +71,7 @@ class HFO(BaseDataset):
 
     def dataset_paths(self):
         return ['', 'derivatives/']
-    
+
     def ann_parse(self, ann_fname):
         annot = pd.read_csv(ann_fname,sep='\t', header=0)
 
@@ -79,7 +80,7 @@ class HFO(BaseDataset):
 
         start_time = None
 
-        for i, row in annot.iterrows():
+        for _, row in annot.iterrows():
             if row["RunNb"] == 0:
                 continue
             start = int(row['StartInd'])
@@ -95,7 +96,7 @@ class HFO(BaseDataset):
 
 
         return ann_stage_events, start_time, None, None
-    
+
 #####
 # DateInterval hat keine aneinandergereihten Scorings
 # Entweder nur Run files nehmen oder raw files ohne Annotations?

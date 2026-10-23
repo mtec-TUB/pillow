@@ -8,10 +8,10 @@ from psg_processing.utils import SleepStage
 @register_dataset("ABC")
 class ABC(BaseDataset):
     """ABC (Apnea, Bariatric surgery, and CPAP study) dataset"""
-    
+
     def __init__(self):
         super().__init__("ABC","ABC - Apnea, Bariatric surgery, and CPAP study")
-    
+
 
     def _setup_dataset_config(self):
         self.ann2label = {"Wake": SleepStage.W,
@@ -21,19 +21,19 @@ class ABC(BaseDataset):
                         "REM sleep": SleepStage.REM,
                         "Unscored": SleepStage.UNK
                         }
-        
-        
+
+
         self.channel_names = ['O1',  'O2', 'E1',  'C4',  'M1',  'C3', 'M2',  'E2', 'F4', 'F3','Manual Pos','Sum', 'RLeg2','Snore', 'Derived HR',
                             'Respiratory Rate', 'Pulse', 'Chin3', 'ECG2', 'Thor', 'CPAP Flow', 'Ox Status', 'Pleth', 'LLeg1', 'PosSensor',
                             'Chin1', 'LLeg2', 'Chin2', 'Airflow', 'Abdo', 'RLeg1', 'CPAP Press', 'Nasal Pressure', 'SpO2','Light', 'ECG1']
-        
-        
+
+
         self.channel_types = {'analog': ['O1',  'O2', 'E1',  'C4',  'M1',  'C3', 'M2',  'E2', 'F4', 'F3','Sum', 'RLeg2','Snore', 'Derived HR',
-                            'Respiratory Rate', 'Pulse', 'Chin3', 'ECG2', 'Thor', 'CPAP Flow', 'Pleth', 'LLeg1', 
+                            'Respiratory Rate', 'Pulse', 'Chin3', 'ECG2', 'Thor', 'CPAP Flow', 'Pleth', 'LLeg1',
                             'Chin1', 'LLeg2', 'Chin2', 'Airflow', 'Abdo', 'RLeg1', 'CPAP Press', 'Nasal Pressure', 'ECG1'],
                             'digital': ['SpO2','PosSensor','Manual Pos','Ox Status','Light']}
-        
-        
+
+
         self.channel_groups = {'eeg_eog': ['O1', 'O2', 'C4', 'M1', 'C3', 'M2', 'F4', 'F3', 'E1', 'E2'],
                                 'emg': ['RLeg2', 'Chin3', 'RLeg1', 'Chin1', 'LLeg2', 'Chin2', 'LLeg1'],
                                 'ecg': ['ECG2', 'ECG1'],
@@ -66,16 +66,16 @@ class ABC(BaseDataset):
             "CPAP Flow": self.Mapping(self.TTRef.CPAP, None),
             "Derived HR": self.Mapping(self.TTRef.HR, None),
         }
-                
-        
+
+
         self.file_extensions = {'psg_ext': '**/*.edf',
                                 'ann_ext': '**/*-nsrr.xml'}
-    
+
     def get_light_times(self, logger, psg_fname):
         if "Light" in self._file_handler.get_channels(logger, psg_fname):
 
             light_data = self._file_handler.get_signal_data(logger, psg_fname, "Light")
-        
+
             light_signal = light_data["signal"]
             skip_samples = 5*light_data["sampling_rate"]  # Skip first 5 seconds to skip initial Lights-Off period
             light_off_indices = np.flatnonzero(light_signal[int(skip_samples):] == 0)
@@ -90,10 +90,9 @@ class ABC(BaseDataset):
                 lights_on_sec = light_on_idx / light_data["sampling_rate"]
             else:
                 lights_off_sec = None
-                lights_on_sec = None               
+                lights_on_sec = None
 
             return lights_off_sec, lights_on_sec
         else:
             logger.info(f"Light channel not found in {os.path.basename(psg_fname)}. Cannot determine light on/off times")
             return None, None
-    
