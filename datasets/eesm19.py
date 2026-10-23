@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Tuple
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from psg_processing.core import Dataset_Explorer
+from psg_processing.core import DatasetExplorer
 from datasets.base import BaseDataset
 from datasets.registry import register_dataset
 
