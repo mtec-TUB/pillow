@@ -378,7 +378,7 @@ class BaseDataset(ABC):
 
         for event in ann_stage_events:
             onset_sec = int(event["Start"])
-            ann_duration = int(event["Duration"])
+            duration_sec = int(event["Duration"])
             ann_str = event["Stage"]
 
             # Sanity check
@@ -392,21 +392,21 @@ class BaseDataset(ABC):
                 raise DatasetProcessingError(f"Something unexpected: label {ann_str} not found", self.dset_name, "ann_label")
 
             # Compute # of epoch for this stage
-            if ann_duration % epoch_duration != 0:
+            if duration_sec % epoch_duration != 0:
                 logger.error("Annotation epoch duration %d is not a multiple of epoch duration %d",
-                             ann_duration, epoch_duration)
-                raise DatasetProcessingError(f"Annotation epoch duration {ann_duration} is not a multiple of \
+                             duration_sec, epoch_duration)
+                raise DatasetProcessingError(f"Annotation epoch duration {duration_sec} is not a multiple of \
                                              epoch duration {epoch_duration}", self.dset_name, "ann_label")
 
-            n_epochs = int(ann_duration / epoch_duration)
+            n_epochs = int(duration_sec / epoch_duration)
 
             # Generate sleep stage labels
             label_epoch = np.ones(n_epochs, dtype=np.int32) * label
             labels.append(label_epoch)
 
-            total_duration += ann_duration
+            total_duration += duration_sec
 
-            logger.debug("Include onset:%d, duration:%d, label:%d (%s)", onset_sec, ann_duration, label, ann_str)
+            logger.debug("Include onset:%d, duration:%d, label:%d (%s)", onset_sec, duration_sec, label, ann_str)
 
         return np.concatenate(labels)
 
