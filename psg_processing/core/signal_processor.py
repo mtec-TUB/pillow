@@ -1,6 +1,3 @@
-"""
-Signal processing utilities for PSG data.
-"""
 import logging
 from typing import Dict, List, Union
 
@@ -27,10 +24,8 @@ class SignalProcessor:
 
     def __init__(self, logger: logging.Logger, signal, ch_name, config, ch_types):
         """
-        Initialize the SignalProcessor.
+        Initialize the SignalProcessor with everything needed to apply resampling and or filtering.
 
-        Args:
-            logger: Logger instance for operation tracking
         """
         self.logger = logger
 
@@ -78,14 +73,13 @@ class SignalProcessor:
     def resample_signal(self, sampling_rate, resample_freq):
         """
         Resample signal based on channel type and parameters.
+        Does not return signal but modifies self.signal in place
 
         Args:
             ch_type: Channel type ('analog' or 'digital')
             sampling_rate: Current sampling rate
             resample_freq: Target sampling rate
 
-        Returns:
-            tuple: (processed_signal, final_sampling_rate)
         """
         self.logger.info("Sample rate before: %f", sampling_rate)
 
@@ -150,64 +144,58 @@ class SignalProcessor:
 
         Args:
             fs: Sampling rate of signal
-            ch_type: Channel type ('analog' or 'digital')
-            sampling_rate: Current sampling rate
-            resample_freq: Target sampling rate
+            channel_groups: Dictionary mapping channels to their respective filter groups
 
-        Returns:
-            tuple: (processed_signal, final_sampling_rate)
         """
 
         [low, high] = self.get_filt_freq(self.select_ch, channel_groups)
 
         # Filter signal according to AASM Manual
-        if not (low is None and high is None) and (self.ch_type == "analog"):
+        if not (low is None and high is None):
+            if (self.ch_type == "analog"):
 
-            if low and low >= fs / 2:
-                self.logger.warning(
-                    "Low cutoff frequency %s Hz is >= Nyquist frequency %s Hz. "
-                    "Skipping highpass filter.",
+                if low and low >= fs / 2:
+                    self.logger.warning(
+                        "Low cutoff frequency %s Hz is >= Nyquist frequency %s Hz. "
+                        "Skipping highpass filter.",
+                        low,
+                        fs/2
+                    )
+                    low = None  # Avoid invalid low cutoff frequency
+                else:
+                    self.highpassed = True  # for clipping
+
+                if high and high >= fs / 2:
+                    self.logger.warning(
+                        "High cutoff frequency %s Hz is >= Nyquist frequency %s Hz. "
+                        "Skipping lowpass filter.",
+                        high,
+                        fs/2
+                    )
+                    high = None  # Avoid invalid high cutoff frequency
+
+                self.logger.info("Filter signal with low: %s Hz and high: %s Hz bandpass",
+                    low, high)
+
+                if self.filter_type == "iir" and self.iir_filter_order is not None:
+                    iir_params = {"ftype": "butter", "order": self.iir_filter_order}
+                else:
+                    iir_params = None
+
+                self.signal = filter_data(
+                    self.signal,
+                    fs,
                     low,
-                    fs/2
-                )
-                low = None  # Avoid invalid low cutoff frequency
-            else:
-                self.highpassed = True  # for clipping
-
-            if high and high >= fs / 2:
-                self.logger.warning(
-                    "High cutoff frequency %s Hz is >= Nyquist frequency %s Hz. "
-                    "Skipping lowpass filter.",
                     high,
-                    fs/2
+                    method=self.filter_type,
+                    iir_params=iir_params,
+                    n_jobs=1,
+                    verbose="WARNING",
                 )
-                high = None  # Avoid invalid high cutoff frequency
 
-            self.logger.info(
-                "Filter signal with low: %s Hz and high: %s Hz bandpass",
-                low,
-                high
-            )
-
-            if self.filter_type == "iir" and self.iir_filter_order is not None:
-                iir_params = {"ftype": "butter", "order": self.iir_filter_order}
             else:
-                iir_params = None
-
-            self.signal = filter_data(
-                self.signal,
-                fs,
-                low,
-                high,
-                method=self.filter_type,
-                iir_params=iir_params,
-                n_jobs=1,
-                verbose="WARNING",
-            )
-
-        elif not (low is None and high is None) and self.ch_type == "digital":
-            self.logger.error("Digital channels (%s) cannot be filtered.", self.select_ch)
-            raise ValueError(f"Digital channels ({self.select_ch}) cannot be filtered.")
+                self.logger.error("Digital channels (%s) cannot be filtered.", self.select_ch)
+                raise ValueError(f"Digital channels ({self.select_ch}) cannot be filtered.")
 
     def clip_signal(self):
         """ Final clipping to original signal range if filtering was applied"""
