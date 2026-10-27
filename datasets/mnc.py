@@ -1,6 +1,3 @@
-"""
-MNC - Mignot Nature Communications
-"""
 from datetime import datetime
 import xml.etree.ElementTree as ET
 

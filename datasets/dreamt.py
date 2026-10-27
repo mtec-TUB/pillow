@@ -1,6 +1,3 @@
-"""
-DREAMT (Dataset for Real-time sleep stage EstimAtion using Multisensor wearable Technology)
-"""
 import os
 import csv
 import logging

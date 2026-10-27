@@ -1,6 +1,3 @@
-"""
-STAGES - Stanford Technology Analytics and Genomics in Sleep
-"""
 import os
 import re
 import csv

@@ -1,6 +1,3 @@
-"""
-MWT - Maintenance of Wakefulness Test
-"""
 import logging
 
 from scipy.io import loadmat

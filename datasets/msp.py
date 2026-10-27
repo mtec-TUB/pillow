@@ -1,6 +1,3 @@
-"""
-MSP - Maternal Sleep in Pregnancy and the Fetus
-"""
 from datetime import datetime
 
 import pandas as pd

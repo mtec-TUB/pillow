@@ -1,6 +1,3 @@
-"""
-NCHSDB - NCH Sleep DataBank
-"""
 import os
 from decimal import Decimal
 import re
