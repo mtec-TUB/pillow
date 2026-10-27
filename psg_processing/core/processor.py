@@ -48,7 +48,6 @@ class ChannelData:
     """Metadata and processed data for a single channel of a PSG file."""
 
     ch_name_orig: str
-    signal_epoched: np.ndarray
     signal: np.ndarray
     sampling_rate: int | float
     unit: str
@@ -376,7 +375,7 @@ class FileProcessor:
                 loff_epoch, lon_epoch = None, None
 
             # get the first channel's epoch count
-            n_signal_epochs = len(next(iter(all_channel_data.values())).signal_epoched)
+            n_signal_epochs = len(next(iter(all_channel_data.values())).signal)
             # epoch count before any end-alignment padding
             n_real_signal_epochs = n_signal_epochs
 
@@ -411,7 +410,7 @@ class FileProcessor:
             if self.config.use_annot:
                 n_epochs = len(file_data.labels)
             else:
-                n_epochs = len(next(iter(all_channel_data.values())).signal_epoched)
+                n_epochs = len(next(iter(all_channel_data.values())).signal)
             labels_sel = file_data.labels if self.config.use_annot else None
             select_idx = self._compute_select_idx(labels_sel, loff_epoch, lon_epoch, n_epochs)
             if select_idx is None:
@@ -429,7 +428,7 @@ class FileProcessor:
                 )
             file_data.start_datetime = start_datetime
             for ch_data in all_channel_data.values():
-                ch_data.signal = ch_data.signal_epoched[select_idx]
+                ch_data.signal = ch_data.signal[select_idx]
 
             labels_shape = labels_out.shape if self.config.use_annot else None
             self.logger.info(
@@ -605,7 +604,7 @@ class FileProcessor:
         """Reconcile signal epoch count vs label epoch count using the alignment config.
 
         All channels share the same n_signal_epochs (same file, same duration).
-        Mutates signal_epoched in-place inside all_channel_data; may also mutate labels.
+        Mutates channel signals in-place inside all_channel_data; may also mutate labels.
         Returns the (possibly updated) labels array.
         """
         self.logger.info(
@@ -618,7 +617,7 @@ class FileProcessor:
                 self.logger.info("End alignment: cropping signal to %d epochs.", n_labels_epochs)
                 # in-place modification
                 for ch in all_channel_data.values():
-                    ch.signal_epoched = ch.signal_epoched[:n_labels_epochs]
+                    ch.signal = ch.signal[:n_labels_epochs]
             elif self.config.alignment in (Alignment.MATCH_LONGER.value,
                                            Alignment.MATCH_SIGNAL.value): #pad labels
                 n_pad   = n_signal_epochs - n_labels_epochs
@@ -641,8 +640,8 @@ class FileProcessor:
                 self.logger.info("End alignment: padding signal by %d epochs.", n_pad)
                 # in-place modification
                 for ch in all_channel_data.values():
-                    sig = ch.signal_epoched
-                    ch.signal_epoched = np.vstack(
+                    sig = ch.signal
+                    ch.signal = np.vstack(
                         [sig, np.full((n_pad, sig.shape[1]), pad_val)]
                     )
         return labels
@@ -1140,11 +1139,10 @@ class ChannelProcessor:
             self.logger.info("Signal cropped to full epochs (%.2f sec removed).",
                              remainder / sampling_rate)
 
-        signal_epoched = signal[:n_epochs * n_epoch_samples].reshape(n_epochs, -1)
+        signal = signal[:n_epochs * n_epoch_samples].reshape(n_epochs, -1)
         return ChannelData(
             ch_name_orig=self.channel,
-            signal_epoched=signal_epoched,
-            signal=signal_epoched,
+            signal=signal,
             sampling_rate=sampling_rate,
             unit=unit,
             file_output_path=self.file_output_path,
