@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import glob
+from dataclasses import dataclass
 from math import ceil, floor
 from datetime import datetime, date, time, timedelta
 from pathlib import Path
@@ -22,6 +23,38 @@ from psg_processing.core.dataset_explorer import DatasetExplorer
 from psg_processing.core.signal_processor import SignalProcessor
 
 logging.captureWarnings(True)
+
+SignalStart = datetime | None
+AnnotationStart = datetime | int | float | Decimal | None
+LightMarker = datetime | time | int | float | None
+
+
+@dataclass
+class FileData:
+    """Metadata shared while processing the channels of one PSG file."""
+
+    psg_fname: str
+    ann_fname: str | None
+    start_datetime: SignalStart = None
+    file_duration: float = 0.0
+    ann_start_datetime: AnnotationStart = None
+    lights_off: LightMarker = None
+    lights_on: LightMarker = None
+    start_delay: float = 0.0
+    signal_adjust_front_sec: float = 0.0
+    start_time_shift: float = 0.0
+    labels: np.ndarray | None = None
+
+@dataclass
+class ChannelData:
+    """Metadata and processed data for a single channel of a PSG file."""
+
+    ch_name_orig: str
+    signal_epoched: np.ndarray
+    signal: np.ndarray
+    sampling_rate: int | float
+    unit: str
+    file_output_path: str
 
 
 class DatasetProcessor:
@@ -201,12 +234,7 @@ class FileProcessor:
                 self.logger.info("Annotation file: %s",
                                  Path(self.ann_fname).relative_to(self.config.ann_dir))
 
-            # Initialize signal data dictionary
-            # which holds all necessary info for processing and saving
-            file_data = {
-                "psg_fname": self.psg_fname,
-                "ann_fname": self.ann_fname,
-            }
+            file_data = FileData(self.psg_fname, self.ann_fname)
 
             if self.config.output_format == "npz":
                 log_paths = {}  # Store log paths for each channel separately
@@ -225,7 +253,7 @@ class FileProcessor:
             start_datetime = file_info["start_datetime"]
             if isinstance(start_datetime, datetime):
                 start_datetime = start_datetime.replace(tzinfo=None)
-            file_data["start_datetime"] = start_datetime
+            file_data.start_datetime = start_datetime
             self.logger.info("Start datetime: %s", start_datetime)
 
             if file_info["file_duration"] // self.config.epoch_duration < 1:
@@ -235,9 +263,9 @@ class FileProcessor:
                 )
                 return
 
-            file_data["file_duration"] = file_info["file_duration"]
+            file_data.file_duration = file_info["file_duration"]
             self.logger.info("File duration: %s sec, %.2f h",
-                             file_data["file_duration"], file_data["file_duration"]/3600)
+                             file_data.file_duration, file_data.file_duration / 3600)
 
             # Annotations and file-level label preparation
             if self.config.use_annot:
@@ -245,8 +273,9 @@ class FileProcessor:
                     self.dataset.ann_parse(self.ann_fname)
                 if isinstance(ann_startdatetime, datetime):
                     ann_startdatetime = ann_startdatetime.replace(tzinfo=None)
-                file_data["ann_start_datetime"] = ann_startdatetime
-                file_data.update({"lights_off": lights_off, "lights_on": lights_on})
+                file_data.ann_start_datetime = ann_startdatetime
+                file_data.lights_off = lights_off
+                file_data.lights_on = lights_on
 
                 if ann_stage_events == []:
                     self.logger.warning("No sleep stage annotations found in %s, skipping file.",
@@ -266,7 +295,7 @@ class FileProcessor:
 
                 # Front alignment (file level)
                 start_delay = self._get_start_delay(ann_startdatetime, start_datetime)
-                file_data["start_delay"] = start_delay
+                file_data.start_delay = start_delay
 
                 if start_delay != 0:
                     if not self.dataset.has_front_alignment:
@@ -286,27 +315,16 @@ class FileProcessor:
                     start_time_shift = -signal_adjust_front_sec
                     if start_time_shift and isinstance(start_datetime, datetime):
                         start_datetime = start_datetime + timedelta(seconds=start_time_shift)
-                        file_data["start_datetime"] = start_datetime
+                        file_data.start_datetime = start_datetime
                         self.logger.info("Adjusted start datetime after front alignment: %s",
                                          start_datetime)
                 else:
                     signal_adjust_front_sec = 0.0
                     start_time_shift        = 0.0
 
-                file_data["signal_adjust_front_sec"] = signal_adjust_front_sec
-                file_data["start_time_shift"]        = start_time_shift
-                file_data["labels"] = labels  # adjusted labels, not yet epoch-selected
-
-            else:
-                file_data.update({
-                    "labels":            None,
-                    "ann_start_datetime": None,
-                    "lights_off":        None,
-                    "lights_on":         None,
-                    "start_delay":       0,
-                    "signal_adjust_front_sec": 0.0,
-                    "start_time_shift":        0.0,
-                })
+                file_data.signal_adjust_front_sec = signal_adjust_front_sec
+                file_data.start_time_shift = start_time_shift
+                file_data.labels = labels  # adjusted labels, not yet epoch-selected
 
             # Intersection of available channels in psg file and configured channels to process,
             # plus all channels whose harmonized name is listed in mapped_channels
@@ -320,7 +338,7 @@ class FileProcessor:
                 return
 
             # Per-channel processing: raw signal -> filtered/resampled/epoched signal
-            all_channel_data = {}
+            all_channel_data: dict[str, ChannelData] = {}
             for channel in sorted(channels):
                 # Set current channel for logging
                 buffer_handler.set_channel(channel)
@@ -336,16 +354,13 @@ class FileProcessor:
                                      file_output_path, channel)
                     continue
 
-                channel_processor = ChannelProcessor(self.logger, self.config,
-                                                     self.dataset, channel)
-                ch_result = channel_processor.process_channel(dict(file_data))
+                channel_processor = ChannelProcessor(
+                    self.logger, self.config, self.dataset, file_data, channel, file_output_path
+                )
+                ch_result = channel_processor.process_channel()
 
                 if ch_result is not None:
-                    all_channel_data[channel_harm] = {
-                        **ch_result,
-                        "ch_name": channel_harm,
-                        "file_output_path": file_output_path,
-                    }
+                    all_channel_data[channel_harm] = ch_result
                 self.logger.info("=" * 40)
 
             if not all_channel_data:
@@ -360,16 +375,16 @@ class FileProcessor:
                 lights_off_ds, lights_on_ds = self.dataset.get_light_times(self.logger,
                                                                            self.psg_fname)
                 if lights_off_ds is not None:
-                    file_data["lights_off"] = lights_off_ds
+                    file_data.lights_off = lights_off_ds
                 if lights_on_ds is not None:
-                    file_data["lights_on"] = lights_on_ds
+                    file_data.lights_on = lights_on_ds
                 # Compute epoch indices for lights markers
                 loff_epoch, lon_epoch = self._get_lights_epochs(file_data)
             else:
                 loff_epoch, lon_epoch = None, None
 
             # get the first channel's epoch count
-            n_signal_epochs      = len(next(iter(all_channel_data.values()))["signal_epoched"])
+            n_signal_epochs = len(next(iter(all_channel_data.values())).signal_epoched)
             # epoch count before any end-alignment padding
             n_real_signal_epochs = n_signal_epochs
 
@@ -377,7 +392,7 @@ class FileProcessor:
             # Skipped when lights selection is configured and lights-on falls
             # within the range both arrays already cover
             if self.config.use_annot:
-                n_label_epochs      = len(labels)
+                n_label_epochs = len(file_data.labels)
                 if n_signal_epochs != n_label_epochs:
                     n_min = min(n_signal_epochs, n_label_epochs)
                     if (self.config.select_epochs == "lights"
@@ -392,16 +407,20 @@ class FileProcessor:
                                 f"Dataset {self.dataset.dset_name} has no end alignment "
                                 f"defined (has_end_alignment=False). Please verify."
                             )
-                        labels = self._end_align(labels, all_channel_data,
-                                                 n_signal_epochs, n_label_epochs)
+                        file_data.labels = self._end_align(
+                            file_data.labels,
+                            all_channel_data,
+                            n_signal_epochs,
+                            n_label_epochs,
+                        )
 
             # Compute epoch selection based on lights marker
             # and/or MOVE/UNK removal and/or truncate_non_sleep_end
             if self.config.use_annot:
-                n_epochs = len(labels)
+                n_epochs = len(file_data.labels)
             else:
-                n_epochs = len(next(iter(all_channel_data.values()))["signal_epoched"])
-            labels_sel = labels if self.config.use_annot else None
+                n_epochs = len(next(iter(all_channel_data.values())).signal_epoched)
+            labels_sel = file_data.labels if self.config.use_annot else None
             select_idx = self._compute_select_idx(labels_sel, loff_epoch, lon_epoch, n_epochs)
             if select_idx is None:
                 return
@@ -411,24 +430,23 @@ class FileProcessor:
                 return
 
             # Apply selection
-            labels_out = labels[select_idx] if self.config.use_annot else None
+            labels_out = file_data.labels[select_idx] if self.config.use_annot else None
             if isinstance(start_datetime, datetime) and len(select_idx) > 0:
                 start_datetime = start_datetime + timedelta(
                     seconds=float(select_idx[0] * self.config.epoch_duration)
                 )
+            file_data.start_datetime = start_datetime
             for ch_data in all_channel_data.values():
-                ch_data["signal"]         = ch_data["signal_epoched"][select_idx]
-                ch_data["labels"]         = labels_out
-                ch_data["start_datetime"] = start_datetime
+                ch_data.signal = ch_data.signal_epoched[select_idx]
 
             labels_shape = labels_out.shape if self.config.use_annot else None
             self.logger.info(
                 "Data after selection: signal %s, labels %s",
-                next(iter(all_channel_data.values()))['signal'].shape,
+                next(iter(all_channel_data.values())).signal.shape,
                 labels_shape
             )
 
-            self._save_processed_data(all_channel_data)
+            self._save_processed_data(file_data, all_channel_data, labels_out)
             self.logger.info("Successfully processed")
 
         except Exception as e:
@@ -561,13 +579,13 @@ class FileProcessor:
             return None
         return select_idx
 
-    def _valid_selection_range(self, file_data, select_idx, n_real_signal_epochs):
+    def _valid_selection_range(self, file_data: FileData, select_idx, n_real_signal_epochs):
         """Check if the selected epochs are within the valid real signal range
         and not entirely in the padded region."""
 
         # Front padding: signal_adjust_front_sec > 0 means N epochs of padding were prepended.
         # Only full epochs that are entirely padding are counted (floor division).
-        signal_adjust_front_sec = file_data.get("signal_adjust_front_sec", 0.0)
+        signal_adjust_front_sec = file_data.signal_adjust_front_sec
         n_front_pad_epochs = int(signal_adjust_front_sec // self.config.epoch_duration)
         if (n_front_pad_epochs > 0
                 and len(select_idx) > 0
@@ -608,7 +626,7 @@ class FileProcessor:
                 self.logger.info("End alignment: cropping signal to %d epochs.", n_labels_epochs)
                 # in-place modification
                 for ch in all_channel_data.values():
-                    ch["signal_epoched"] = ch["signal_epoched"][:n_labels_epochs]
+                    ch.signal_epoched = ch.signal_epoched[:n_labels_epochs]
             elif self.config.alignment in (Alignment.MATCH_LONGER.value,
                                            Alignment.MATCH_SIGNAL.value): #pad labels
                 n_pad   = n_signal_epochs - n_labels_epochs
@@ -631,8 +649,8 @@ class FileProcessor:
                 self.logger.info("End alignment: padding signal by %d epochs.", n_pad)
                 # in-place modification
                 for ch in all_channel_data.values():
-                    sig = ch["signal_epoched"]
-                    ch["signal_epoched"] = np.vstack(
+                    sig = ch.signal_epoched
+                    ch.signal_epoched = np.vstack(
                         [sig, np.full((n_pad, sig.shape[1]), pad_val)]
                     )
         return labels
@@ -741,7 +759,7 @@ class FileProcessor:
 
         return delay
 
-    def _get_lights_epochs(self, channel_data):
+    def _get_lights_epochs(self, channel_data: FileData):
         """Get the epochs where Lights Off and Lights On happen based on the configured
         lights marker in annotation or PSG data.
         - The epoch in which Lights Off event happens is return as lights_off_epoch
@@ -750,20 +768,19 @@ class FileProcessor:
             in the selected data.
 
         Args:
-            channel_data (_type_): Dictionary containing minimum the following keys:
-                "psg_fname", "start_datetime", "lights_off", "lights_on"
+            channel_data: File metadata containing the recording start and light markers.
 
         Returns:
             _type_: epochs of Lights Off and Lights On
         """
 
-        startdatetime    = channel_data["start_datetime"]
-        start_time_shift = channel_data.get("start_time_shift", 0.0)
+        startdatetime = channel_data.start_datetime
+        start_time_shift = channel_data.start_time_shift
         lights_off_epoch = 0
         lights_on_epoch  = None
 
-        if channel_data["lights_off"] is not None:
-            lights_off = channel_data["lights_off"]
+        if channel_data.lights_off is not None:
+            lights_off = channel_data.lights_off
             if isinstance(lights_off, (datetime,time)):
                 if isinstance(lights_off, time):
                     # if date of marker timestamp is not available,
@@ -836,8 +853,8 @@ class FileProcessor:
         else:
             self.logger.warning("Lights Off time not available, keeping all wake epochs at start.")
 
-        if channel_data["lights_on"] is not None:
-            lights_on = channel_data["lights_on"]
+        if channel_data.lights_on is not None:
+            lights_on = channel_data.lights_on
             # Info: Lights On marker can happen to be after signal end,
             # cannot check this here because signal length is not determined yet
             if isinstance(lights_on, (datetime,time)):
@@ -911,12 +928,17 @@ class FileProcessor:
             round_marker_epoch = marker_sec / epoch_duration
         return int(round_marker_epoch)
 
-    def _save_processed_data(self, all_channel_data):
+    def _save_processed_data(
+        self,
+        file_data: FileData,
+        all_channel_data: dict[str, ChannelData],
+        labels: np.ndarray | None,
+    ):
         """Save processed data to file for npz, edf, hdf5 formats."""
         output_format = self.config.output_format
         channels_sorted = sorted(all_channel_data.keys())
-        channel_dicts = [all_channel_data[ch] for ch in channels_sorted]
-        n_epochs = [len(channel_data["signal"]) for channel_data in channel_dicts]
+        channel_data = [all_channel_data[ch] for ch in channels_sorted]
+        n_epochs = [len(channel.signal) for channel in channel_data]
         if len(np.unique(n_epochs)) != 1:
             self.logger.error("All channels must have the same number of epochs after processing "
                               "to be saved together, but got different number of epochs: %s",
@@ -926,40 +948,39 @@ class FileProcessor:
                              f"{n_epochs}")
 
         # check if there is a signal with only NaN values
-        if any(np.isnan(channel_data["signal"]).all() for channel_data in channel_dicts):
+        if any(np.isnan(channel.signal).all() for channel in channel_data):
             self.logger.warning("One or more channels contain only NaN values after processing. "
                                 "Skipping this file.")
             return
 
         if output_format == "npz":
-            for channel_data in channel_dicts:
+            for channel_name, channel in zip(channels_sorted, channel_data):
                 save_dict = {
-                    "x": channel_data["signal"],
-                    "fs": channel_data["sampling_rate"],
-                    "ch_label": channel_data["ch_name"],
-                    "ch_label_orig": channel_data["ch_name_orig"],
-                    "file_duration": len(channel_data["signal"]) * self.config.epoch_duration,
+                    "x": channel.signal,
+                    "fs": channel.sampling_rate,
+                    "ch_label": channel_name,
+                    "ch_label_orig": channel.ch_name_orig,
+                    "file_duration": len(channel.signal) * self.config.epoch_duration,
                     "epoch_duration": self.config.epoch_duration,
-                    "n_epochs": len(channel_data["signal"]),  # after cleaning
+                    "n_epochs": len(channel.signal),  # after cleaning
                 }
 
                 # Write Annotations
                 if self.config.use_annot:
                     # Handle multiple scorers
-                    labels = channel_data["labels"]
                     if labels.ndim == 1:
                         save_dict["y"] = labels
                     elif labels.ndim == 2:
                         save_dict["y"] = labels[:, 0]
                         save_dict["y2"] = labels[:, 1]
-                save_dict["unit"] = channel_data.get("unit", "n/a")
-                np.savez(channel_data["file_output_path"], **save_dict)
+                save_dict["unit"] = channel.unit or "n/a"
+                np.savez(channel.file_output_path, **save_dict)
 
         elif output_format == "edf":
-            file_output_path = channel_dicts[0]["file_output_path"]
-            with EdfWriter(file_output_path, n_channels=len(channel_dicts)) as edf_writer:
-                for i, channel_data in enumerate(channel_dicts):
-                    signal = channel_data["signal"].flatten()
+            file_output_path = channel_data[0].file_output_path
+            with EdfWriter(file_output_path, n_channels=len(channel_data)) as edf_writer:
+                for i, (channel_name, channel) in enumerate(zip(channels_sorted, channel_data)):
+                    signal = channel.signal.flatten()
                     scale = 10**3  # to get 3 decimals for physical min and max
                     phys_min = floor(np.nanmin(signal) * scale) / scale
                     phys_max = ceil(np.nanmax(signal) * scale) / scale
@@ -967,9 +988,9 @@ class FileProcessor:
                         phys_min -= 1.0
                         phys_max += 1.0
                     channel_info = {
-                        "label": channel_data["ch_name"],
-                        "dimension": channel_data.get("unit", "n/a"),
-                        "sample_frequency": float(channel_data["sampling_rate"]),
+                        "label": channel_name,
+                        "dimension": channel.unit or "n/a",
+                        "sample_frequency": float(channel.sampling_rate),
                         "physical_min": phys_min,
                         "physical_max": phys_max,
                         "digital_min": -32768,
@@ -978,27 +999,24 @@ class FileProcessor:
                         "prefilter": "",
                     }
                     edf_writer.setSignalHeader(i, channel_info)
-                if isinstance(channel_dicts[0]["start_datetime"], datetime):
-                    if channel_dicts[0]["start_datetime"].date() > date(1985, 1, 1):
-                        start_datetime = channel_dicts[0]["start_datetime"]
+                if isinstance(file_data.start_datetime, datetime):
+                    if file_data.start_datetime.date() > date(1985, 1, 1):
+                        edf_start_datetime = file_data.start_datetime
                     else:
-                        start_datetime = datetime.combine(
-                            date(1985, 1, 1), channel_dicts[0]["start_datetime"].time()
+                        edf_start_datetime = datetime.combine(
+                            date(1985, 1, 1), file_data.start_datetime.time()
                         )
                 else:
-                    start_datetime = datetime(1985, 1, 1, 0, 0, 0)
+                    edf_start_datetime = datetime(1985, 1, 1, 0, 0, 0)
 
                 # Write samples
-                edf_writer.setStartdatetime(start_datetime)
-                edf_writer.writeSamples([channel_data["signal"].flatten()
-                                         for channel_data in channel_dicts])
+                edf_writer.setStartdatetime(edf_start_datetime)
+                edf_writer.writeSamples([channel.signal.flatten() for channel in channel_data])
 
                 # Write annotations
                 if self.config.use_annot:
-                    all_labels = np.array([channel_data["labels"]
-                                           for channel_data in channel_dicts])
                     duration = self.config.epoch_duration
-                    for epoch_idx, label in enumerate(all_labels[0]):
+                    for epoch_idx, label in enumerate(labels):
                         # one value per scorer, comma-separated (e.g. "0" or "0,6")
                         edf_writer.writeAnnotation(
                             onset_in_seconds=epoch_idx * duration,
@@ -1007,34 +1025,34 @@ class FileProcessor:
                         )
 
         elif output_format == "hdf5":
-            file_output_path = channel_dicts[0]["file_output_path"]
+            file_output_path = channel_data[0].file_output_path
             with h5py.File(file_output_path, "w") as h5f:
                 # Metadata
                 h5f.attrs["epoch_duration"] = self.config.epoch_duration
-                h5f.attrs["file_duration"] = (len(channel_dicts[0]["signal"])
+                h5f.attrs["file_duration"] = (len(channel_data[0].signal)
                                               * self.config.epoch_duration)
-                h5f.attrs["n_epochs"] = len(channel_dicts[0]["signal"])
+                h5f.attrs["n_epochs"] = len(channel_data[0].signal)
                 grp_signals = h5f.create_group("signals")
-                for channel_data in channel_dicts:
-                    signal = channel_data["signal"].flatten()
+                for channel_name, channel in zip(channels_sorted, channel_data):
+                    signal = channel.signal.flatten()
 
                     # if channel_name came from h5 originally, keep only the last part after slash
                     if ("h5" in self.dataset.file_extensions["psg_ext"]
-                            and "/" in channel_data["ch_name"]):
-                        group_name = channel_data["ch_name"].split("/")[-1]
+                            and "/" in channel_name):
+                        group_name = channel_name.split("/")[-1]
                     else:
-                        group_name = channel_data["ch_name"]
+                        group_name = channel_name
                     ch_grp = grp_signals.create_group(group_name)
                     # Signal
                     ch_grp.create_dataset("data", data=signal, compression="gzip", shuffle=True)
-                    ch_grp.attrs["ch_label"] = channel_data["ch_name"]
-                    ch_grp.attrs["ch_label_orig"] = channel_data["ch_name_orig"]
-                    ch_grp.attrs["unit"] = channel_data.get("unit", "n/a")
-                    ch_grp.attrs["sampling_rate"] = channel_data["sampling_rate"]
+                    ch_grp.attrs["ch_label"] = channel_name
+                    ch_grp.attrs["ch_label_orig"] = channel.ch_name_orig
+                    ch_grp.attrs["unit"] = channel.unit or "n/a"
+                    ch_grp.attrs["sampling_rate"] = channel.sampling_rate
 
                 # Annotations
                 if self.config.use_annot:
-                    labels = np.asarray(channel_dicts[0]["labels"])
+                    labels = np.asarray(labels)
                     if labels.ndim == 1:
                         h5f.create_dataset("y", data=labels, compression="gzip")
                     elif labels.ndim == 2:
@@ -1052,60 +1070,71 @@ class ChannelProcessor:
     - Reshape into epochs.
     """
 
-    def __init__(self, logger: logging.Logger, config, dataset, channel):
+    def __init__(
+        self,
+        logger: logging.Logger,
+        config: ProcessorConfig,
+        dataset,
+        file_data: FileData,
+        channel: str,
+        file_output_path: str,
+    ):
         self.logger  = logger
         self.config  = config
         self.dataset = dataset
+        self.file_data = file_data
         self.channel = channel
+        self.file_output_path = file_output_path
 
-    def process_channel(self, data):
-        """Read and process one channel; return dict with signal_epoched and fs.
+    def process_channel(self):
+        """Read and process one channel and return its processed data.
 
         Returns None if the channel cannot be processed (missing signal, etc.).
         """
-        data["ch_name_orig"] = self.channel
 
         # Read raw signal
-        psg_data = self.dataset.get_signal_data(self.logger, data["psg_fname"],
-                                                data["ch_name_orig"])
+        psg_data = self.dataset.get_signal_data(self.logger,
+                                                self.file_data.psg_fname,
+                                                self.channel)
         if psg_data == {}:
             return None
         signal = psg_data["signal"].astype(np.float64)
-        fs     = psg_data["sampling_rate"]
-        unit   = psg_data.get("unit", "n/a")
+        sampling_rate = psg_data["sampling_rate"]
+        unit = psg_data.get("unit", "n/a")
         del psg_data
 
         self.logger.info("Channel %s has %d samples (%.2f Hz).",
-                         data['ch_name_orig'], len(signal), fs)
+                         self.channel, len(signal), sampling_rate)
 
         # Rescale amplitude
-        target_unit = self._get_target_unit(data["ch_name_orig"], self.dataset.channel_groups)
+        target_unit = self._get_target_unit(self.channel, self.dataset.channel_groups)
         if target_unit is not None:
-            signal, unit = self._rescale_signal(signal, unit, target_unit, data["ch_name_orig"])
+            signal, unit = self._rescale_signal(signal, unit, target_unit, self.channel)
 
         # Resample / filter / clip (fs-dependent, must come before raw-sample crop)
         if self.config.resample is not None or self.config.filter:
             signal_processor = SignalProcessor(
-                self.logger, signal, data["ch_name_orig"], self.config, self.dataset.channel_types
+                self.logger, signal, self.channel, self.config, self.dataset.channel_types
             )
             if self.config.resample is not None:
-                signal_processor.resample_signal(fs, self.config.resample)
-                fs = self.config.resample
+                signal_processor.resample_signal(sampling_rate, self.config.resample)
+                sampling_rate = self.config.resample
             if self.config.filter:
-                signal_processor.filter_signal(fs, self.dataset.channel_groups)
+                signal_processor.filter_signal(sampling_rate, self.dataset.channel_groups)
             signal_processor.clip_signal()
             signal = signal_processor.signal
 
         # Apply raw-sample front offset
-        signal_adjust_front_sec = data.get("signal_adjust_front_sec", 0.0)
-        if signal_adjust_front_sec != 0.0:
-            signal = self._apply_partial_epoch_offset(signal, fs, signal_adjust_front_sec)
+        if self.file_data.signal_adjust_front_sec != 0.0:
+            signal = self._apply_partial_epoch_offset(
+                signal, sampling_rate, self.file_data.signal_adjust_front_sec
+            )
 
         # Reshape into epochs
-        n_epoch_samples = self.config.epoch_duration * fs
+        n_epoch_samples = self.config.epoch_duration * sampling_rate
         if not n_epoch_samples.is_integer():
             raise ValueError(
-                f"Epoch duration {self.config.epoch_duration} sec with sampling rate {fs} Hz "
+                f"Epoch duration {self.config.epoch_duration} sec with sampling rate {sampling_rate} Hz "
                 "does not yield an integer number of samples per epoch."
             )
         n_epoch_samples = int(n_epoch_samples)
@@ -1114,20 +1143,22 @@ class ChannelProcessor:
         if n_epochs < 1:
             self.logger.warning(
                 "Channel %s: fewer than one full epoch of signal available, skipping.",
-                data['ch_name_orig']
+                self.channel
             )
             return None
         if remainder > 0:
-            self.logger.info("Signal cropped to full epochs (%.2f sec removed).", remainder / fs)
+            self.logger.info("Signal cropped to full epochs (%.2f sec removed).",
+                             remainder / sampling_rate)
 
         signal_epoched = signal[:n_epochs * n_epoch_samples].reshape(n_epochs, -1)
-
-        return {
-            "signal_epoched": signal_epoched,
-            "sampling_rate":  fs,
-            "unit":           unit,
-            "ch_name_orig":   self.channel,
-        }
+        return ChannelData(
+            ch_name_orig=self.channel,
+            signal_epoched=signal_epoched,
+            signal=signal_epoched,
+            sampling_rate=sampling_rate,
+            unit=unit,
+            file_output_path=self.file_output_path,
+        )
 
     # Multiplier to convert a value expressed in the given voltage unit to Volts
     VOLT_FACTORS = {"V": 1.0, "mV": 1e-3, "uV": 1e-6}
