@@ -422,6 +422,110 @@ class FileProcessor:
                 # For edf/hdf5, flush all channels' logs to single file
                 buffer_handler.flush_to_console_and_file(log_path)
 
+    def _setup_file_output(self):
+        """ Setup output for edf and hdf5 output format where all channels of one file
+        are stored together and share the same log file. """
+        # Create output directory
+        # (including subfolders of original data structure if keep_folder_structure is True)
+        if self.dataset.keep_folder_structure:
+            relative_path = os.path.split(Path(self.psg_fname).relative_to(self.config.psg_dir))[0]
+        else:
+            relative_path = ""
+
+        # Output is generated per PSG file containing all channels,
+        # log files are saved per PSG file separately
+        output_dir = os.path.join(self.config.output_dir, relative_path)
+        log_dir = os.path.join(output_dir, "log_files")
+        log_filename = f"{Path(self.psg_fname).stem}.log"
+
+        # Generate output file name
+        filename = f"{Path(self.psg_fname).stem}.{self.config.output_format}"
+        file_output_path = os.path.join(output_dir, filename)
+
+        # Prepare log file path (will be written after each file is processed)
+        log_file_path = os.path.join(log_dir, log_filename)
+
+        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(log_dir, exist_ok=True)
+
+        return file_output_path, log_file_path
+
+    def _setup_channel_output(self, channel):
+        """Setup output for npz output format where each channel is stored separately
+        and has its own log file."""
+
+        # Create output directory
+        # (including subfolders of original data structure if keep_folder_structure is True)
+        if self.dataset.keep_folder_structure:
+            relative_path = os.path.split(Path(self.psg_fname).relative_to(self.config.psg_dir))[0]
+        else:
+            relative_path = ""
+
+        # Output is generated per channel and sorted into channel folders
+        # with corresponding log file
+        # replace slash in folder names to avoid nested output structure
+        # replace colon because it is often not accepted in folder names
+        channel_clean = re.sub(r"[:/]", "_", channel)
+        output_dir = os.path.join(self.config.output_dir, relative_path, channel_clean)
+        log_dir = output_dir
+        log_filename = channel_clean + ".log"
+
+        # Generate output file name
+        filename = f"{Path(self.psg_fname).stem}.{self.config.output_format}"
+        file_output_path = os.path.join(output_dir, filename)
+
+        # Prepare log file path (will be written after each file is processed)
+        log_file_path = os.path.join(log_dir, log_filename)
+
+        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(log_dir, exist_ok=True)
+
+        return file_output_path, log_file_path
+
+    def _harmonize_channel_name(self, channel):
+        """Harmonize channel name based on dataset-specific mapping."""
+        if self.config.map_channel_names:
+            channel_harm = self.dataset.map_channel(channel)
+            self.logger.info(" Mapped channel name %s to %s", channel, channel_harm)
+            return channel_harm
+
+        return channel
+
+    def _get_start_delay(self, ann_start_datetime, signal_start_datetime):
+        """ Check if annotation and signal start datetime are aligned and calculate the delay
+        between annotation and signal start if necessary.
+        """
+        delay = 0
+        if ann_start_datetime is not None:
+            # If annotation start datetime is given as a datetime object,
+            # compare with signal start datetime and calculate start delay
+            if isinstance(ann_start_datetime, datetime) and signal_start_datetime is not None:
+                # Strip timezone info before comparison/subtraction
+                ann_dt = ann_start_datetime
+                sig_dt = signal_start_datetime
+                if ann_dt.time() != sig_dt.time():
+                    delay = (ann_dt - sig_dt).total_seconds()
+                    if abs(delay) >= 24*3600:
+                        direction = "after" if delay > 0 else "before"
+                        raise ValueError(f"Annotation start datetime {ann_dt} is more than 24h "
+                                         f"{direction} signal start datetime {sig_dt}. "
+                                         f"Check implementation!")
+                    if abs(delay) > 20*3600:
+                        delay = delay % (-np.sign(delay)*24*3600)  # Wrap around to next day
+
+            # If annotation start datetime is given as a numeric value,
+            # it indicates a delay in seconds or samples (depending on dataset)
+            elif isinstance(ann_start_datetime, (int, float, Decimal)):
+                delay = ann_start_datetime
+            else:
+                raise ValueError(f"Unsupported format of annotation start datetime: "
+                                 f"{ann_start_datetime}")
+            if delay != 0:
+                self.logger.info("Start of signal: %s, Start of labels: %s",
+                                 signal_start_datetime, ann_start_datetime)
+
+        return delay
+
     def _apply_front_label_adjustment(self, labels, label_adjust_front):
         """Crop (negative) or pad (positive) the front of the label array.
 
@@ -440,124 +544,6 @@ class FileProcessor:
 
         pad = np.full((label_adjust_front, labels.shape[1]), pad_val, dtype=labels.dtype)
         return np.vstack([pad, labels])
-
-    def _compute_select_idx(self, labels, lights_off_epoch, lights_on_epoch, n_epochs):
-        """Compute the epoch indices to keep based on lights markers and MOVE/UNK removal.
-
-        labels    : 1-D or 2-D label array, or None when use_annot=False.
-                    When None, label-dependent modes (integer wake buffer, rm_move/rm_unk,
-                    truncate_non_sleep_end) are skipped.
-        n_epochs  : total epoch count; derived from labels when labels is not None.
-        Uses the first scorer column when labels are 2-D.
-        Returns None if no epochs survive.
-        """
-        if labels is not None:
-            # only use first scorer column for seleciton
-            labels  = labels if labels.ndim == 1 else labels[:, 0]
-            sleep_mask = np.isin(labels, SLEEP_STAGES)
-            sleep_idx  = np.where(sleep_mask)[0]
-            if self.config.select_edges == "non-wake":
-                # Anchor on any non-Wake epoch (incl. Movement/Unknown)
-                # matching SleePyCo's reference behavior
-                edge_idx = np.where(labels != SleepStage.W)[0]
-            else:
-                edge_idx = sleep_idx
-        else:
-            labels  = None
-            sleep_idx = np.array([], dtype=int)
-            edge_idx  = np.array([], dtype=int)
-
-        start_idx = 0
-        end_idx   = n_epochs
-
-        if self.config.select_epochs == "lights":
-            if lights_off_epoch is not None:
-                start_idx = lights_off_epoch
-
-            if lights_on_epoch is not None:
-                if lights_on_epoch <= n_epochs:
-                    end_idx = lights_on_epoch
-                elif lights_on_epoch == n_epochs + 1:
-                    pass  # Lights On fell in the last cropped partial epoch -> keep all
-                else:
-                    # Maybe padding both signal and annotations until Lights On ??
-                    self.logger.warning("Lights On is %d epochs after recording ends "
-                                        "(marker is ignored for epoch selection).",
-                                        lights_on_epoch - n_epochs)
-            else:
-                if self.config.truncate_non_sleep_end and len(sleep_idx) > 0:
-                    end_idx = sleep_idx[-1] + 1
-                    self.logger.info("Removed %d Non-Sleep epochs at end of night.",
-                                     n_epochs - end_idx)
-
-        elif isinstance(self.config.select_epochs, int):
-            if labels is None:
-                self.logger.warning("select_epochs config is an integer but use_annot=False, "
-                                    "no labels available to identify sleep stages, "
-                                    "keeping all epochs.")
-            elif len(edge_idx) > 0:
-                n_select  = self.config.select_epochs
-                start_idx = max(0, edge_idx[0] - n_select)
-                end_idx   = min(n_epochs, edge_idx[-1] + n_select + 1)
-                if start_idx > 0 or end_idx != n_epochs:
-                    n_crop = n_epochs - (end_idx - start_idx)
-                    self.logger.info(
-                        "Cropped %d epochs (%.1f min) of extensive wake",
-                        n_crop,
-                        n_crop * self.config.epoch_duration / 60
-                    )
-
-        if labels is not None:
-            move_idx = np.where(labels == SleepStage.MOVE)[0] if self.config.rm_move else []
-            unk_idx  = np.where(labels == SleepStage.UNK)[0]  if self.config.rm_unk  else []
-            if len(move_idx) > 0:
-                self.logger.info("Removing %d Movement epochs", len(move_idx))
-            if len(unk_idx) > 0:
-                self.logger.info("Removing %d Unknown epochs", len(unk_idx))
-            remove_idx = np.union1d(move_idx, unk_idx)
-        else:
-            remove_idx = np.array([], dtype=int)
-
-        # choose all epochs in the range [start_idx, end_idx) except those in remove_idx
-        select_idx = np.setdiff1d(np.arange(start_idx, end_idx), remove_idx)
-
-        if len(select_idx) == 0:
-            self.logger.warning(
-                "No data left after epoch selection. \n start_idx=%d, end_idx=%d, removed=%d",
-                start_idx,
-                end_idx,
-                len(remove_idx)
-            )
-            return None
-        return select_idx
-
-    def _valid_selection_range(self, file_data: FileData, select_idx, n_real_signal_epochs):
-        """Check if the selected epochs are within the valid real signal range
-        and not entirely in the padded region."""
-
-        # Front padding: front_adjustment_sec > 0 means N epochs of padding were prepended.
-        # Only full epochs that are entirely padding are counted (floor division).
-        front_adjustment_sec = file_data.front_adjustment_sec
-        n_front_pad_epochs = int(front_adjustment_sec // self.config.epoch_duration)
-        if (n_front_pad_epochs > 0
-                and select_idx[-1] < n_front_pad_epochs):
-            self.logger.warning(
-                "All selected epochs (%d-%d) fall entirely outside the signal region. "
-                "Skipping file.",
-                select_idx[0], select_idx[-1]
-            )
-            return False
-
-        # End padding: signal was extended by end alignment and selection starts beyond real data.
-        if (self.config.use_annot
-                and select_idx[0] >= n_real_signal_epochs):
-            self.logger.warning(
-                "All selected epochs (%d-%d) fall entirely outside the signal region. "
-                "Skipping file.",
-                select_idx[0], select_idx[-1]
-            )
-            return False
-        return True
 
     def _end_align(self, labels, all_channel_data, n_signal_epochs, n_labels_epochs):
         """Reconcile signal epoch count vs label epoch count using the alignment config.
@@ -653,110 +639,6 @@ class FileProcessor:
                 seconds=float(select_idx[0] * self.config.epoch_duration)
             )
         return select_idx
-
-    def _harmonize_channel_name(self, channel):
-        """Harmonize channel name based on dataset-specific mapping."""
-        if self.config.map_channel_names:
-            channel_harm = self.dataset.map_channel(channel)
-            self.logger.info(" Mapped channel name %s to %s", channel, channel_harm)
-            return channel_harm
-
-        return channel
-
-    def _setup_file_output(self):
-        """ Setup output for edf and hdf5 output format where all channels of one file
-        are stored together and share the same log file. """
-        # Create output directory
-        # (including subfolders of original data structure if keep_folder_structure is True)
-        if self.dataset.keep_folder_structure:
-            relative_path = os.path.split(Path(self.psg_fname).relative_to(self.config.psg_dir))[0]
-        else:
-            relative_path = ""
-
-        # Output is generated per PSG file containing all channels,
-        # log files are saved per PSG file separately
-        output_dir = os.path.join(self.config.output_dir, relative_path)
-        log_dir = os.path.join(output_dir, "log_files")
-        log_filename = f"{Path(self.psg_fname).stem}.log"
-
-        # Generate output file name
-        filename = f"{Path(self.psg_fname).stem}.{self.config.output_format}"
-        file_output_path = os.path.join(output_dir, filename)
-
-        # Prepare log file path (will be written after each file is processed)
-        log_file_path = os.path.join(log_dir, log_filename)
-
-        os.makedirs(output_dir, exist_ok=True)
-        os.makedirs(log_dir, exist_ok=True)
-
-        return file_output_path, log_file_path
-
-    def _setup_channel_output(self, channel):
-        """Setup output for npz output format where each channel is stored separately
-        and has its own log file."""
-
-        # Create output directory
-        # (including subfolders of original data structure if keep_folder_structure is True)
-        if self.dataset.keep_folder_structure:
-            relative_path = os.path.split(Path(self.psg_fname).relative_to(self.config.psg_dir))[0]
-        else:
-            relative_path = ""
-
-        # Output is generated per channel and sorted into channel folders
-        # with corresponding log file
-        # replace slash in folder names to avoid nested output structure
-        # replace colon because it is often not accepted in folder names
-        channel_clean = re.sub(r"[:/]", "_", channel)
-        output_dir = os.path.join(self.config.output_dir, relative_path, channel_clean)
-        log_dir = output_dir
-        log_filename = channel_clean + ".log"
-
-        # Generate output file name
-        filename = f"{Path(self.psg_fname).stem}.{self.config.output_format}"
-        file_output_path = os.path.join(output_dir, filename)
-
-        # Prepare log file path (will be written after each file is processed)
-        log_file_path = os.path.join(log_dir, log_filename)
-
-        os.makedirs(output_dir, exist_ok=True)
-        os.makedirs(log_dir, exist_ok=True)
-
-        return file_output_path, log_file_path
-
-    def _get_start_delay(self, ann_start_datetime, signal_start_datetime):
-        """ Check if annotation and signal start datetime are aligned and calculate the delay
-        between annotation and signal start if necessary.
-        """
-        delay = 0
-        if ann_start_datetime is not None:
-            # If annotation start datetime is given as a datetime object,
-            # compare with signal start datetime and calculate start delay
-            if isinstance(ann_start_datetime, datetime) and signal_start_datetime is not None:
-                # Strip timezone info before comparison/subtraction
-                ann_dt = ann_start_datetime
-                sig_dt = signal_start_datetime
-                if ann_dt.time() != sig_dt.time():
-                    delay = (ann_dt - sig_dt).total_seconds()
-                    if abs(delay) >= 24*3600:
-                        direction = "after" if delay > 0 else "before"
-                        raise ValueError(f"Annotation start datetime {ann_dt} is more than 24h "
-                                         f"{direction} signal start datetime {sig_dt}. "
-                                         f"Check implementation!")
-                    if abs(delay) > 20*3600:
-                        delay = delay % (-np.sign(delay)*24*3600)  # Wrap around to next day
-
-            # If annotation start datetime is given as a numeric value,
-            # it indicates a delay in seconds or samples (depending on dataset)
-            elif isinstance(ann_start_datetime, (int, float, Decimal)):
-                delay = ann_start_datetime
-            else:
-                raise ValueError(f"Unsupported format of annotation start datetime: "
-                                 f"{ann_start_datetime}")
-            if delay != 0:
-                self.logger.info("Start of signal: %s, Start of labels: %s",
-                                 signal_start_datetime, ann_start_datetime)
-
-        return delay
 
     def _get_lights_epochs(self, file_data: FileData):
         """Get the epochs where Lights Off and Lights On happen based on the configured
@@ -924,6 +806,124 @@ class FileProcessor:
         else:
             round_marker_epoch = marker_sec / epoch_duration
         return int(round_marker_epoch)
+
+    def _compute_select_idx(self, labels, lights_off_epoch, lights_on_epoch, n_epochs):
+        """Compute the epoch indices to keep based on lights markers and MOVE/UNK removal.
+
+        labels    : 1-D or 2-D label array, or None when use_annot=False.
+                    When None, label-dependent modes (integer wake buffer, rm_move/rm_unk,
+                    truncate_non_sleep_end) are skipped.
+        n_epochs  : total epoch count; derived from labels when labels is not None.
+        Uses the first scorer column when labels are 2-D.
+        Returns None if no epochs survive.
+        """
+        if labels is not None:
+            # only use first scorer column for seleciton
+            labels  = labels if labels.ndim == 1 else labels[:, 0]
+            sleep_mask = np.isin(labels, SLEEP_STAGES)
+            sleep_idx  = np.where(sleep_mask)[0]
+            if self.config.select_edges == "non-wake":
+                # Anchor on any non-Wake epoch (incl. Movement/Unknown)
+                # matching SleePyCo's reference behavior
+                edge_idx = np.where(labels != SleepStage.W)[0]
+            else:
+                edge_idx = sleep_idx
+        else:
+            labels  = None
+            sleep_idx = np.array([], dtype=int)
+            edge_idx  = np.array([], dtype=int)
+
+        start_idx = 0
+        end_idx   = n_epochs
+
+        if self.config.select_epochs == "lights":
+            if lights_off_epoch is not None:
+                start_idx = lights_off_epoch
+
+            if lights_on_epoch is not None:
+                if lights_on_epoch <= n_epochs:
+                    end_idx = lights_on_epoch
+                elif lights_on_epoch == n_epochs + 1:
+                    pass  # Lights On fell in the last cropped partial epoch -> keep all
+                else:
+                    # Maybe padding both signal and annotations until Lights On ??
+                    self.logger.warning("Lights On is %d epochs after recording ends "
+                                        "(marker is ignored for epoch selection).",
+                                        lights_on_epoch - n_epochs)
+            else:
+                if self.config.truncate_non_sleep_end and len(sleep_idx) > 0:
+                    end_idx = sleep_idx[-1] + 1
+                    self.logger.info("Removed %d Non-Sleep epochs at end of night.",
+                                     n_epochs - end_idx)
+
+        elif isinstance(self.config.select_epochs, int):
+            if labels is None:
+                self.logger.warning("select_epochs config is an integer but use_annot=False, "
+                                    "no labels available to identify sleep stages, "
+                                    "keeping all epochs.")
+            elif len(edge_idx) > 0:
+                n_select  = self.config.select_epochs
+                start_idx = max(0, edge_idx[0] - n_select)
+                end_idx   = min(n_epochs, edge_idx[-1] + n_select + 1)
+                if start_idx > 0 or end_idx != n_epochs:
+                    n_crop = n_epochs - (end_idx - start_idx)
+                    self.logger.info(
+                        "Cropped %d epochs (%.1f min) of extensive wake",
+                        n_crop,
+                        n_crop * self.config.epoch_duration / 60
+                    )
+
+        if labels is not None:
+            move_idx = np.where(labels == SleepStage.MOVE)[0] if self.config.rm_move else []
+            unk_idx  = np.where(labels == SleepStage.UNK)[0]  if self.config.rm_unk  else []
+            if len(move_idx) > 0:
+                self.logger.info("Removing %d Movement epochs", len(move_idx))
+            if len(unk_idx) > 0:
+                self.logger.info("Removing %d Unknown epochs", len(unk_idx))
+            remove_idx = np.union1d(move_idx, unk_idx)
+        else:
+            remove_idx = np.array([], dtype=int)
+
+        # choose all epochs in the range [start_idx, end_idx) except those in remove_idx
+        select_idx = np.setdiff1d(np.arange(start_idx, end_idx), remove_idx)
+
+        if len(select_idx) == 0:
+            self.logger.warning(
+                "No data left after epoch selection. \n start_idx=%d, end_idx=%d, removed=%d",
+                start_idx,
+                end_idx,
+                len(remove_idx)
+            )
+            return None
+        return select_idx
+
+    def _valid_selection_range(self, file_data: FileData, select_idx, n_real_signal_epochs):
+        """Check if the selected epochs are within the valid real signal range
+        and not entirely in the padded region."""
+
+        # Front padding: front_adjustment_sec > 0 means N epochs of padding were prepended.
+        # Only full epochs that are entirely padding are counted (floor division).
+        front_adjustment_sec = file_data.front_adjustment_sec
+        n_front_pad_epochs = int(front_adjustment_sec // self.config.epoch_duration)
+        if (n_front_pad_epochs > 0
+                and select_idx[-1] < n_front_pad_epochs):
+            self.logger.warning(
+                "All selected epochs (%d-%d) fall entirely outside the signal region. "
+                "Skipping file.",
+                select_idx[0], select_idx[-1]
+            )
+            return False
+
+        # End padding: signal was extended by end alignment and selection starts beyond real data.
+        if (self.config.use_annot
+                and select_idx[0] >= n_real_signal_epochs):
+            self.logger.warning(
+                "All selected epochs (%d-%d) fall entirely outside the signal region. "
+                "Skipping file.",
+                select_idx[0], select_idx[-1]
+            )
+            return False
+        return True
 
     def _save_processed_data(
         self,
