@@ -31,7 +31,7 @@ The codebase is organized into four main components:
 │   ├── core/
 │   │   ├── dataset_explorer.py    # File search & channel analysis
 │   │   ├── processor.py           # Main processing pipeline
-│   │   └── signal_processor.py    # Filtering & resampling 
+│   │   └── signal_processor.py    # Filtering & resampling
 │   └── utils/
 │       ├── config.py              # Helper class for process configuration
 │       └── logging_manager.py     # Helper class for logging
@@ -56,7 +56,7 @@ The codebase is organized into four main components:
    ```bash
    python process_dataset.py
    ```
-   or 
+   or
     ```bash
    python process_dataset.py --config /path/to/your/config.yaml
    ```
@@ -134,7 +134,7 @@ The steps that are performed during processing depend heavily on your [config.ya
 - current file/channel is skipped, if the output path already exists (param: overwrite)
 - signal is extracted from PSG file using defined file handler (dataset._file_handler)
 - signal is resampled to 100Hz (param: resample):
-    - digital channels (like Oxygen Saturation) are resampled with a nearest neighbour interpolation 
+    - digital channels (like Oxygen Saturation) are resampled with a nearest neighbour interpolation
     - analog channels (like EEG) are resampled with polyphase filtering (mse.filter)
 - signal is filtered based on AASM recomendation (param: filter)
 - signal is clipped to the orignal range (because filtering may introduce overshootings)
@@ -154,7 +154,7 @@ The steps that are performed during processing depend heavily on your [config.ya
 You can choose the desired output format inside the [config.yaml](/config.yaml). Possible formats are: 'npz', 'edf' and 'hdf5'.
 
 **Format `.npz`:**
-The pipeline generates one .npz file per processed channel and per file in a channel based folder structure. Thus for example three input .edf files with each five recorded channels, result in five output folders named after the channels with each containing three .npz files. It is possible that not all output folders contain the number of input files, which only means that some input files recorded only a subset of channels. 
+The pipeline generates one .npz file per processed channel and per file in a channel based folder structure. Thus for example three input .edf files with each five recorded channels, result in five output folders named after the channels with each containing three .npz files. It is possible that not all output folders contain the number of input files, which only means that some input files recorded only a subset of channels.
 
 This structure is espacially helpful if you plan to use the processed data as input for [SleePyCo](https://github.com/gist-ailab/SleePyCo).
 
@@ -188,7 +188,7 @@ The pipeline generates one h5 file per input psg file, including all chosen chan
         - `ann_parse`
         - `dataset_paths`
         - optionally `preprocess` (see [FDCSR dataset](/datasets/fdcsr.py))
-        
+
     - register the dataset using the decorator `@register_dataset("YOUR_DS_NAME")`.
     - Check if the polysomnography file extension is already covered by one of the [file_handlers](/datasets/file_handlers/). For standardized formats (e.g. EDF, EEGLAB, WFDB) you can use the existing generic handlers by specifying them inside the __init__ function. For all others you have to implement the following functions yourself inside the dataset script to be able to use the pipeline:
         - get_channels()
@@ -206,7 +206,7 @@ The pipeline generates one h5 file per input psg file, including all chosen chan
 3. **Define all pending dataset properties:**
     - Now you are good to go to define all pending properties inside your script to make use of the whole processing pipeline. Inside `_setup_dataset_config`, specify the collected channel names, channel types, channel groups (to apply filtering according to AASM) and optional intra-dataset- and inter-dataset-channel-mappings (can be used to harmonize channel names, see [BESTAIR dataset](/datasets/bestair.py))
 4. **Perform processing:**
-    - set the `action` parameter back to 'process', choose all other configurations, start the pipeline and lay back :) 
+    - set the `action` parameter back to 'process', choose all other configurations, start the pipeline and lay back :)
 
 
 ---
