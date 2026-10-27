@@ -18,7 +18,7 @@ import h5py
 import numpy as np
 from tqdm import tqdm
 
-from psg_processing.utils import LoggingManager, Alignment, SleepStage, SLEEP_STAGES
+from psg_processing.utils import LoggingManager, Alignment, SleepStage, SLEEP_STAGES, ProcessorConfig
 from psg_processing.core.dataset_explorer import DatasetExplorer
 from psg_processing.core.signal_processor import SignalProcessor
 
@@ -36,8 +36,8 @@ class FileData:
     psg_fname: str
     ann_fname: str | None
     start_datetime: SignalStart = None
-    file_duration: float = 0.0
     ann_start_datetime: AnnotationStart = None
+    file_duration: float = 0.0
     lights_off: LightMarker = None
     lights_on: LightMarker = None
     front_adjustment_sec: float = 0.0
@@ -56,10 +56,12 @@ class ChannelData:
 
 class DatasetProcessor:
     """
-    Main processor for PSG dataset preparation and signal processing.
+    Main processor for PSG dataset preparation.
 
-    This class orchestrates the entire dataset processing pipeline,
-    handling file processing, signal cleaning, and output generation.
+    This class orchestrates the dataset processing pipeline,
+    by distributing the the processing of individual PSG files to worker processes.
+
+    Proceesing stops if any file fails, and the error is logged for debugging.
     """
 
     def __init__(self, dataset, config):
@@ -72,6 +74,10 @@ class DatasetProcessor:
     def process_files(self):
         """
         Process all PSG files in the dataset according to the provided configuration.
+
+        Clear log files if overwrite is enabled.
+        Matches PSG files with annotation files if use_annot is True.
+        Processing of each pair is done in parallel using ProcessPoolExecutor, with a progress bar.
         """
 
         try:
@@ -143,6 +149,7 @@ class DatasetProcessor:
                                                            self.dataset,
                                                            psg_fname, ann_fname)
 
+                            # Submit the file processing task to the executor
                             future = executor.submit(file_processor.process_file)
                             tasks.append(future)
 
@@ -178,7 +185,7 @@ class DatasetProcessor:
             self.pipeline_logger.info("=" * 60)
             self.pipeline_logger.info("Stopped processing")
 
-    def _build_annot_lookup(self, psg_fnames, ann_fnames):
+    def _build_annot_lookup(self, psg_fnames: list[str], ann_fnames: list[str]) -> dict[str, str]:
         annotation_map = {}
 
         # Build lookup dict by identifier
@@ -207,7 +214,7 @@ class FileProcessor:
     """Class to process a single PSG file with one or multiple channels
     and save the processed data to file."""
 
-    def __init__(self, config, dataset, psg_fname, ann_fname):
+    def __init__(self, config, dataset, psg_fname: str, ann_fname: str):
         self.logging_manager = LoggingManager(console_level=config.logging_level)
         self.logger = None
         self.config = config
@@ -219,11 +226,9 @@ class FileProcessor:
         """Process a single PSG file for all specified channels."""
 
         try:
-            # Start buffering logs for this file
+            # Start buffering logs for this file with file-specific identifier
             file_id = Path(self.psg_fname).stem
-            self.logger, buffer_handler = self.logging_manager.create_file_logger(
-                file_identifier=file_id
-            )
+            self.logger, buffer_handler = self.logging_manager.create_file_logger(file_id)
 
             self.logger.info("Signal file: %s",
                              Path(self.psg_fname).relative_to(self.config.psg_dir))
@@ -264,15 +269,25 @@ class FileProcessor:
             self.logger.info("File duration: %s sec, %.2f h",
                              file_data.file_duration, file_data.file_duration / 3600)
 
-            # Annotations and file-level label preparation
+
+            # Check if there are dataset-level markers for Lights On/Off events.
+            lights_off_ds, lights_on_ds = self.dataset.get_light_times(
+                self.logger, self.psg_fname
+            )
+            file_data.lights_off = lights_off_ds
+            file_data.lights_on = lights_on_ds
+
+            # Annotations preparation
             if self.config.use_annot:
                 ann_stage_events, ann_startdatetime, lights_off, lights_on = \
                     self.dataset.ann_parse(self.ann_fname)
                 if isinstance(ann_startdatetime, datetime):
                     ann_startdatetime = ann_startdatetime.replace(tzinfo=None)
                 file_data.ann_start_datetime = ann_startdatetime
-                file_data.lights_off = lights_off
-                file_data.lights_on = lights_on
+                if file_data.lights_off is None:
+                    file_data.lights_off = lights_off
+                if file_data.lights_on is None:
+                    file_data.lights_on = lights_on
 
                 if ann_stage_events == []:
                     self.logger.warning("No sleep stage annotations found in %s, skipping file.",
@@ -357,35 +372,18 @@ class FileProcessor:
             if not all_channel_data:
                 return
 
-            # File-level post-processing
+            ## File-level post-processing
 
-            # If configured, use lights markers to get selection range
-            if self.config.select_epochs == "lights":
-                # In some datasets, lights markers are derived on dataset level,
-                # in others they were already extracted from the annotation file
-                lights_off_ds, lights_on_ds = self.dataset.get_light_times(self.logger,
-                                                                           self.psg_fname)
-                if lights_off_ds is not None:
-                    file_data.lights_off = lights_off_ds
-                if lights_on_ds is not None:
-                    file_data.lights_on = lights_on_ds
-                # Compute epoch indices for lights markers
-                loff_epoch, lon_epoch = self._get_lights_epochs(file_data)
-            else:
-                loff_epoch, lon_epoch = None, None
+            # get the first channel's epoch count before end alignment
+            n_real_signal_epochs = len(next(iter(all_channel_data.values())).signal)
 
-            # get the first channel's epoch count
-            n_signal_epochs = len(next(iter(all_channel_data.values())).signal)
-            # epoch count before any end-alignment padding
-            n_real_signal_epochs = n_signal_epochs
-
-            # End alignment: reconcile signal epoch count with label count.
+            ## End alignment: reconcile signal epoch count with label count
             if self.config.use_annot:
                 n_label_epochs = len(file_data.labels)
-                if n_signal_epochs != n_label_epochs:
+                if n_real_signal_epochs != n_label_epochs:
                     if not self.dataset.has_end_alignment:
                         raise ValueError(
-                            f"Signal ({n_signal_epochs} epochs) and labels "
+                            f"Signal ({n_real_signal_epochs} epochs) and labels "
                             f"({n_label_epochs} epochs) do not match. "
                             f"Dataset {self.dataset.dset_name} has no end alignment "
                             f"defined (has_end_alignment=False). Please verify."
@@ -393,40 +391,14 @@ class FileProcessor:
                     file_data.labels = self._end_align(
                         file_data.labels,
                         all_channel_data,
-                        n_signal_epochs,
+                        n_real_signal_epochs,
                         n_label_epochs,
                     )
 
-            # Compute epoch selection based on lights marker
-            # and/or MOVE/UNK removal and/or truncate_non_sleep_end
-            n_epochs = len(next(iter(all_channel_data.values())).signal)
-            labels_sel = file_data.labels if self.config.use_annot else None
-            select_idx = self._compute_select_idx(labels_sel, loff_epoch, lon_epoch, n_epochs)
-            if select_idx is None:
+            ## Compute and apply selection of epochs to keep
+            ret = self._epoch_selection(file_data, all_channel_data, n_real_signal_epochs)
+            if ret is None:
                 return
-
-            # Skip file if selection falls entirely in a padded region with no real signal data.
-            if not self._valid_selection_range(file_data, select_idx, n_real_signal_epochs):
-                return
-
-            # Apply selection to labels and signals
-            if self.config.use_annot:
-                file_data.labels = file_data.labels[select_idx]
-            for ch_data in all_channel_data.values():
-                ch_data.signal = ch_data.signal[select_idx]
-
-            labels_shape = file_data.labels.shape if self.config.use_annot else None
-            self.logger.info(
-                "Data after selection: signal %s, labels %s",
-                next(iter(all_channel_data.values())).signal.shape,
-                labels_shape
-            )
-
-            # Mirror the selection also in the start datetime that is store in the output file metadata
-            if isinstance(start_datetime, datetime):
-                file_data.start_datetime = start_datetime + timedelta(
-                    seconds=float(select_idx[0] * self.config.epoch_duration)
-                )
 
             self._save_processed_data(file_data, all_channel_data)
             self.logger.info("Successfully processed")
@@ -633,6 +605,55 @@ class FileProcessor:
                     )
         return labels
 
+    def _epoch_selection(self,
+                               file_data: FileData,
+                               all_channel_data: dict[str, ChannelData],
+                               n_real_signal_epochs: int):
+        """Apply the epoch selection to the labels and signals.
+
+        1. Get the corresponding epochs for Lights On/Off markers
+        2. Compute the epoch selection indices based on lights markers, MOVE/UNK removal, and truncate_non_sleep_end.
+        3. Check if the selection range is valid (not entirely in padded region).
+        4. Apply the selection to labels and signals.
+        """
+
+        # If configured, use lights markers to get selection range
+        if self.config.select_epochs == "lights":
+            # Compute epoch indices for lights markers
+            loff_epoch, lon_epoch = self._get_lights_epochs(file_data)
+        else:
+            loff_epoch, lon_epoch = None, None
+
+        n_epochs = len(next(iter(all_channel_data.values())).signal)
+        labels_sel = file_data.labels if self.config.use_annot else None
+        select_idx = self._compute_select_idx(labels_sel, loff_epoch, lon_epoch, n_epochs)
+        if select_idx is None:
+            return None
+
+        # Skip file if selection falls entirely in a padded region with no real signal data.
+        if not self._valid_selection_range(file_data, select_idx, n_real_signal_epochs):
+            return None
+
+        # Apply selection to labels and signals
+        if self.config.use_annot:
+            file_data.labels = file_data.labels[select_idx]
+        for ch_data in all_channel_data.values():
+            ch_data.signal = ch_data.signal[select_idx]
+
+        labels_shape = file_data.labels.shape if self.config.use_annot else None
+        self.logger.info(
+            "Data after selection: signal %s, labels %s",
+            next(iter(all_channel_data.values())).signal.shape,
+            labels_shape
+        )
+
+        # Mirror the selection also in the start datetime that is store in the output file metadata
+        if isinstance(file_data.start_datetime, datetime):
+            file_data.start_datetime = file_data.start_datetime + timedelta(
+                seconds=float(select_idx[0] * self.config.epoch_duration)
+            )
+        return select_idx
+
     def _harmonize_channel_name(self, channel):
         """Harmonize channel name based on dataset-specific mapping."""
         if self.config.map_channel_names:
@@ -737,7 +758,7 @@ class FileProcessor:
 
         return delay
 
-    def _get_lights_epochs(self, channel_data: FileData):
+    def _get_lights_epochs(self, file_data: FileData):
         """Get the epochs where Lights Off and Lights On happen based on the configured
         lights marker in annotation or PSG data.
         - The epoch in which Lights Off event happens is return as lights_off_epoch
@@ -746,19 +767,19 @@ class FileProcessor:
             in the selected data.
 
         Args:
-            channel_data: File metadata containing the recording start and light markers.
+            file_data: File metadata containing the recording start and light markers.
 
         Returns:
             _type_: epochs of Lights Off and Lights On
         """
 
-        startdatetime = channel_data.start_datetime
-        front_adjustment_sec = channel_data.front_adjustment_sec
+        startdatetime = file_data.start_datetime
+        front_adjustment_sec = file_data.front_adjustment_sec
         lights_off_epoch = 0
         lights_on_epoch  = None
 
-        if channel_data.lights_off is not None:
-            lights_off = channel_data.lights_off
+        if file_data.lights_off is not None:
+            lights_off = file_data.lights_off
             if isinstance(lights_off, (datetime,time)):
                 if isinstance(lights_off, time):
                     # if date of marker timestamp is not available,
@@ -830,8 +851,8 @@ class FileProcessor:
         else:
             self.logger.warning("Lights Off time not available, keeping all wake epochs at start.")
 
-        if channel_data.lights_on is not None:
-            lights_on = channel_data.lights_on
+        if file_data.lights_on is not None:
+            lights_on = file_data.lights_on
             # Info: Lights On marker can happen to be after signal end,
             # cannot check this here because signal length is not determined yet
             if isinstance(lights_on, (datetime,time)):
