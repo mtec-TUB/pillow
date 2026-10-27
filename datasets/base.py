@@ -38,6 +38,9 @@ class BaseDataset(ABC):
 
         self.dset_dir = None # is set in process_dataset()
 
+        # Some datasets have two scorers. This is set in the datasets __init__ if applicable.
+        self.use_both_scorers = False
+
         # Alignment flags — set to True in subclass __init__ for datasets that are known to
         # have signal/label length mismatches at the front or end.  If False (default) and a
         # mismatch is detected, the processor warns and skips the file.
@@ -366,6 +369,9 @@ class BaseDataset(ABC):
         Returns:
             Array of sleep stage labels
         """
+        if self.use_both_scorers:
+            return self.ann_label_2D(logger, ann_stage_events, epoch_duration)
+
         # Generate labels from onset and duration annotation
         labels = []
         total_duration = 0
@@ -403,6 +409,60 @@ class BaseDataset(ABC):
             logger.debug("Include onset:%d, duration:%d, label:%d (%s)", onset_sec, ann_duration, label, ann_str)
 
         return np.concatenate(labels)
+
+    def ann_label_2D(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int):
+
+        """
+        Convert multi-scorer (n=2) sleep stage events to epoch-wise labels.
+        Returns 2D array (n_epochs, 2).
+        """
+        labels = [np.array([], dtype=np.int32), np.array([], dtype=np.int32)]
+
+        for i, annotation in enumerate(ann_stage_events):  # two scorers
+            total_duration = 0
+            for event in annotation:
+                onset_sec = int(event['Start'])
+                duration_sec = int(event['Duration'])
+                ann_str = event['Stage']
+
+                # Sanity check
+                assert onset_sec == total_duration, f"Onset sec of epoch is {onset_sec} but last epoch ended at {total_duration}"
+
+                # Get label value
+                if ann_str in self.ann2label:
+                    label = int(self.ann2label[ann_str])
+                else:
+                    logger.info("Something unexpected: label %s not found", ann_str)
+                    raise DatasetProcessingError(
+                        f"Something unexpected: label {ann_str} not found",
+                        self.dset_name,
+                        "ann_label",
+                    )
+
+                # Compute # of epoch for this stage
+                if duration_sec % epoch_duration != 0:
+                    logger.error("Annotation epoch duration %d is not a multiple of epoch duration %d",
+                                duration_sec, epoch_duration)
+                    raise DatasetProcessingError(f"Annotation epoch duration {duration_sec} is not a multiple of \
+                                                epoch duration {epoch_duration}", self.dset_name, "ann_label")
+
+                duration_epoch = int(duration_sec / epoch_duration)
+
+                # Generate sleep stage labels
+                label_epoch = np.ones(duration_epoch, dtype=np.int32) * label
+                labels[i] = np.append(labels[i], label_epoch)
+
+                total_duration += duration_sec
+
+        # Pad shorter annotation to match longer one
+        if len(labels[0]) != len(labels[1]):
+            max_len = max(len(labels[0]), len(labels[1]))
+            labels[0] = np.pad(labels[0], (0, max_len - len(labels[0])), mode='constant', constant_values=SleepStage.UNK)
+            labels[1] = np.pad(labels[1], (0, max_len - len(labels[1])), mode='constant', constant_values=SleepStage.UNK)
+
+        labels = np.array(labels).T  # Transpose to (n_epochs, n_scorers)
+
+        return labels
 
     def compute_front_alignment(self, logger: logging.Logger, alignment, pad_values, epoch_duration, delay_sec):
         """Compute front-alignment parameters at file level without touching any arrays.

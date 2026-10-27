@@ -2,10 +2,8 @@ import os
 import shutil
 import glob
 from pathlib import Path
-from typing import Dict, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
@@ -20,6 +18,7 @@ class ISRUC(BaseDataset):
 
     def __init__(self):
         super().__init__("ISRUC","ISRUC")
+        self.use_both_scorers = True
         self.has_end_alignment = True
 
     def _setup_dataset_config(self):
@@ -182,64 +181,6 @@ class ISRUC(BaseDataset):
             ) # should not occur
 
         return ann_stage_events, None, lights_off[0], lights_on[0]
-
-    def ann_label(self, logger, ann_stage_events: List[List[Dict]], epoch_duration: int):
-        """
-        Convert multi-scorer sleep stage events to epoch-wise labels for ISRUC dataset.
-        Returns 2D array (n_epochs, n_scorers).
-        """
-        labels = [np.array([], dtype=np.int32), np.array([], dtype=np.int32)]
-
-        for i, annotation in enumerate(ann_stage_events):  # two scorers
-            total_duration = 0
-            for event in annotation:
-                onset_sec = event['Start']
-                duration_sec = event['Duration']
-                ann_str = event['Stage']
-
-                # Sanity check
-                assert onset_sec == total_duration, f"Onset sec of epoch is {onset_sec} but last epoch ended at {total_duration}"
-
-                # Get label value
-                if ann_str in self.ann2label:
-                    label = int(self.ann2label[ann_str])
-                else:
-                    logger.info(f"Something unexpected: label {ann_str} not found")
-                    raise DatasetProcessingError(
-                        f"Something unexpected: label {ann_str} not found",
-                        self.dset_name,
-                        "ann_label",
-                    )
-
-                # Compute # of epoch for this stage
-                if duration_sec % epoch_duration != 0:
-                    logger.info(f"Something wrong: {duration_sec} {epoch_duration}")
-                    raise DatasetProcessingError(
-                        f"Something wrong: {duration_sec} {epoch_duration}",
-                        self.dset_name,
-                        "ann_label",
-                    )
-                duration_epoch = int(duration_sec / epoch_duration)
-
-                # Generate sleep stage labels
-                label_epoch = np.ones(duration_epoch, dtype=np.int32) * label
-                labels[i] = np.append(labels[i], label_epoch)
-
-                total_duration += duration_sec
-
-                # logger.info("Include onset:{}, duration:{}, label:{} ({})".format(
-                #     onset_sec, duration_sec, label, ann_str
-                # ))
-
-        # Pad shorter annotation to match longer one
-        if len(labels[0]) != len(labels[1]):
-            max_len = max(len(labels[0]), len(labels[1]))
-            labels[0] = np.pad(labels[0], (0, max_len - len(labels[0])), mode='constant', constant_values=SleepStage.UNK)
-            labels[1] = np.pad(labels[1], (0, max_len - len(labels[1])), mode='constant', constant_values=SleepStage.UNK)
-
-        labels = np.array(labels).T  # Transpose to (n_epochs, n_scorers)
-
-        return labels
 
     def preprocess(self, n_workers, data_dir, ann_dir):
         print("\n ISRUC files originally are stored in an inconvenient way and therefor should be preprocessed/resorted ... \n \
