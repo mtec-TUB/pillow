@@ -207,12 +207,12 @@ class NCHSDB(BaseDataset):
         elif len(lights_off) == 0:
             lights_off = None
         elif any(name in ann_fname for name in ['7681_21013', '17950_18358', '10798_556', '5299_9865']):
-            lights_off = float(lights_off[-1])  # manually checked and in these files the last lights off event seems to be the correct one
+            lights_off = float(lights_off[-1])  # manually checked and in these files the last Lights Off event seems to be the correct one
         elif len(lights_off) > 1:
             lights_off = float(lights_off[0])
         else:
             raise DatasetProcessingError(
-                f"Found {len(lights_off)} lights off events in annotation file {os.path.basename(ann_fname)}",
+                f"Found {len(lights_off)} Lights Off events in annotation file {os.path.basename(ann_fname)}",
                 self.dset_name,
                 "ann_parse",
             )
@@ -221,15 +221,15 @@ class NCHSDB(BaseDataset):
             lights_on = float(lights_on[0])
         elif len(lights_on) == 0:
             lights_on = None
-        elif lights_on[0] == lights_on[1]:  # if there are multiple lights on events but they have the same timestamp, take the first one
+        elif lights_on[0] == lights_on[1]:  # if there are multiple Lights On events but they have the same timestamp, take the first one
             lights_on = float(lights_on[0])
         elif any(name in ann_fname for name in ['10480_2032', '8608_18625', '11341_10369']):
-            lights_on = float(lights_on[0])     # manually checked and in these files the first lights on event seems to be the correct one
+            lights_on = float(lights_on[0])     # manually checked and in these files the first Lights On event seems to be the correct one
         elif len(lights_on) > 1:
             lights_on = float(lights_on[-1])
         else:
             raise DatasetProcessingError(
-                f"Found {len(lights_on)} lights on events in annotation file {os.path.basename(ann_fname)}",
+                f"Found {len(lights_on)} Lights On events in annotation file {os.path.basename(ann_fname)}",
                 self.dset_name,
                 "ann_parse",
             )

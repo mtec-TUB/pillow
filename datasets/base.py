@@ -284,7 +284,7 @@ class BaseDataset(ABC):
             return self.name
 
     def get_light_times(self, logger, psg_fname):
-        """Get lights on and lights off time, if available in dataset
+        """Get Lights On and Lights Off time, if available in dataset
         Used to extract only epochs between these markers
         """
         lights_off = None

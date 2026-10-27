@@ -509,7 +509,7 @@ class FileProcessor:
                 if lights_on_epoch <= n_epochs:
                     end_idx = lights_on_epoch
                 elif lights_on_epoch == n_epochs + 1:
-                    pass  # lights on fell in the last cropped partial epoch -> keep all
+                    pass  # Lights On fell in the last cropped partial epoch -> keep all
                 else:
                     # Maybe padding both signal and annotations until Lights On ??
                     self.logger.warning("Lights On is %d epochs after recording ends "
@@ -742,11 +742,11 @@ class FileProcessor:
         return delay
 
     def _get_lights_epochs(self, channel_data):
-        """Get the epochs where lights off and lights on happen based on the configured
+        """Get the epochs where Lights Off and Lights On happen based on the configured
         lights marker in annotation or PSG data.
-        - The epoch in which lights off event happens is return as lights_off_epoch
-        - The epoch AFTER which lights on event happens is returned as lights_on_epoch,
-            meaning that the epoch in which lights on event happens is still included
+        - The epoch in which Lights Off event happens is return as lights_off_epoch
+        - The epoch AFTER which Lights On event happens is returned as lights_on_epoch,
+            meaning that the epoch in which Lights On event happens is still included
             in the selected data.
 
         Args:
@@ -754,7 +754,7 @@ class FileProcessor:
                 "psg_fname", "start_datetime", "lights_off", "lights_on"
 
         Returns:
-            _type_: epochs of lights off and lights on
+            _type_: epochs of Lights Off and Lights On
         """
 
         startdatetime    = channel_data["start_datetime"]
@@ -778,12 +778,12 @@ class FileProcessor:
                         self.logger.info("Lights Off time %s is before signal start time %s "
                                          "(marker is ignored for epoch selection).",
                                           lights_off, startdatetime.time())
-                        # maybe padding with wake epochs until lights Off time is reached?
+                        # maybe padding with wake epochs until Lights Off time is reached?
                         # For now, just keep all epochs and do not select
                         # (keep lights_off_epoch at 0)
                     else:
                         if lights_off_sec < 0:
-                            # Assume lights Off is after and signal start before midnight
+                            # Assume Lights Off is after and signal start before midnight
                             lights_off_sec += 24*3600 # add 24h
 
                         # Round to full epoch
@@ -801,7 +801,7 @@ class FileProcessor:
 
                 else:
                     self.logger.info("Lights Off time is at the start of the signal, "
-                                     "no need of epoch selection based on lights Off time.")
+                                     "no need of epoch selection based on Lights Off time.")
 
             elif isinstance(lights_off, (int,float)):
                 # int/float is seconds from the ORIGINAL signal start; subtract start_time_shift
@@ -815,7 +815,7 @@ class FileProcessor:
                                             "(marker is ignored for epoch selection).",
                                              lights_off_sec, startdatetime.time())
                         # front_padding =
-                        # maybe padding with wake epochs until lights Off time is reached?
+                        # maybe padding with wake epochs until Lights Off time is reached?
                         # For now, just keep all epochs and do not select
                     elif lights_off_sec < 0:
                         raise ValueError(f"Lights Off time ({lights_off_sec}) is more than 1 hour "
@@ -824,12 +824,12 @@ class FileProcessor:
                         # Round to full epoch
                         lights_off_epoch = self._round_marker_time("lights_off", lights_off_sec,
                                                                     self.config.epoch_duration)
-                        self.logger.info("Select only epochs after lights Off at second %s "
+                        self.logger.info("Select only epochs after Lights Off at second %s "
                                          "(epoch %d)",
                                          lights_off_sec, lights_off_epoch)
                 else:
                     self.logger.info("Lights Off time is at the start of the signal, "
-                                     "no need of epoch selection based on lights Off time.")
+                                     "no need of epoch selection based on Lights Off time.")
             else:
                 raise ValueError(f"Lights Off time has unsupported format: {lights_off}")
 
@@ -846,11 +846,11 @@ class FileProcessor:
                     # take date of signal start for easier comparison
                     lights_on = datetime.combine(startdatetime.date(),lights_on)
 
-                # seconds from recording start until lights On
+                # seconds from recording start until Lights On
                 lights_on_sec = (lights_on - startdatetime).total_seconds()
 
                 if lights_on_sec < 0:
-                    # Assume lights On is after and signal start before midnight
+                    # Assume Lights On is after and signal start before midnight
                     lights_on_sec += 24 * 3600  # add 24h
 
                 lights_on_epoch = self._round_marker_time("lights_on", lights_on_sec,
@@ -873,7 +873,7 @@ class FileProcessor:
 
                 lights_on_epoch = self._round_marker_time("lights_on", lights_on_sec,
                                                           self.config.epoch_duration)
-                self.logger.info("Select only epochs before lights On at second %s (epoch %d)",
+                self.logger.info("Select only epochs before Lights On at second %s (epoch %d)",
                                  lights_on_sec, lights_on_epoch)
             else:
                 raise ValueError(f"Lights On time has unsupported format: {lights_on}")
@@ -883,7 +883,7 @@ class FileProcessor:
         return lights_off_epoch, lights_on_epoch
 
     def _round_marker_time(self, marker, marker_sec, epoch_duration, marker_time=None):
-        """Helper function to round lights Off/On time to the next (or previous) epoch
+        """Helper function to round Lights Off/On time to the next (or previous) epoch
         if it is not exactly at the start/end of an epoch and log this behavior.
 
         Args:

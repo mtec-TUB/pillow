@@ -156,26 +156,26 @@ class ISRUC(BaseDataset):
 
         if not lights_off:
             raise DatasetProcessingError(
-                "No lights off event found in annotations", self.dset_name, "ann_parse"
+                "No Lights Off event found in annotations", self.dset_name, "ann_parse"
             ) # should not occur
         elif len(lights_off) > 2 or lights_off[0] != lights_off[1]:
             if "Subgroup 3_7_7_7" in ann_fname:
-                # In this file there are two lights off events (epoch 0 and epoch 17), the second one seems more reasonable (appears in both scorer files)
+                # In this file there are two Lights Off events (epoch 0 and epoch 17), the second one seems more reasonable (appears in both scorer files)
                 lights_off = [lights_off[1]]
             else:
                 raise DatasetProcessingError(
-                    f"Multiple lights off events found in annotations: {lights_off}",
+                    f"Multiple Lights Off events found in annotations: {lights_off}",
                     self.dset_name,
                     "ann_parse",
                 )
 
         if not lights_on:
             raise DatasetProcessingError(
-                "No lights on event found in annotations", self.dset_name, "ann_parse"
+                "No Lights On event found in annotations", self.dset_name, "ann_parse"
             )  # should not occur
         elif len(lights_on) > 2 or lights_on[0] != lights_on[1]:
             raise DatasetProcessingError(
-                f"Multiple lights on events found in annotations: {lights_on}",
+                f"Multiple Lights On events found in annotations: {lights_on}",
                 self.dset_name,
                 "ann_parse",
             ) # should not occur

@@ -82,11 +82,11 @@ class ABC(BaseDataset):
             light_off_indices = np.flatnonzero(light_signal[int(skip_samples):] == 0)
 
             if light_off_indices.size > 0:
-                # First occurrence of light off (0) after skipping initial samples
+                # First occurrence of Lights Off (0) after skipping initial samples
                 light_off_idx = light_off_indices[0] + skip_samples
                 lights_off_sec = light_off_idx / light_data["sampling_rate"]
 
-                # Last occurrence of light off (0) after skipping initial samples
+                # Last occurrence of Lights Off (0) after skipping initial samples
                 light_on_idx = light_off_indices[-1] + 1 + skip_samples
                 lights_on_sec = light_on_idx / light_data["sampling_rate"]
             else:
@@ -95,6 +95,6 @@ class ABC(BaseDataset):
 
             return lights_off_sec, lights_on_sec
         else:
-            logger.info("Light channel not found in %s. Cannot determine light on/off times",
+            logger.info("Light channel not found in %s. Cannot determine Lights On/Off times",
                         os.path.basename(psg_fname))
             return None, None

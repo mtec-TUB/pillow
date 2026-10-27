@@ -304,7 +304,7 @@ class STAGES(BaseDataset):
             for i, event in enumerate(ann_stage_events[:-1]):
                 ann_stage_events[i]['Duration'] = ann_stage_events[i+1]['Start'] - event['Start']
 
-        # Do not check for Lights off/on if no sleep stages were found
+        # Do not check for Lights Off/on if no sleep stages were found
         if len(ann_stage_events) == 0:
             return ann_stage_events, ann_Startdatetime, None, None
 
@@ -317,7 +317,7 @@ class STAGES(BaseDataset):
 
         # Lights Off/On handling
         if len(lights_off) == 1:
-            lights_off = lights_off[0]    # standard case: exactly one lights Off event in annotation file
+            lights_off = lights_off[0]    # standard case: exactly one Lights Off event in annotation file
         elif len(lights_off) == 0:
             lights_off = None
         elif len(lights_off) > 1:
@@ -326,25 +326,25 @@ class STAGES(BaseDataset):
             elif lights_off[0] == lights_off[1]:
                 lights_off = lights_off[0]
             elif any(name in ann_fname for name in ["GSDV00160","MSQW00075",'STLK00093','STLK00027','STLK00108','STLK00064','MSQW00092','MSQW00002']):
-                lights_off = lights_off[0]  # manually checked these files and first lights Off event seems to be the correct one
+                lights_off = lights_off[0]  # manually checked these files and first Lights Off event seems to be the correct one
             elif any(name in ann_fname for name in ["MSQW00102","MSQW00024",'MSQW00071', 'MSTR00163','MSTR00003','MSMI00055']):
-                lights_off = lights_off[1]  # manually checked these files and second lights Off event seems to be the correct one
+                lights_off = lights_off[1]  # manually checked these files and second Lights Off event seems to be the correct one
             elif any(name in ann_fname for name in ['MSMI00059','MSQW00057','MSTR00282','MSTR00139','MSTR00160']):
-                lights_on.append(lights_off[1])  # second lights Off event is actually a lights On event
+                lights_on.append(lights_off[1])  # second Lights Off event is actually a Lights On event
                 lights_off = lights_off[0]
             else:
                 raise DatasetProcessingError(
-                    f"Multiple lights Off events found in annotation file {ann_fname}",
+                    f"Multiple Lights Off events found in annotation file {ann_fname}",
                     self.dset_name,
                     "ann_parse",
                 ) # should not occure
 
         if len(lights_on) == 1:
             if 'MSQW00152' in ann_fname:
-                lights_off = lights_on[0]  # only one lights On event in annotation file but it is actually a lights Off event
+                lights_off = lights_on[0]  # only one Lights On event in annotation file but it is actually a Lights Off event
                 lights_on = None
             else:
-                lights_on = lights_on[0]    # standard case: exactly one lights On event in annotation file
+                lights_on = lights_on[0]    # standard case: exactly one Lights On event in annotation file
         elif len(lights_on) == 0:
             lights_on = None
         elif len(lights_on) > 1:
@@ -353,13 +353,13 @@ class STAGES(BaseDataset):
             elif lights_on[0] == lights_on[1]:
                 lights_on = lights_on[0]
             elif any(name in ann_fname for name in ['GSDV00173_1','GSSW00071_2','MSMI00056','MSMI00043','MSQW00117']):
-                lights_off = lights_on[0]    # first lights On event is actually a lights Off event
+                lights_off = lights_on[0]    # first Lights On event is actually a Lights Off event
                 lights_on = lights_on[1]
             elif any(name in ann_fname for name in ["GSSW00077_3",'MSTR00022','MSTR00037','MSTR00066','STLK00165','STLK00085','STLK00031','STNF00050_1','MSQW00002']):
-                lights_on = lights_on[0]    # manually checked these files and first lights On event seems to be the correct one
+                lights_on = lights_on[0]    # manually checked these files and first Lights On event seems to be the correct one
             else:
                 raise DatasetProcessingError(
-                    f"Multiple lights On events found in annotation file {ann_fname}",
+                    f"Multiple Lights On events found in annotation file {ann_fname}",
                     self.dset_name,
                     "ann_parse",
                 )  # should not occure

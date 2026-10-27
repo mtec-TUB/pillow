@@ -81,7 +81,7 @@ class SHHS(BaseDataset):
         }
 
     def get_light_times(self, logger: logging.Logger, psg_fname):
-        """Light marker in shhs are not always reliable (fluctuate between on/off or are reversed calibrated)
+        """Light marker in shhs are not always reliable (fluctuate between On/Off or are reversed calibrated)
         There are two dataset files which contain a boolean flag for each psg file that tells if the included lights signal is appropiate or not
         We use this information to decide if we compute the lightsOff/On markers based on the psg LIGHT channel or not
         If the marker is appropiate we take the first transition from Lights On to Off which is maintained for at least 30 min
@@ -110,7 +110,7 @@ class SHHS(BaseDataset):
                 lights_appropiate = bool(row['ligh'].values[0])
 
         if not lights_appropiate:
-            logger.info("Light off times not appropriate for %s according to %s.",
+            logger.info("Lights Off times not appropriate for %s according to %s.",
                         os.path.basename(psg_fname), os.path.basename(overview_file))
             return None, None
 
@@ -122,7 +122,7 @@ class SHHS(BaseDataset):
             fs = light_data["sampling_rate"]
             window_samples = int(30 * 60 * fs)
 
-            # Lights off marker: first index where LIGHT == 1 and stays 1 for 30 minutes.
+            # Lights Off marker: first index where LIGHT == 1 and stays 1 for 30 minutes.
             lights_off_mask = light_signal == 1
             valid_off_idx = np.array([], dtype=int)
             if lights_off_mask.size >= window_samples:
@@ -137,7 +137,7 @@ class SHHS(BaseDataset):
                 lights_off_idx = int(valid_off_idx[0])
                 lights_off_sec = lights_off_idx / fs
 
-                # Last occurence of light off (1)
+                # Last occurence of Lights Off (1)
                 light_off_indices = np.flatnonzero(lights_off_mask)
                 light_on_idx = int(light_off_indices[-1]) + 1
                 lights_on_sec = light_on_idx / fs
@@ -147,6 +147,6 @@ class SHHS(BaseDataset):
 
             return lights_off_sec, lights_on_sec
 
-        logger.info("Light channel not found in %s. Cannot determine light on/off times",
+        logger.info("Light channel not found in %s. Cannot determine Lights On/Off times",
                         os.path.basename(psg_fname))
         return None, None

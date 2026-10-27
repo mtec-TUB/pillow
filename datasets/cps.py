@@ -148,7 +148,7 @@ class CPS(BaseDataset):
             marker_df = pd.read_csv(marker_file, sep=";", names=['Timestamp', 'Event'], skipinitialspace=True,skip_blank_lines=True)
             lights_off = marker_df.loc[marker_df['Event'] == "Licht aus", "Timestamp"]
             if len(lights_off) >= 1:
-                # take first of available lights off markers (in some recorings, two markers occur, reason unknown)
+                # take first of available Lights Off markers (in some recorings, two markers occur, reason unknown)
                 lights_off = datetime.strptime(lights_off.iloc[0], '%H:%M:%S,%f').time()
 
             lights_on = marker_df.loc[marker_df['Event'] == "Licht an", "Timestamp"]

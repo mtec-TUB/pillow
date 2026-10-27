@@ -86,11 +86,11 @@ class CCSHS(BaseDataset):
             light_off_indices = np.flatnonzero(light_signal == 1)
 
             if light_off_indices.size > 0:
-                # First occurrence of light off (1)
+                # First occurrence of Lights Off (1)
                 light_off_idx = light_off_indices[0]
                 lights_off_sec = light_off_idx / light_data["sampling_rate"]
 
-                # Last occurrence of light off (1)
+                # Last occurrence of Lights Off (1)
                 light_on_idx = light_off_indices[-1] + 1
                 lights_on_sec = light_on_idx / light_data["sampling_rate"]
             else:
@@ -101,5 +101,5 @@ class CCSHS(BaseDataset):
 
         else:
             logger.info("Light channel not found in %s. \
-                         Cannot determine light on/off times", os.path.basename(psg_fname))
+                         Cannot determine Lights On/Off times", os.path.basename(psg_fname))
             return None, None

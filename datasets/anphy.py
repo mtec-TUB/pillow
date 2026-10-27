@@ -22,7 +22,7 @@ class ANPHY(BaseDataset):
             "N2": SleepStage.N2,  # NREM Stage 2
             "N3": SleepStage.N3,  # NREM Stage 3
             "R": SleepStage.REM,   # REM sleep
-            "L": SleepStage.UNK,    # Prepare, lights on/off time
+            "L": SleepStage.UNK,    # Prepare, Lights On/Off time
         }
 
         self.channel_names = ['AF3', 'AF3-Ref', 'AF4', 'AF4-Ref', 'AF7', 'AF7-Ref', 'AF8', 'AF8-Ref', 'AFZ', 'AFZ-Ref', 'C1', 'C1-', 'C1-Ref', 'C2',
@@ -184,8 +184,8 @@ class ANPHY(BaseDataset):
         start_time_label = None
 
         sleep_indices = annot.loc[annot['Event'] != 'L', 'Start Time'].index
-        lights_off_sec = float(annot.iloc[sleep_indices[0]]['Start Time'])      # first non-L event is lights off
-        lights_on_sec = float(annot.iloc[sleep_indices[-1]]['Start Time'])      # last non-L event is lights on
+        lights_off_sec = float(annot.iloc[sleep_indices[0]]['Start Time'])      # first non-L event is Lights Off
+        lights_on_sec = float(annot.iloc[sleep_indices[-1]]['Start Time'])      # last non-L event is Lights On
 
         for _, row in annot.iterrows():
             start = row['Start Time']

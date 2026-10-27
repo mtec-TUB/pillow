@@ -42,7 +42,7 @@ class BDSP(BaseDataset):
                 "N3": SleepStage.N3,
                 "R": SleepStage.REM,
                 "UNSCORED": SleepStage.UNK,
-                "L": SleepStage.UNK,  # all epochs before lights off and after lights on
+                "L": SleepStage.UNK,  # all epochs before Lights Off and after Lights On
                 "X": SleepStage.UNK,
                 "MT": SleepStage.MOVE,
             },
@@ -299,10 +299,10 @@ class BDSP(BaseDataset):
         lights_on = int(sleep_epochs.iloc[-1]['Epoch'] * epoch_duration)
 
         if lights_off is None:
-            raise DatasetProcessingError(f"Could not determine lights off time for {ann_fname}", self.dset_name, "ann_parse")
+            raise DatasetProcessingError(f"Could not determine Lights Off time for {ann_fname}", self.dset_name, "ann_parse")
 
         if lights_on is None:
-            raise DatasetProcessingError(f"Could not determine lights on time for {ann_fname}", self.dset_name, "ann_parse")
+            raise DatasetProcessingError(f"Could not determine Lights On time for {ann_fname}", self.dset_name, "ann_parse")
 
         # events_file = ann_fname.replace('_sleep_annotations.csv', '_events_annotations.csv')
 
