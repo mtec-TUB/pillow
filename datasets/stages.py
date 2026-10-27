@@ -6,7 +6,7 @@ import re
 import csv
 from datetime import datetime, date, timedelta
 
-from datasets.base import BaseDataset
+from datasets.base import BaseDataset, DatasetProcessingError
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
 
@@ -333,7 +333,11 @@ class STAGES(BaseDataset):
                 lights_on.append(lights_off[1])  # second lights Off event is actually a lights On event
                 lights_off = lights_off[0]
             else:
-                raise Exception(f"Multiple lights Off events found in annotation file {ann_fname}") # should not occure
+                raise DatasetProcessingError(
+                    f"Multiple lights Off events found in annotation file {ann_fname}",
+                    self.dset_name,
+                    "ann_parse",
+                ) # should not occure
 
         if len(lights_on) == 1:
             if 'MSQW00152' in ann_fname:
@@ -354,7 +358,11 @@ class STAGES(BaseDataset):
             elif any(name in ann_fname for name in ["GSSW00077_3",'MSTR00022','MSTR00037','MSTR00066','STLK00165','STLK00085','STLK00031','STNF00050_1','MSQW00002']):
                 lights_on = lights_on[0]    # manually checked these files and first lights On event seems to be the correct one
             else:
-                raise Exception(f"Multiple lights On events found in annotation file {ann_fname}")  # should not occure
+                raise DatasetProcessingError(
+                    f"Multiple lights On events found in annotation file {ann_fname}",
+                    self.dset_name,
+                    "ann_parse",
+                )  # should not occure
 
         if os.path.splitext(os.path.basename(ann_fname))[0] == "STNF00373":
             # Annotations start before midnight and signal after midnight at 6am (not applicable to STNF00373_1)

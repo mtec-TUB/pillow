@@ -3,7 +3,7 @@ from datetime import datetime, date
 
 import pandas as pd
 
-from datasets.base import BaseDataset
+from datasets.base import BaseDataset, DatasetProcessingError
 from datasets.registry import register_dataset
 from datasets.file_handlers import WFDBHandler
 from psg_processing.utils import SleepStage
@@ -157,6 +157,6 @@ class CPS(BaseDataset):
             else:
                 lights_on = None
         else:
-            raise Exception(f"Marker file not found: {marker_file}")    # should not occur
+            raise DatasetProcessingError(f"Marker.txt file not found: {marker_file}", self.dset_name, "ann_parse")
 
         return ann_stage_events, ann_startdatetime, lights_off, lights_on

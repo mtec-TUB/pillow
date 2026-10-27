@@ -1,6 +1,6 @@
 import pandas as pd
 
-from datasets.base import BaseDataset
+from datasets.base import BaseDataset, DatasetProcessingError
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
 
@@ -299,9 +299,10 @@ class BDSP(BaseDataset):
         lights_on = int(sleep_epochs.iloc[-1]['Epoch'] * epoch_duration)
 
         if lights_off is None:
-            raise Exception(f"Could not determine lights off time for {ann_fname}")
+            raise DatasetProcessingError(f"Could not determine lights off time for {ann_fname}", self.dset_name, "ann_parse")
+
         if lights_on is None:
-            raise Exception(f"Could not determine lights on time for {ann_fname}")
+            raise DatasetProcessingError(f"Could not determine lights on time for {ann_fname}", self.dset_name, "ann_parse")
 
         # events_file = ann_fname.replace('_sleep_annotations.csv', '_events_annotations.csv')
 

@@ -1,4 +1,5 @@
 import os
+import logging
 import numpy as np
 
 from datasets.base import BaseDataset
@@ -71,7 +72,7 @@ class ABC(BaseDataset):
         self.file_extensions = {'psg_ext': '**/*.edf',
                                 'ann_ext': '**/*-nsrr.xml'}
 
-    def get_light_times(self, logger, psg_fname):
+    def get_light_times(self, logger: logging.Logger, psg_fname):
         if "Light" in self._file_handler.get_channels(logger, psg_fname):
 
             light_data = self._file_handler.get_signal_data(logger, psg_fname, "Light")
@@ -94,5 +95,6 @@ class ABC(BaseDataset):
 
             return lights_off_sec, lights_on_sec
         else:
-            logger.info(f"Light channel not found in {os.path.basename(psg_fname)}. Cannot determine light on/off times")
+            logger.info("Light channel not found in %s. Cannot determine light on/off times",
+                        os.path.basename(psg_fname))
             return None, None

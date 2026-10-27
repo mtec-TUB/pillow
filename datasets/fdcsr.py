@@ -8,7 +8,7 @@ import pandas as pd
 import pyedflib
 from tqdm import tqdm
 
-from datasets.base import BaseDataset
+from datasets.base import BaseDataset, DatasetProcessingError
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
 
@@ -161,7 +161,11 @@ class FDCSR(BaseDataset):
         if len(lights_off) == 1:
             lights_off = (study_start_datetime + timedelta(hours=lights_off[0])).time()
         elif len(lights_off) > 1:
-            raise Exception(f"Expected exactly one 'Lights Off' event, found {len(lights_off)}")
+            raise DatasetProcessingError(
+                f"Expected exactly one 'Lights Off' event, found {len(lights_off)}",
+                self.dset_name,
+                "ann_parse",
+            )
         else:
             lights_off = None
 
@@ -169,7 +173,11 @@ class FDCSR(BaseDataset):
         if len(lights_on) == 1:
             lights_on = (study_start_datetime + timedelta(hours=lights_on[0])).time()
         elif len(lights_on) > 1:
-            raise Exception(f"Expected exactly one 'Lights On' event, found {len(lights_on)}")
+            raise DatasetProcessingError(
+                f"Expected exactly one 'Lights On' event, found {len(lights_on)}",
+                self.dset_name,
+                "ann_parse",
+            )
         else:
             lights_on = None
 
@@ -278,7 +286,8 @@ class FDCSRSleepScoreSplitter:
                 found_time_mismatch = True
                 print(start_time_edf.time(), (datetime.min + start_lab_time).time(), 'found start time mismatch')
             else:
-                raise Exception(edf_filepath,(duration_epoched - duration).total_seconds() )
+                raise Exception(f"{edf_filepath}: More than 90 seconds difference: \
+                                {(duration_epoched - duration).total_seconds()}")
         else:
             print(start_time_edf.time(), (datetime.min + start_lab_time).time(), 'start time is matching')
 

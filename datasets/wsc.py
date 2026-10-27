@@ -3,7 +3,7 @@ from datetime import datetime
 
 import pandas as pd
 
-from datasets.base import BaseDataset
+from datasets.base import BaseDataset, DatasetProcessingError
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
 
@@ -193,13 +193,21 @@ class WSC(BaseDataset):
 
             start_idx = df[df['Info'] == 'START RECORDING'].index
             if len(start_idx) > 1:
-                raise Exception("Multiple START RECORDING entries found in annotation file.")
+                raise DatasetProcessingError(
+                    "Multiple START RECORDING entries found in annotation file.",
+                    self.dset_name,
+                    "ann_parse",
+                )
 
             if len(start_idx) == 0:
                 # Fallback to STAGE - NO STAGE if START RECORDING is not found
                 fallback_idx = df[df['Info'] == 'STAGE - NO STAGE'].index
                 if len(fallback_idx) == 0:
-                    raise Exception("Neither START RECORDING nor STAGE - NO STAGE found in annotation file.")
+                    raise DatasetProcessingError(
+                        "Neither START RECORDING nor STAGE - NO STAGE found in annotation file.",
+                        self.dset_name,
+                        "ann_parse",
+                    )
                 start_idx = int(fallback_idx[0])
             else:
                 start_idx = int(start_idx[0])
@@ -244,7 +252,11 @@ class WSC(BaseDataset):
             elif len(lights_off_values) > 1:
                 timestamp = lights_off_values[-1]  # take last occurence
             else:
-                raise Exception("No LIGHTS OUT event found in annotation file.")
+                raise DatasetProcessingError(
+                    "No LIGHTS OUT event found in annotation file.",
+                    self.dset_name,
+                    "ann_parse",
+                )
 
             try:
                 lights_off = datetime.strptime(timestamp.split(' ')[0], '%H:%M:%S').time()
@@ -261,7 +273,11 @@ class WSC(BaseDataset):
             elif len(lights_on_values) > 1:
                 timestamp = lights_on_values[-1]  # take last occurence
             else:
-                raise Exception("No LIGHTS ON event found in annotation file.")
+                raise DatasetProcessingError(
+                    "No LIGHTS ON event found in annotation file.",
+                    self.dset_name,
+                    "ann_parse",
+                )
 
             try:
                 lights_on = datetime.strptime(timestamp.split(' ')[0], '%H:%M:%S').time()
@@ -272,4 +288,3 @@ class WSC(BaseDataset):
                     pass  # In some cases, the timestamp might be malformed, so we skip parsing it
 
         return ann_stage_events, ann_Startdatetime, lights_off, lights_on
-

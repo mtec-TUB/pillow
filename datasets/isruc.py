@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from datasets.base import BaseDataset
+from datasets.base import BaseDataset, DatasetProcessingError
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
 
@@ -156,18 +156,30 @@ class ISRUC(BaseDataset):
                 ann_stage_events.append([])  # No annotation for this scorer
 
         if not lights_off:
-            raise Exception("No lights off event found in annotations") # should not occur
+            raise DatasetProcessingError(
+                "No lights off event found in annotations", self.dset_name, "ann_parse"
+            ) # should not occur
         elif len(lights_off) > 2 or lights_off[0] != lights_off[1]:
             if "Subgroup 3_7_7_7" in ann_fname:
                 # In this file there are two lights off events (epoch 0 and epoch 17), the second one seems more reasonable (appears in both scorer files)
                 lights_off = [lights_off[1]]
             else:
-                raise Exception(f"Multiple lights off events found in annotations: {lights_off}")
+                raise DatasetProcessingError(
+                    f"Multiple lights off events found in annotations: {lights_off}",
+                    self.dset_name,
+                    "ann_parse",
+                )
 
         if not lights_on:
-            raise Exception("No lights on event found in annotations")  # should not occur
+            raise DatasetProcessingError(
+                "No lights on event found in annotations", self.dset_name, "ann_parse"
+            )  # should not occur
         elif len(lights_on) > 2 or lights_on[0] != lights_on[1]:
-            raise Exception(f"Multiple lights on events found in annotations: {lights_on}") # should not occur
+            raise DatasetProcessingError(
+                f"Multiple lights on events found in annotations: {lights_on}",
+                self.dset_name,
+                "ann_parse",
+            ) # should not occur
 
         return ann_stage_events, None, lights_off[0], lights_on[0]
 
@@ -193,12 +205,20 @@ class ISRUC(BaseDataset):
                     label = int(self.ann2label[ann_str])
                 else:
                     logger.info(f"Something unexpected: label {ann_str} not found")
-                    raise Exception(f"Something unexpected: label {ann_str} not found")
+                    raise DatasetProcessingError(
+                        f"Something unexpected: label {ann_str} not found",
+                        self.dset_name,
+                        "ann_label",
+                    )
 
                 # Compute # of epoch for this stage
                 if duration_sec % epoch_duration != 0:
                     logger.info(f"Something wrong: {duration_sec} {epoch_duration}")
-                    raise Exception(f"Something wrong: {duration_sec} {epoch_duration}")
+                    raise DatasetProcessingError(
+                        f"Something wrong: {duration_sec} {epoch_duration}",
+                        self.dset_name,
+                        "ann_label",
+                    )
                 duration_epoch = int(duration_sec / epoch_duration)
 
                 # Generate sleep stage labels

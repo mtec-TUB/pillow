@@ -110,7 +110,8 @@ class SHHS(BaseDataset):
                 lights_appropiate = bool(row['ligh'].values[0])
 
         if not lights_appropiate:
-            logger.info(f"Light off times not appropriate for {os.path.basename(psg_fname)} according to {os.path.basename(overview_file)}.")
+            logger.info("Light off times not appropriate for %s according to %s.",
+                        os.path.basename(psg_fname), os.path.basename(overview_file))
             return None, None
 
         if "LIGHT" in self._file_handler.get_channels(logger, psg_fname):

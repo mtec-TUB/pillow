@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from datasets.base import BaseDataset
+from datasets.base import BaseDataset, DatasetProcessingError
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
 
@@ -163,7 +163,8 @@ class APOE(BaseDataset):
                 logger.warning(f"Two Lights Off events found in {os.path.basename(file)}, using first occurrence as Lights Off.")
                 lights_off = datetime.strptime(lights_off_sec[0], "%H:%M:%S.%f").time()
             else:
-                raise Exception(f"Multiple Lights Off events found in {file}. Cannot determine unique light off time.")
+                raise DatasetProcessingError(f"Multiple Lights Off events found in {file}. Cannot determine unique light off time.",
+                                             self.dset_name, "get_light_times")
         else:
             lights_off = None
 
@@ -175,7 +176,8 @@ class APOE(BaseDataset):
                 logger.warning(f"Two Lights On events found in {os.path.basename(file)}, using first occurrence as Lights On.")
                 lights_on = datetime.strptime(lights_on_sec[0], "%H:%M:%S.%f").time()
             else:
-                raise Exception(f"Multiple Lights On events found in {file}. Cannot determine unique light on time.")
+                raise DatasetProcessingError(f"Multiple Lights On events found in {file}. Cannot determine unique light on time.",
+                                             self.dset_name, "get_light_times")
         elif "APOE_0447" in psg_fname or "APOE_0700" in psg_fname or "APOE_0691" in psg_fname:
             lights_on = datetime.strptime(lights_off_sec[1], "%H:%M:%S.%f").time()
         else:

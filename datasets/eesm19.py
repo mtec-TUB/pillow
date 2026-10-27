@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from psg_processing.core import DatasetExplorer
 from psg_processing.utils import SleepStage
-from datasets.base import BaseDataset
+from datasets.base import BaseDataset, DatasetProcessingError
 from datasets.registry import register_dataset
 from datasets.file_handlers import EEGLABHandler
 
@@ -131,7 +131,11 @@ class EESM19(BaseDataset):
         if len(lights_off) == 1:
             lights_off = lights_off.iloc[0]
         else:
-            raise Exception(f"Expected exactly one 'Lights Out' event in {events_file}, but found {len(lights_off)}.")
+            raise DatasetProcessingError(
+                f"Expected exactly one 'Lights Out' event in {events_file}, but found {len(lights_off)}.",
+                self.dset_name,
+                "ann_parse",
+            )
 
         return [ann_stage_events_1, ann_stage_events_2], start_time_label, lights_off, None
 
@@ -157,12 +161,20 @@ class EESM19(BaseDataset):
                     label = int(self.ann2label[ann_str])
                 else:
                     logger.info(f"Something unexpected: label {ann_str} not found")
-                    raise Exception(f"Something unexpected: label {ann_str} not found")
+                    raise DatasetProcessingError(
+                        f"Something unexpected: label {ann_str} not found",
+                        self.dset_name,
+                        "ann_label",
+                    )
 
                 # Compute # of epoch for this stage
                 if duration_sec % epoch_duration != 0:
                     logger.info(f"Something wrong: {duration_sec} {epoch_duration}")
-                    raise Exception(f"Something wrong: {duration_sec} {epoch_duration}")
+                    raise DatasetProcessingError(
+                        f"Something wrong: {duration_sec} {epoch_duration}",
+                        self.dset_name,
+                        "ann_label",
+                    )
                 duration_epoch = int(duration_sec / epoch_duration)
 
                 # Generate sleep stage labels
@@ -311,4 +323,3 @@ class EESM_Preprocessor:
                 # plt.show()
 
         return allDeriv
-

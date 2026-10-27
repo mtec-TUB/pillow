@@ -7,7 +7,7 @@ import re
 
 import pandas as pd
 
-from datasets.base import BaseDataset
+from datasets.base import BaseDataset, DatasetProcessingError
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
 
@@ -178,7 +178,9 @@ class NCHSDB(BaseDataset):
             elif 'Sleep stage' in event:
                 if event not in self.ann2label:
                     print(event)
-                    raise Exception
+                    raise DatasetProcessingError(
+                        f"Unknown annotation label: {event}", self.dset_name, "ann_parse"
+                    )
                 start = Decimal(str(row['onset']))
                 if start_time_label is None:
                     start_time_label = start
@@ -209,7 +211,11 @@ class NCHSDB(BaseDataset):
         elif len(lights_off) > 1:
             lights_off = float(lights_off[0])
         else:
-            raise Exception(f"Found {len(lights_off)} lights off events in annotation file {os.path.basename(ann_fname)}")
+            raise DatasetProcessingError(
+                f"Found {len(lights_off)} lights off events in annotation file {os.path.basename(ann_fname)}",
+                self.dset_name,
+                "ann_parse",
+            )
 
         if len(lights_on) == 1:
             lights_on = float(lights_on[0])
@@ -222,6 +228,10 @@ class NCHSDB(BaseDataset):
         elif len(lights_on) > 1:
             lights_on = float(lights_on[-1])
         else:
-            raise Exception(f"Found {len(lights_on)} lights on events in annotation file {os.path.basename(ann_fname)}")
+            raise DatasetProcessingError(
+                f"Found {len(lights_on)} lights on events in annotation file {os.path.basename(ann_fname)}",
+                self.dset_name,
+                "ann_parse",
+            )
 
         return ann_stage_events, float(start_time_label), lights_off, lights_on

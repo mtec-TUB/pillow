@@ -4,7 +4,7 @@ import glob
 
 import pandas as pd
 
-from datasets.base import BaseDataset
+from datasets.base import BaseDataset, DatasetProcessingError
 from datasets.registry import register_dataset
 from datasets.file_handlers import EEGLABHandler
 from psg_processing.utils import SleepStage
@@ -104,12 +104,20 @@ class EESM17(BaseDataset):
         if len(lights_off) == 1:
             lights_off = lights_off.iloc[0]
         else:
-            raise Exception(f"Expected exactly one 'Lights Off' event in {events_file}, but found {len(lights_off)}.")
+            raise DatasetProcessingError(
+                f"Expected exactly one 'Lights Off' event in {events_file}, but found {len(lights_off)}.",
+                self.dset_name,
+                "ann_parse",
+            )
 
         lights_on = events.loc[events['trial_type'] == 'Lights On', 'onset']
         if len(lights_on) == 1:
             lights_on = lights_on.iloc[0]
         else:
-            raise Exception(f"Expected exactly one 'Lights On' event in {events_file}, but found {len(lights_on)}.")
+            raise DatasetProcessingError(
+                f"Expected exactly one 'Lights On' event in {events_file}, but found {len(lights_on)}.",
+                self.dset_name,
+                "ann_parse",
+            )
 
         return ann_stage_events, start_time, lights_off, lights_on

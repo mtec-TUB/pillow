@@ -3,7 +3,7 @@ import os
 from mne.annotations import read_annotations
 import pandas as pd
 
-from datasets.base import BaseDataset
+from datasets.base import BaseDataset, DatasetProcessingError
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
 
@@ -92,9 +92,17 @@ class SleepEDFX(BaseDataset):
             elif subjects.loc[(subjects['subject'] == subject_id),"Temazepam_night_nr"].values[0] == subject_night:
                 lights_off = subjects.loc[(subjects['subject'] == subject_id), 'Temazepam_lights_off'].values[0]
             else:
-                raise Exception
+                raise DatasetProcessingError(
+                    f"Unknown subject night {subject_night} for {psg_fname}",
+                    self.dset_name,
+                    "get_light_times",
+                )
         else:
-            raise Exception
+            raise DatasetProcessingError(
+                f"Unsupported Sleep-EDF recording: {psg_fname}",
+                self.dset_name,
+                "get_light_times",
+            )
 
         return lights_off, None
 

@@ -7,7 +7,7 @@ from typing import Dict, List
 from scipy.io import loadmat
 import numpy as np
 
-from datasets.base import BaseDataset
+from datasets.base import BaseDataset, DatasetProcessingError
 from datasets.registry import register_dataset
 from psg_processing.utils import SleepStage
 
@@ -170,12 +170,20 @@ class MWT(BaseDataset):
                     label = int(self.ann2label[ann_str])
                 else:
                     logger.info(f"Something unexpected: label {ann_str} not found")
-                    raise Exception(f"Something unexpected: label {ann_str} not found")
+                    raise DatasetProcessingError(
+                        f"Something unexpected: label {ann_str} not found",
+                        self.dset_name,
+                        "ann_label",
+                    )
 
                 # Compute # of epoch for this stage
                 if duration_sec % epoch_duration != 0:
                     logger.info(f"Something wrong: {duration_sec} {epoch_duration}")
-                    raise Exception(f"Something wrong: {duration_sec} {epoch_duration}")
+                    raise DatasetProcessingError(
+                        f"Something wrong: {duration_sec} {epoch_duration}",
+                        self.dset_name,
+                        "ann_label",
+                    )
                 duration_epoch = int(duration_sec / epoch_duration)
 
                 # Generate sleep stage labels

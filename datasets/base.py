@@ -12,6 +12,19 @@ import numpy as np
 from psg_processing.utils import Alignment, SleepStage
 from .file_handlers import EDFHandler
 
+class DatasetProcessingError(Exception):
+    """
+    Exception raised when there is an error in processing a dataset.
+    """
+    def __init__(self, message, dset, function):
+        super().__init__(message)
+        self.message = message
+        self.dataset_name = dset
+        self.function = function
+
+    def __str__(self):
+        return f"{self.message} in {self.dataset_name} at function {self.function}"
+
 class BaseDataset(ABC):
     """Abstract base class for datasets.
     Holds all dataset-specific information and methods for loading PSG files, parsing annotations, and harmonizing channel names.
@@ -369,13 +382,16 @@ class BaseDataset(ABC):
             if ann_str in self.ann2label:
                 label = int(self.ann2label[ann_str])
             else:
-                logger.error(f"Something unexpected: label {ann_str} not found")
-                raise Exception(f"Something unexpected: label {ann_str} not found")
+                logger.error("Something unexpected: label %s not found", ann_str)
+                raise DatasetProcessingError(f"Something unexpected: label {ann_str} not found", self.dset_name, "ann_label")
 
             # Compute # of epoch for this stage
             if ann_duration % epoch_duration != 0:
-                logger.error(f"Something wrong: {ann_duration} {epoch_duration}")
-                raise Exception(f"Something wrong: {ann_duration} {epoch_duration}")
+                logger.error("Annotation epoch duration %d is not a multiple of epoch duration %d",
+                             ann_duration, epoch_duration)
+                raise DatasetProcessingError(f"Annotation epoch duration {ann_duration} is not a multiple of \
+                                             epoch duration {epoch_duration}", self.dset_name, "ann_label")
+
             n_epochs = int(ann_duration / epoch_duration)
 
             # Generate sleep stage labels
@@ -388,7 +404,7 @@ class BaseDataset(ABC):
 
         return np.concatenate(labels)
 
-    def compute_front_alignment(self, logger, alignment, pad_values, epoch_duration, delay_sec):
+    def compute_front_alignment(self, logger: logging.Logger, alignment, pad_values, epoch_duration, delay_sec):
         """Compute front-alignment parameters at file level without touching any arrays.
 
         Mirrors the logic of base_align_front but returns scalars only, so the result
@@ -406,34 +422,44 @@ class BaseDataset(ABC):
         if delay_sec < 0:
             advance_sec = -delay_sec
             if alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_SIGNAL.value):
-                logger.info(f"Signal started {advance_sec:.2f} sec after label start, labels will be shortened at the front to match")
+                logger.info("Signal started %.2f sec after label start, \
+                            labels will be shortened at the front to match",
+                            advance_sec)
                 n_crop = int(advance_sec // epoch_duration)
                 label_adjust_front = -n_crop
                 if advance_sec % epoch_duration != 0:
                     label_adjust_front -= 1
                     signal_adjust_front_sec = -(epoch_duration - (advance_sec % epoch_duration))  # negative = crop
             elif alignment in (Alignment.MATCH_LONGER.value, Alignment.MATCH_ANNOT.value):
-                logger.info(f"Signal started {advance_sec:.2f} sec after label start, signal will be padded with constant value:{pad_values['signal']} at the front to match")
+                logger.info("Signal started %.2f sec after label start, \
+                            signal will be padded with constant value:%s at the front to match",
+                            advance_sec, pad_values['signal'])
                 signal_adjust_front_sec = advance_sec   # positive = prepend padding
         else:
             if alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_ANNOT.value):
-                logger.info(f"Labeling started {delay_sec / 60:.2f} min after signal start, signal will be shortened at the front to match")
-                signal_adjust_front_sec = -delay_sec   # negative = crop signal from front
+                logger.info("Labeling started %.2f min after signal start, \
+                             signal will be shortened at the front to match",
+                             delay_sec / 60)
+                # negative = crop signal from front
+                signal_adjust_front_sec = -delay_sec
             elif alignment in (Alignment.MATCH_LONGER.value, Alignment.MATCH_SIGNAL.value):
                 n_pad = int(delay_sec // epoch_duration)
-                logger.info(f"Labeling started {delay_sec / 60:.2f} min after signal start, labels will be padded at the front with {n_pad} epochs of value:{pad_values['label']} to match")
+                logger.info("Labeling started %.2f min after signal start, \
+                            labels will be padded at the front with %d epochs of value: %s to match",
+                            delay_sec / 60, n_pad, pad_values['label'])
                 label_adjust_front = n_pad
                 if delay_sec % epoch_duration != 0:
-                    signal_adjust_front_sec = -(delay_sec % epoch_duration)   # negative = crop
+                    # negative = crop
+                    signal_adjust_front_sec = -(delay_sec % epoch_duration)
 
         if signal_adjust_front_sec < 0:
-            logger.info(
-                f"Signal front crop: removing {-signal_adjust_front_sec:.4f} sec from signal start to align with labels."
-            )
+            logger.info("Signal front crop: removing %.4f sec from signal start to align with labels.",
+                        -signal_adjust_front_sec)
         elif signal_adjust_front_sec > 0:
-            logger.info(
-                f"Signal front pad: prepending {signal_adjust_front_sec:.4f} sec of value {pad_values['signal']} to signal start to align with labels."
-            )
+            logger.info("Signal front pad: prepending %.4f sec \
+                        of value %s to signal start to align with labels.",
+                        signal_adjust_front_sec,
+                        pad_values['signal'])
 
         return {
             "label_adjust_front":      label_adjust_front,

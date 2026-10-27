@@ -2,7 +2,7 @@ import os
 
 import wfdb
 
-from datasets.base import BaseDataset
+from datasets.base import BaseDataset, DatasetProcessingError
 from datasets.registry import register_dataset
 from datasets.file_handlers import WFDBHandler
 from psg_processing.utils import SleepStage
@@ -89,7 +89,11 @@ class Physio2018(BaseDataset):
             if not any(note in aux_note for note in ['resp_hypoventilation','resp_cheynestokesbreath','arousal_bruxism','arousal_noise','arousal_plm','arousal_snore','arousal_rera','arousal_spontaneous','resp_partialobstructive','resp_centralapnea','resp_mixedapnea','resp_obstructiveapnea','resp_hypopnea']):
                 if aux_note not in self.ann2label:
                     print(aux_note)
-                    raise Exception
+                    raise DatasetProcessingError(
+                        f"Unknown annotation label: {aux_note}",
+                        self.dset_name,
+                        "ann_parse",
+                    )
 
                 start = sample
                 if start_time_label is None:
