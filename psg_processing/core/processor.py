@@ -41,8 +41,7 @@ class FileData:
     lights_off: LightMarker = None
     lights_on: LightMarker = None
     start_delay: float = 0.0
-    signal_adjust_front_sec: float = 0.0
-    start_time_shift: float = 0.0
+    front_adjustment_sec: float = 0.0
     labels: np.ndarray | None = None
 
 @dataclass
@@ -311,19 +310,14 @@ class FileProcessor:
                     labels = self._apply_front_label_adjustment(
                         labels, front_params["label_adjust_front"]
                     )
-                    signal_adjust_front_sec = front_params["signal_adjust_front_sec"]
-                    start_time_shift = -signal_adjust_front_sec
-                    if start_time_shift and isinstance(start_datetime, datetime):
-                        start_datetime = start_datetime + timedelta(seconds=start_time_shift)
+                    front_adjustment_sec = front_params["signal_adjust_front_sec"]
+                    if front_adjustment_sec and isinstance(start_datetime, datetime):
+                        start_datetime = start_datetime - timedelta(seconds=front_adjustment_sec)
                         file_data.start_datetime = start_datetime
                         self.logger.info("Adjusted start datetime after front alignment: %s",
                                          start_datetime)
-                else:
-                    signal_adjust_front_sec = 0.0
-                    start_time_shift        = 0.0
+                    file_data.front_adjustment_sec = front_adjustment_sec
 
-                file_data.signal_adjust_front_sec = signal_adjust_front_sec
-                file_data.start_time_shift = start_time_shift
                 file_data.labels = labels  # adjusted labels, not yet epoch-selected
 
             # Intersection of available channels in psg file and configured channels to process,
@@ -583,10 +577,10 @@ class FileProcessor:
         """Check if the selected epochs are within the valid real signal range
         and not entirely in the padded region."""
 
-        # Front padding: signal_adjust_front_sec > 0 means N epochs of padding were prepended.
+        # Front padding: front_adjustment_sec > 0 means N epochs of padding were prepended.
         # Only full epochs that are entirely padding are counted (floor division).
-        signal_adjust_front_sec = file_data.signal_adjust_front_sec
-        n_front_pad_epochs = int(signal_adjust_front_sec // self.config.epoch_duration)
+        front_adjustment_sec = file_data.front_adjustment_sec
+        n_front_pad_epochs = int(front_adjustment_sec // self.config.epoch_duration)
         if (n_front_pad_epochs > 0
                 and len(select_idx) > 0
                 and select_idx[-1] < n_front_pad_epochs):
@@ -775,7 +769,7 @@ class FileProcessor:
         """
 
         startdatetime = channel_data.start_datetime
-        start_time_shift = channel_data.start_time_shift
+        front_adjustment_sec = channel_data.front_adjustment_sec
         lights_off_epoch = 0
         lights_on_epoch  = None
 
@@ -821,9 +815,8 @@ class FileProcessor:
                                      "no need of epoch selection based on Lights Off time.")
 
             elif isinstance(lights_off, (int,float)):
-                # int/float is seconds from the ORIGINAL signal start; subtract start_time_shift
-                # so the value becomes relative to the (possibly cropped/padded) start_datetime.
-                lights_off_sec = lights_off - start_time_shift
+                # Numeric markers are relative to the original signal start.
+                lights_off_sec = lights_off + front_adjustment_sec
                 if lights_off_sec != 0:
                     # Lights Off probably starts before PSG Data
                     # (1 hour range before signal start)
@@ -880,9 +873,8 @@ class FileProcessor:
                                    lights_on_epoch)
 
             elif isinstance(lights_on, (int,float)):
-                # int/float is seconds from the ORIGINAL signal start; subtract start_time_shift
-                # so the value becomes relative to the (possibly cropped/padded) start_datetime.
-                lights_on_sec = lights_on - start_time_shift
+                # Numeric markers are relative to the original signal start.
+                lights_on_sec = lights_on + front_adjustment_sec
 
                 if lights_on_sec < 0:
                     raise ValueError(f"Lights On time ({lights_on_sec}) is before signal start "
@@ -1065,7 +1057,7 @@ class ChannelProcessor:
 
     - Read raw signal and sampling rate from file.
     - Resample / filter / clip (all fs-dependent).
-    - Apply the per-channel raw-sample front offset (signal_adjust_front_sec × fs)
+    - Apply the per-channel raw-sample front offset (front_adjustment_sec × fs)
       AFTER resampling and filtering to avoid boundary artefacts.
     - Reshape into epochs.
     """
@@ -1125,9 +1117,9 @@ class ChannelProcessor:
             signal = signal_processor.signal
 
         # Apply raw-sample front offset
-        if self.file_data.signal_adjust_front_sec != 0.0:
+        if self.file_data.front_adjustment_sec != 0.0:
             signal = self._apply_partial_epoch_offset(
-                signal, sampling_rate, self.file_data.signal_adjust_front_sec
+                signal, sampling_rate, self.file_data.front_adjustment_sec
             )
 
         # Reshape into epochs
@@ -1201,14 +1193,14 @@ class ChannelProcessor:
 
         return signal, target_unit
 
-    def _apply_partial_epoch_offset(self, signal, fs, signal_adjust_front_sec):
+    def _apply_partial_epoch_offset(self, signal, fs, front_adjustment_sec):
         """Padding (positive) or crop (negative) at the raw signal front.
 
         Called after resampling/filtering so that filter edge effects are not
         introduced by padding, and the resampled fs is used for sample counting.
         """
-        n_samples = int(abs(signal_adjust_front_sec) * fs)
-        if signal_adjust_front_sec < 0:
+        n_samples = int(abs(front_adjustment_sec) * fs)
+        if front_adjustment_sec < 0:
 
             return signal[n_samples:]
 
