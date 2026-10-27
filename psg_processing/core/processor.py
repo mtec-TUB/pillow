@@ -40,7 +40,6 @@ class FileData:
     ann_start_datetime: AnnotationStart = None
     lights_off: LightMarker = None
     lights_on: LightMarker = None
-    start_delay: float = 0.0
     front_adjustment_sec: float = 0.0
     labels: np.ndarray | None = None
 
@@ -294,7 +293,6 @@ class FileProcessor:
 
                 # Front alignment (file level)
                 start_delay = self._get_start_delay(ann_startdatetime, start_datetime)
-                file_data.start_delay = start_delay
 
                 if start_delay != 0:
                     if not self.dataset.has_front_alignment:
