@@ -173,7 +173,7 @@ class BaseDataset(ABC):
         # 10-10 EEG system for scalp PSG
 
         """
-        "MCN system renames four electrodes of the 10–20 system:
+        "MCN system renames four electrodes of the 10-20 system:
         T3 is now T7
         T4 is now T8
         T5 is now P7
@@ -463,68 +463,6 @@ class BaseDataset(ABC):
         labels = np.array(labels).T  # Transpose to (n_epochs, n_scorers)
 
         return labels
-
-    def compute_front_alignment(self, logger: logging.Logger, alignment, pad_values, epoch_duration, delay_sec):
-        """Compute front-alignment parameters at file level without touching any arrays.
-
-        Mirrors the logic of base_align_front but returns scalars only, so the result
-        can be derived once at file level and applied independently per channel.
-
-        Returns a dict with:
-            label_adjust_front      : int   – epochs to crop (negative) or pad (positive) at front of label array
-            signal_adjust_front_sec : float – seconds to crop (negative) or pad (positive) from each
-                                              channel's raw signal AFTER resampling/filtering.
-
-        """
-        label_adjust_front      = 0
-        signal_adjust_front_sec = 0.0
-
-        if delay_sec < 0:
-            advance_sec = -delay_sec
-            if alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_SIGNAL.value):
-                logger.info("Signal started %.2f sec after label start, \
-                            labels will be shortened at the front to match",
-                            advance_sec)
-                n_crop = int(advance_sec // epoch_duration)
-                label_adjust_front = -n_crop
-                if advance_sec % epoch_duration != 0:
-                    label_adjust_front -= 1
-                    signal_adjust_front_sec = -(epoch_duration - (advance_sec % epoch_duration))  # negative = crop
-            elif alignment in (Alignment.MATCH_LONGER.value, Alignment.MATCH_ANNOT.value):
-                logger.info("Signal started %.2f sec after label start, \
-                            signal will be padded with constant value:%s at the front to match",
-                            advance_sec, pad_values['signal'])
-                signal_adjust_front_sec = advance_sec   # positive = prepend padding
-        else:
-            if alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_ANNOT.value):
-                logger.info("Labeling started %.2f min after signal start, \
-                             signal will be shortened at the front to match",
-                             delay_sec / 60)
-                # negative = crop signal from front
-                signal_adjust_front_sec = -delay_sec
-            elif alignment in (Alignment.MATCH_LONGER.value, Alignment.MATCH_SIGNAL.value):
-                n_pad = int(delay_sec // epoch_duration)
-                logger.info("Labeling started %.2f min after signal start, \
-                            labels will be padded at the front with %d epochs of value: %s to match",
-                            delay_sec / 60, n_pad, pad_values['label'])
-                label_adjust_front = n_pad
-                if delay_sec % epoch_duration != 0:
-                    # negative = crop
-                    signal_adjust_front_sec = -(delay_sec % epoch_duration)
-
-        if signal_adjust_front_sec < 0:
-            logger.info("Signal front crop: removing %.4f sec from signal start to align with labels.",
-                        -signal_adjust_front_sec)
-        elif signal_adjust_front_sec > 0:
-            logger.info("Signal front pad: prepending %.4f sec \
-                        of value %s to signal start to align with labels.",
-                        signal_adjust_front_sec,
-                        pad_values['signal'])
-
-        return {
-            "label_adjust_front":      label_adjust_front,
-            "signal_adjust_front_sec": signal_adjust_front_sec,
-        }
 
     def preprocess(self, n_workers,data_dir, ann_dir):
         """

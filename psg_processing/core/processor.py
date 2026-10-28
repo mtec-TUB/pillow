@@ -306,20 +306,20 @@ class FileProcessor:
                     return
 
                 # Front alignment (file level)
-                start_delay = self._get_start_delay(ann_startdatetime, start_datetime)
+                start_diff_sec = self._get_start_diff(ann_startdatetime, start_datetime)
 
-                if start_delay != 0:
+                if start_diff_sec != 0:
                     if not self.dataset.has_front_alignment:
                         raise ValueError(
-                            f"Signal/annotation start-time mismatch ({start_delay:.1f}s) but "
+                            f"Signal/annotation start-time mismatch ({start_diff_sec:.1f}s) but "
                             f"dataset {self.dataset.dset_name} has has_front_alignment=False. "
                             f"Please verify."
                         )
-                    front_params = self.dataset.compute_front_alignment(
+                    front_params = self._compute_front_alignment(
                         self.logger, self.config.alignment, self.config.pad_values,
-                        self.config.epoch_duration, start_delay,
+                        self.config.epoch_duration, start_diff_sec,
                     )
-                    labels = self._apply_front_label_adjustment(
+                    labels = self._apply_front_alignment_labels(
                         labels, front_params["label_adjust_front"]
                     )
                     front_adjustment_sec = front_params["signal_adjust_front_sec"]
@@ -491,59 +491,115 @@ class FileProcessor:
 
         return channel
 
-    def _get_start_delay(self, ann_start_datetime, signal_start_datetime):
-        """ Check if annotation and signal start datetime are aligned and calculate the delay
+    def _get_start_diff(self, ann_start_datetime, signal_start_datetime):
+        """ Check if annotation and signal start datetime are aligned and calculate the diff
         between annotation and signal start if necessary.
+
+        diff > 0: annotation starts after signal start
+        diff < 0: annotation starts before signal start
+        diff = 0: annotation and signal start are aligned
         """
-        delay = 0
+        diff = 0
         if ann_start_datetime is not None:
             # If annotation start datetime is given as a datetime object,
-            # compare with signal start datetime and calculate start delay
+            # compare with signal start datetime and calculate start diff
             if isinstance(ann_start_datetime, datetime) and signal_start_datetime is not None:
                 # Strip timezone info before comparison/subtraction
                 ann_dt = ann_start_datetime
                 sig_dt = signal_start_datetime
                 if ann_dt.time() != sig_dt.time():
-                    delay = (ann_dt - sig_dt).total_seconds()
-                    if abs(delay) >= 24*3600:
-                        direction = "after" if delay > 0 else "before"
+                    diff = (ann_dt - sig_dt).total_seconds()
+                    if abs(diff) >= 24*3600:
+                        direction = "after" if diff > 0 else "before"
                         raise ValueError(f"Annotation start datetime {ann_dt} is more than 24h "
                                          f"{direction} signal start datetime {sig_dt}. "
                                          f"Check implementation!")
-                    if abs(delay) > 20*3600:
-                        delay = delay % (-np.sign(delay)*24*3600)  # Wrap around to next day
+                    if abs(diff) > 20*3600:
+                        diff = diff % (-np.sign(diff)*24*3600)  # Wrap around to next day
 
             # If annotation start datetime is given as a numeric value,
-            # it indicates a delay in seconds or samples (depending on dataset)
+            # it indicates a diff in seconds or samples (depending on dataset)
             elif isinstance(ann_start_datetime, (int, float, Decimal)):
-                delay = ann_start_datetime
+                diff = ann_start_datetime
             else:
                 raise ValueError(f"Unsupported format of annotation start datetime: "
                                  f"{ann_start_datetime}")
-            if delay != 0:
+            if diff != 0:
                 self.logger.info("Start of signal: %s, Start of labels: %s",
                                  signal_start_datetime, ann_start_datetime)
 
-        return delay
+        return diff
 
-    def _apply_front_label_adjustment(self, labels, label_adjust_front):
+    def _compute_front_alignment(self, logger: logging.Logger, alignment, pad_values, epoch_duration, diff_sec):
+        """Compute front-alignment parameters at file level without touching any arrays.
+
+        diff_sec > 0: annotation starts after signal start
+        diff_sec < 0: annotation starts before signal start
+
+        Returns a dict with:
+            label_adjust_front      : int   - number of epochs to crop (negative) or pad (positive) at front of label array
+            signal_adjust_front_sec : float - seconds to crop (negative) or pad (positive) at front of signal array
+
+        """
+        label_adjust_front      = 0
+        signal_adjust_front_sec = 0.0
+
+        if diff_sec < 0:
+            # Signal started after annotations
+            diff_sec = abs(diff_sec) # get absolute gap
+            logger.info("Signal started %.2f sec after label start", diff_sec)
+            if alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_SIGNAL.value):
+                # labels can only be cropped in full epochs
+                n_crop, remainder = divmod(diff_sec, epoch_duration)
+                label_adjust_front = -int(n_crop)
+                if remainder != 0:
+                    # crop both labels and signals to the next epoch they both share
+                    label_adjust_front -= 1
+                    signal_adjust_front_sec = -(epoch_duration - remainder)  # negative = crop
+                logger.info("Labels will be shortened at the front by %d epochs to match", -label_adjust_front)
+            elif alignment in (Alignment.MATCH_LONGER.value, Alignment.MATCH_ANNOT.value):
+                signal_adjust_front_sec = diff_sec   # positive = pad
+        else:
+            logger.info("Labeling started %.2f min after signal start", diff_sec / 60)
+            if alignment in (Alignment.MATCH_SHORTER.value, Alignment.MATCH_ANNOT.value):
+                signal_adjust_front_sec = -diff_sec # negative = crop
+            elif alignment in (Alignment.MATCH_LONGER.value, Alignment.MATCH_SIGNAL.value):
+                # labels can only be padded in full epochs
+                n_pad, remainder = divmod(diff_sec, epoch_duration)
+                label_adjust_front = int(n_pad)
+                logger.info("Labels will be padded at the front with %d epochs of value: %s to match",
+                            n_pad, pad_values['label'])
+                if remainder != 0:
+                    # crop both labels and signals to the next epoch they both share
+                    signal_adjust_front_sec = -remainder # negative = crop
+
+        if signal_adjust_front_sec < 0:
+            logger.info("Signal front crop: removing %.4f sec from signal start to align with labels.",
+                        -signal_adjust_front_sec)
+        elif signal_adjust_front_sec > 0:
+            logger.info("Signal front pad: prepending %.4f sec \
+                        of value %s to signal start to align with labels.",
+                        signal_adjust_front_sec,
+                        pad_values['signal'])
+
+        return {
+            "label_adjust_front":      label_adjust_front,
+            "signal_adjust_front_sec": signal_adjust_front_sec,
+        }
+
+    def _apply_front_alignment_labels(self, labels, label_adjust_front):
         """Crop (negative) or pad (positive) the front of the label array.
-
-        Works for both 1-D (n_epochs,) and 2-D (n_epochs, n_scorers) arrays.
         """
         if label_adjust_front == 0:
             return labels
 
-        pad_val = self.config.pad_values["label"]
         if label_adjust_front < 0:
             return labels[-label_adjust_front:]
 
-        if labels.ndim == 1:
-            pad = np.full(label_adjust_front, pad_val, dtype=labels.dtype)
-            return np.concatenate([pad, labels])
-
-        pad = np.full((label_adjust_front, labels.shape[1]), pad_val, dtype=labels.dtype)
-        return np.vstack([pad, labels])
+        pad_val = self.config.pad_values["label"]
+        # Handles both 1-D and 2-D arrays (multiple scorer)
+        pad = np.full((label_adjust_front, *labels.shape[1:]), pad_val, dtype=labels.dtype)
+        return np.concatenate([pad, labels])
 
     def _end_align(self, labels, all_channel_data, n_signal_epochs, n_labels_epochs):
         """Reconcile signal epoch count vs label epoch count using the alignment config.
@@ -568,11 +624,8 @@ class FileProcessor:
                 n_pad   = n_signal_epochs - n_labels_epochs
                 pad_val = self.config.pad_values["label"]
                 self.logger.info("End alignment: padding labels by %d epochs.", n_pad)
-                if labels.ndim == 1:
-                    labels = np.concatenate([labels, np.full(n_pad, pad_val, dtype=labels.dtype)])
-                else:
-                    labels = np.vstack([labels, np.full((n_pad, labels.shape[1]), pad_val,
-                                                        dtype=labels.dtype)])
+                pad = np.full((n_pad, *labels.shape[1:]), pad_val, dtype=labels.dtype)
+                labels = np.concatenate([labels, pad])
         else:
             if self.config.alignment in (Alignment.MATCH_SHORTER.value,
                                          Alignment.MATCH_SIGNAL.value):
@@ -1063,7 +1116,6 @@ class ChannelProcessor:
     - Read raw signal and sampling rate from file.
     - Resample / filter / clip (all fs-dependent).
     - Apply the per-channel raw-sample front offset (front_adjustment_sec × fs)
-      AFTER resampling and filtering to avoid boundary artefacts.
     - Reshape into epochs.
     """
 
@@ -1121,9 +1173,9 @@ class ChannelProcessor:
             signal_processor.clip_signal()
             signal = signal_processor.signal
 
-        # Apply raw-sample front offset
+        # Apply front alignment (crop or pad)
         if self.file_data.front_adjustment_sec != 0.0:
-            signal = self._apply_partial_epoch_offset(
+            signal = self._apply_front_alignment_signal(
                 signal, sampling_rate, self.file_data.front_adjustment_sec
             )
 
@@ -1156,9 +1208,6 @@ class ChannelProcessor:
             file_output_path=self.file_output_path,
         )
 
-    # Multiplier to convert a value expressed in the given voltage unit to Volts
-    VOLT_FACTORS = {"V": 1.0, "mV": 1e-3, "uV": 1e-6}
-
     def _get_target_unit(self, ch_name, channel_groups):
         """Get the configured target rescale unit for a given channel
         using the centralized group mapping."""
@@ -1175,6 +1224,9 @@ class ChannelProcessor:
             return None
         normalized = unit.strip().replace("µ", "u").replace("μ", "u").lower()
         return {"v": "V", "mv": "mV", "uv": "uV"}.get(normalized)
+
+    # Multiplier to convert a value expressed in the given voltage unit to Volts
+    VOLT_FACTORS = {"V": 1.0, "mV": 1e-3, "uV": 1e-6}
 
     def _rescale_signal(self, signal, unit, target_unit, ch_name):
         """Rescale signal amplitude to target_unit if both the channel's current unit
@@ -1197,16 +1249,17 @@ class ChannelProcessor:
 
         return signal, target_unit
 
-    def _apply_partial_epoch_offset(self, signal, fs, front_adjustment_sec):
-        """Padding (positive) or crop (negative) at the raw signal front.
+    def _apply_front_alignment_signal(self, signal, fs, front_adjustment_sec):
+        """Pad (positive) or crop (negative) the signal front to align with labels.
 
         Called after resampling/filtering so that filter edge effects are not
         introduced by padding, and the resampled fs is used for sample counting.
         """
         n_samples = int(abs(front_adjustment_sec) * fs)
         if front_adjustment_sec < 0:
-
+            # crop
             return signal[n_samples:]
 
+        # pad
         pad_val = np.float64(self.config.pad_values["signal"])
         return np.concatenate([np.full(n_samples, pad_val), signal])
