@@ -18,6 +18,7 @@ import h5py
 import numpy as np
 from tqdm import tqdm
 
+from datasets.base import BaseDataset
 from psg_processing.utils import LoggingManager, Alignment, SleepStage, SLEEP_STAGES, ProcessorConfig
 from psg_processing.core.dataset_explorer import DatasetExplorer
 from psg_processing.core.signal_processor import SignalProcessor
@@ -214,7 +215,7 @@ class FileProcessor:
     """Class to process a single PSG file with one or multiple channels
     and save the processed data to file."""
 
-    def __init__(self, config, dataset, psg_fname: str, ann_fname: str):
+    def __init__(self, config: ProcessorConfig, dataset: BaseDataset, psg_fname: str, ann_fname: str):
         self.logging_manager = LoggingManager(console_level=config.logging_level)
         self.logger = None
         self.config = config
@@ -1113,7 +1114,7 @@ class ChannelProcessor:
         self,
         logger: logging.Logger,
         config: ProcessorConfig,
-        dataset,
+        dataset: BaseDataset,
         file_data: FileData,
         channel: str,
         file_output_path: str,
