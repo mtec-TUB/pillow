@@ -280,30 +280,10 @@ class FileProcessor:
 
             # Annotations preparation
             if self.config.use_annot:
-                ann_stage_events, ann_startdatetime, lights_off, lights_on = \
-                    self.dataset.ann_parse(self.ann_fname)
-                if isinstance(ann_startdatetime, datetime):
-                    ann_startdatetime = ann_startdatetime.replace(tzinfo=None)
-                file_data.ann_start_datetime = ann_startdatetime
-                if file_data.lights_off is None:
-                    file_data.lights_off = lights_off
-                if file_data.lights_on is None:
-                    file_data.lights_on = lights_on
-
-                if ann_stage_events == []:
-                    self.logger.warning("No sleep stage annotations found in %s, skipping file.",
-                                        os.path.basename(self.ann_fname))
-                    return
-
-                # Map dataset-labels to standardized labels and check consistency
-                labels = self.dataset.ann_label(self.logger, ann_stage_events,
-                                                self.config.epoch_duration)
-                # Check how many sleep epochs are in the file
-                sleep_mask = np.isin(labels if labels.ndim == 1 else labels[:, 0], SLEEP_STAGES)
-                if np.sum(sleep_mask) < self.config.min_sleep_epochs:
-                    self.logger.warning(
-                        "File contains less sleep epochs than required, skipping file."
-                    )
+                labels = self._prepare_labels(file_data)
+                if labels is not None:
+                    file_data.labels = labels
+                else:
                     return
 
                 # Front alignment (file level)
@@ -422,6 +402,43 @@ class FileProcessor:
             elif self.config.output_format in ["edf", "hdf5"]:
                 # For edf/hdf5, flush all channels' logs to single file
                 buffer_handler.flush_to_console_and_file(log_path)
+
+    def _prepare_labels(self, file_data: FileData) -> np.ndarray | None:
+        """Parse annotations and lights marker from dataset and check for consistency
+
+        Args:
+            file_data (FileData): file-level metadata
+
+        Returns:
+            labels: np.ndarray of shape (n_epochs,) or (n_epochs, 2) with standardized labels
+        """
+
+        ann_events, ann_startdatetime, lights_off, lights_on = self.dataset.ann_parse(self.ann_fname)
+        if isinstance(ann_startdatetime, datetime):
+            ann_startdatetime = ann_startdatetime.replace(tzinfo=None)
+        file_data.ann_start_datetime = ann_startdatetime
+        if file_data.lights_off is None:
+            file_data.lights_off = lights_off
+        if file_data.lights_on is None:
+            file_data.lights_on = lights_on
+
+        if ann_events == []:
+            self.logger.warning("No sleep stage annotations found in %s, skipping file.",
+                                os.path.basename(self.ann_fname))
+            return None
+
+        # Map dataset-labels to standardized labels and check consistency
+        labels = self.dataset.ann_label(self.logger, ann_events,
+                                        self.config.epoch_duration)
+        # Check how many sleep epochs are in the file (first scorer)
+        sleep_mask = np.isin(labels if labels.ndim == 1 else labels[:, 0], SLEEP_STAGES)
+        if np.sum(sleep_mask) < self.config.min_sleep_epochs:
+            self.logger.warning(
+                "File contains less sleep epochs than required, skipping file."
+            )
+            return None
+
+        return labels
 
     def _setup_file_output(self):
         """ Setup output for edf and hdf5 output format where all channels of one file
