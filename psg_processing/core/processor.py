@@ -375,15 +375,15 @@ class FileProcessor:
             ## File-level post-processing
 
             # get the first channel's epoch count before end alignment
-            n_real_signal_epochs = len(next(iter(all_channel_data.values())).signal)
+            n_signal_epochs = len(next(iter(all_channel_data.values())).signal)
 
             ## End alignment: reconcile signal epoch count with label count
             if self.config.use_annot:
                 n_label_epochs = len(file_data.labels)
-                if n_real_signal_epochs != n_label_epochs:
+                if n_signal_epochs != n_label_epochs:
                     if not self.dataset.has_end_alignment:
                         raise ValueError(
-                            f"Signal ({n_real_signal_epochs} epochs) and labels "
+                            f"Signal ({n_signal_epochs} epochs) and labels "
                             f"({n_label_epochs} epochs) do not match. "
                             f"Dataset {self.dataset.dset_name} has no end alignment "
                             f"defined (has_end_alignment=False). Please verify."
@@ -391,12 +391,12 @@ class FileProcessor:
                     file_data.labels = self._end_align(
                         file_data.labels,
                         all_channel_data,
-                        n_real_signal_epochs,
+                        n_signal_epochs,
                         n_label_epochs,
                     )
 
             ## Compute and apply selection of epochs to keep
-            ret = self._epoch_selection(file_data, all_channel_data, n_real_signal_epochs)
+            ret = self._epoch_selection(file_data, all_channel_data, n_signal_epochs)
             if ret is None:
                 return
 
@@ -645,9 +645,9 @@ class FileProcessor:
         return labels
 
     def _epoch_selection(self,
-                               file_data: FileData,
-                               all_channel_data: dict[str, ChannelData],
-                               n_real_signal_epochs: int):
+                         file_data: FileData,
+                         all_channel_data: dict[str, ChannelData],
+                         end_idx_orig_signal: int):
         """Apply the epoch selection to the labels and signals.
 
         1. Get the corresponding epochs for Lights On/Off markers
@@ -670,7 +670,7 @@ class FileProcessor:
             return None
 
         # Skip file if selection falls entirely in a padded region with no real signal data.
-        if not self._valid_selection_range(file_data, select_idx, n_real_signal_epochs):
+        if not self._valid_selection_range(file_data, select_idx, end_idx_orig_signal):
             return None
 
         # Apply selection to labels and signals
@@ -696,10 +696,6 @@ class FileProcessor:
     def _get_lights_epochs(self, file_data: FileData):
         """Get the epochs where Lights Off and Lights On happen based on the configured
         lights marker in annotation or PSG data.
-        - The epoch in which Lights Off event happens is return as lights_off_epoch
-        - The epoch AFTER which Lights On event happens is returned as lights_on_epoch,
-            meaning that the epoch in which Lights On event happens is still included
-            in the selected data.
 
         Args:
             file_data: File metadata containing the recording start and light markers.
@@ -737,8 +733,8 @@ class FileProcessor:
                             # Assume Lights Off is after and signal start before midnight
                             lights_off_sec += 24*3600 # add 24h
 
-                        # Round to full epoch
-                        lights_off_epoch = self._round_marker_time("lights_off", lights_off_sec,
+                        # Get epoch idx of Lights Off event
+                        lights_off_epoch = self._marker_epoch_idx("Lights Off", lights_off_sec,
                                                                     self.config.epoch_duration,
                                                                     lights_off.time())
 
@@ -771,8 +767,8 @@ class FileProcessor:
                         raise ValueError(f"Lights Off time ({lights_off_sec}) is more than 1 hour "
                                          f"before signal start ({startdatetime.time()})")
                     else:
-                        # Round to full epoch
-                        lights_off_epoch = self._round_marker_time("lights_off", lights_off_sec,
+                        # Get epoch idx of Lights Off event
+                        lights_off_epoch = self._marker_epoch_idx("Lights Off", lights_off_sec,
                                                                     self.config.epoch_duration)
                         self.logger.info("Select only epochs after Lights Off at second %s "
                                          "(epoch %d)",
@@ -803,7 +799,8 @@ class FileProcessor:
                     # Assume Lights On is after and signal start before midnight
                     lights_on_sec += 24 * 3600  # add 24h
 
-                lights_on_epoch = self._round_marker_time("lights_on", lights_on_sec,
+                # Get epoch idx of Lights On event
+                lights_on_epoch = self._marker_epoch_idx("Lights On", lights_on_sec,
                                                           self.config.epoch_duration,
                                                           lights_on.time())
                 lights_on_delta = timedelta(seconds=lights_on_epoch*self.config.epoch_duration)
@@ -820,7 +817,8 @@ class FileProcessor:
                     raise ValueError(f"Lights On time ({lights_on_sec}) is before signal start "
                                      f"({startdatetime.time()})")
 
-                lights_on_epoch = self._round_marker_time("lights_on", lights_on_sec,
+                # Get epoch idx of Lights On event
+                lights_on_epoch = self._marker_epoch_idx("Lights On", lights_on_sec,
                                                           self.config.epoch_duration)
                 self.logger.info("Select only epochs before Lights On at second %s (epoch %d)",
                                  lights_on_sec, lights_on_epoch)
@@ -831,16 +829,15 @@ class FileProcessor:
 
         return lights_off_epoch, lights_on_epoch
 
-    def _round_marker_time(self, marker, marker_sec, epoch_duration, marker_time=None):
-        """Helper function to round Lights Off/On time to the next (or previous) epoch
-        if it is not exactly at the start/end of an epoch and log this behavior.
+    def _marker_epoch_idx(self, marker, marker_sec, epoch_duration, marker_time=None):
+        """Helper function to get Lights Off/On time epoch idx (epoch in which the event happens)
 
         Args:
-            marker (_type_): Type of marker which is processed ("lights_off" or "lights_on")
-            marker_sec (_type_): timestamp of marker in seconds from signal start
-            marker_time (_type_): timestamp of marker as datetime.time object
-                for logging purposes (if not available, )
-            epoch_duration (_type_): epoch duration in seconds to round the marker time to
+            marker: Type of marker which is processed ("lights_off" or "lights_on")
+            marker_sec: timestamp of marker in seconds from signal start
+            marker_time: timestamp of marker as datetime.time object
+                for logging purposes
+            epoch_duration: epoch duration in seconds to round the marker time to
 
         Returns:
             _type_: epoch number corresponding to the rounded marker time
@@ -848,17 +845,12 @@ class FileProcessor:
         if marker_time is None:
             marker_time = marker_sec
         if marker_sec % epoch_duration != 0:
-            if marker == "lights_off":
-                round_marker_epoch = floor(marker_sec / epoch_duration)
-                self.logger.info("Lights Off time %s is floored to %dsec from signal start.",
-                                 marker_time, round_marker_epoch * epoch_duration)
-            elif marker == "lights_on":
-                round_marker_epoch = ceil(marker_sec / epoch_duration)
-                self.logger.info("Lights On time %s is ceiled to  %dsec from signal start.",
-                                 marker_time, round_marker_epoch * epoch_duration)
+            marker_epoch_idx = floor(marker_sec / epoch_duration)
+            self.logger.info("%s event at %s corresponds to epoch %d (%dsec from signal start).",
+                             marker, marker_time, marker_epoch_idx, marker_epoch_idx * epoch_duration)
         else:
-            round_marker_epoch = marker_sec / epoch_duration
-        return int(round_marker_epoch)
+            marker_epoch_idx = marker_sec / epoch_duration
+        return int(marker_epoch_idx)
 
     def _compute_select_idx(self, labels, lights_off_epoch, lights_on_epoch, n_epochs):
         """Compute the epoch indices to keep based on lights markers and MOVE/UNK removal.
@@ -894,15 +886,13 @@ class FileProcessor:
                 start_idx = lights_off_epoch
 
             if lights_on_epoch is not None:
-                if lights_on_epoch <= n_epochs:
-                    end_idx = lights_on_epoch
-                elif lights_on_epoch == n_epochs + 1:
-                    pass  # Lights On fell in the last cropped partial epoch -> keep all
+                if lights_on_epoch < n_epochs:
+                    end_idx = lights_on_epoch + 1
                 else:
                     # Maybe padding both signal and annotations until Lights On ??
                     self.logger.warning("Lights On is %d epochs after recording ends "
                                         "(marker is ignored for epoch selection).",
-                                        lights_on_epoch - n_epochs)
+                                        lights_on_epoch - n_epochs + 1)
             else:
                 if self.config.truncate_non_sleep_end and len(sleep_idx) > 0:
                     end_idx = sleep_idx[-1] + 1
@@ -950,16 +940,16 @@ class FileProcessor:
             return None
         return select_idx
 
-    def _valid_selection_range(self, file_data: FileData, select_idx, n_real_signal_epochs):
-        """Check if the selected epochs are within the valid real signal range
-        and not entirely in the padded region."""
+    def _valid_selection_range(self, file_data: FileData, select_idx, end_idx_orig_signal):
+        """Check if the selected epochs are within the valid original signal range
+        and not entirely in the padded regions (front or end)."""
 
         # Front padding: front_adjustment_sec > 0 means N epochs of padding were prepended.
         # Only full epochs that are entirely padding are counted (floor division).
         front_adjustment_sec = file_data.front_adjustment_sec
-        n_front_pad_epochs = int(front_adjustment_sec // self.config.epoch_duration)
-        if (n_front_pad_epochs > 0
-                and select_idx[-1] < n_front_pad_epochs):
+        start_idx_orig_signal = int(front_adjustment_sec // self.config.epoch_duration)
+        if (start_idx_orig_signal > 0
+                and select_idx[-1] < start_idx_orig_signal):
             self.logger.warning(
                 "All selected epochs (%d-%d) fall entirely outside the signal region. "
                 "Skipping file.",
@@ -967,9 +957,9 @@ class FileProcessor:
             )
             return False
 
-        # End padding: signal was extended by end alignment and selection starts beyond real data.
+        # End padding: signal was extended by end alignment and selection may start beyond real data.
         if (self.config.use_annot
-                and select_idx[0] >= n_real_signal_epochs):
+                and select_idx[0] >= end_idx_orig_signal):
             self.logger.warning(
                 "All selected epochs (%d-%d) fall entirely outside the signal region. "
                 "Skipping file.",
