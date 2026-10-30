@@ -881,20 +881,23 @@ class FileProcessor:
         Returns None if no epochs survive.
         """
         if labels is not None:
-            # only use first scorer column for seleciton
+            # only use first scorer column for selection
             labels  = labels if labels.ndim == 1 else labels[:, 0]
             sleep_mask = np.isin(labels, SLEEP_STAGES)
-            sleep_idx  = np.where(sleep_mask)[0]
+            sleep_indices  = np.where(sleep_mask)[0]
             if self.config.select_edges == "non-wake":
                 # Anchor on any non-Wake epoch (incl. Movement/Unknown)
                 # matching SleePyCo's reference behavior
-                edge_idx = np.where(labels != SleepStage.W)[0]
+                edges = np.where(labels != SleepStage.W)[0]
             else:
-                edge_idx = sleep_idx
+                edges = sleep_indices
+            if edges.size >= 2:
+                edges = edges[[0, -1]]
+            else:
+                edges = np.array([], dtype=int)
         else:
-            labels  = None
-            sleep_idx = np.array([], dtype=int)
-            edge_idx  = np.array([], dtype=int)
+            sleep_indices = np.array([], dtype=int)
+            edges  = np.array([], dtype=int)
 
         start_idx = 0
         end_idx   = n_epochs
@@ -912,8 +915,8 @@ class FileProcessor:
                                         "(marker is ignored for epoch selection).",
                                         lights_on_epoch - n_epochs + 1)
             else:
-                if self.config.truncate_non_sleep_end and len(sleep_idx) > 0:
-                    end_idx = sleep_idx[-1] + 1
+                if self.config.truncate_non_sleep_end and len(sleep_indices) > 0:
+                    end_idx = sleep_indices[-1] + 1
                     self.logger.info("Removed %d Non-Sleep epochs at end of night.",
                                      n_epochs - end_idx)
 
@@ -922,10 +925,10 @@ class FileProcessor:
                 self.logger.warning("select_epochs config is an integer but use_annot=False, "
                                     "no labels available to identify sleep stages, "
                                     "keeping all epochs.")
-            elif len(edge_idx) > 0:
+            elif len(edges) > 0:
                 n_select  = self.config.select_epochs
-                start_idx = max(0, edge_idx[0] - n_select)
-                end_idx   = min(n_epochs, edge_idx[-1] + n_select + 1)
+                start_idx = max(0, edges[0] - n_select)
+                end_idx   = min(n_epochs, edges[-1] + n_select + 1)
                 if start_idx > 0 or end_idx != n_epochs:
                     n_crop = n_epochs - (end_idx - start_idx)
                     self.logger.info(
