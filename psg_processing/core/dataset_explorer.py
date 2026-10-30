@@ -7,6 +7,7 @@ import glob
 import logging
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
+from typing import List
 
 import numpy as np
 from numba import njit
@@ -15,13 +16,22 @@ from natsort import natsorted
 
 from psg_processing.utils import LoggingManager
 
-# Amplitude resolution threshold (2^7)
+# Amplitude resolution threshold (2^7) to decide about channel type (digital vs analog)
 DIGITAL_SIGNAL_MAX_UNIQUE_VALUES = 128
 
 
 @njit(cache=True)
 def _is_digital_numba(flat_signal, max_unique):
-    """Numba-compiled early-exit unique-value count, called per channel/file."""
+    """Check whether a flattened signal has at most the allowed unique values.
+
+    Parameters:
+        flat_signal: One-dimensional signal values to inspect.
+        max_unique: Maximum number of unique values considered digital.
+
+    Returns:
+        ``True`` if the signal has no more than ``max_unique`` values;
+        otherwise ``False``.
+    """
     unique_vals = np.empty(max_unique + 1, dtype=flat_signal.dtype)
     n_unique = 0
     for v in flat_signal:
@@ -39,17 +49,14 @@ def _is_digital_numba(flat_signal, max_unique):
 
 
 def _is_digital(signal):
-    """
-    Determine if a signal is digital or analog based on the number of unique values.
+    """Determine whether a signal is digital using its unique-value count.
 
-    Digital signals typically have a limited number of discrete values,
-    while analog signals have continuous values.
-
-    Args:
-        signal (numpy.ndarray): Input signal to analyze
+    Parameters:
+        signal: Signal array to classify.
 
     Returns:
-        bool: True if signal appears to be digital, False if analog
+        ``True`` for a digital signal and ``False`` for an analog or empty
+        signal.
     """
     if signal.size == 0:
         return False
@@ -66,7 +73,11 @@ class _ChannelDiscoveryTask:
         self.console_level = console_level
 
     def run(self):
-        """Return (psg_fname, channel names found in this file)."""
+        """Discover the readable channels in the assigned PSG file.
+
+        Returns:
+            A tuple containing the PSG path and its discovered channel names.
+        """
         logging_manager = LoggingManager(console_level=self.console_level)
         logger, _ = logging_manager.create_file_logger(os.path.basename(self.psg_fname))
         channels = self.dataset.get_channels(logger, self.psg_fname)
@@ -84,7 +95,11 @@ class _ChannelTypeTask:
         self.console_level = console_level
 
     def run(self):
-        """Return (psg_fname, still-digital channels that turned out analog in this file)."""
+        """Classify still-digital channels in the assigned PSG file.
+
+        Returns:
+            A tuple containing the PSG path and channels found to be analog.
+        """
         logging_manager = LoggingManager(console_level=self.console_level)
         logger, _ = logging_manager.create_file_logger(os.path.basename(self.psg_fname))
 
@@ -131,12 +146,18 @@ class DatasetExplorer:
 
         self.logger = logger
 
-    def get_files(self, which="both"):
-        """
-        Discover and collect PSG signal files and annotation files.
+    def get_files(self, which="both") -> tuple[List[str], list[str]]:
+        """Discover PSG signal files and, optionally, annotation files.
+
+        Parameters:
+            which: ``"psg"`` to discover only signal files, or ``"both"`` to
+                also discover annotation files.
 
         Returns:
-            tuple: (psg_filenames, annotation_filenames) arrays
+            A tuple ``(psg_filenames, annotation_filenames)``.
+
+        Raises:
+            FileNotFoundError: If a required data directory does not exist.
         """
         if not self.logger:
             self.logger = self.logging_manager.create_pipeline_logger()
@@ -200,15 +221,11 @@ class DatasetExplorer:
         return self.psg_fnames, self.ann_fnames
 
     def get_all_channels(self):
-        """
-        Discover all available channel names and frequencies across all PSG files.
-
-        Files are independent of one another, so they are discovered in a pool of
-        worker processes (self.num_workers) instead of sequentially.
+        """Discover all available channel names across the PSG files.
 
         Returns:
-            set: Set of tuples containing (channel_name, frequency) pairs for EDF files,
-                 or just channel names for other formats.
+            A counter containing each discovered channel name and its frequency
+            of occurrence.
         """
 
         self.get_files(which="psg")
@@ -260,11 +277,11 @@ class DatasetExplorer:
         return self.ch_names
 
     def get_channel_type(self):
-        """
-        Analyze channels to determine if they contain digital or analog signals.
+        """Classify channels as analog or digital.
 
         Returns:
-            dict: Dictionary with 'analog' and 'digital' keys containing lists of channels
+            A dictionary with ``"analog"`` and ``"digital"`` keys containing
+            channel-name lists.
         """
         if not self.psg_fnames:
             self.get_files(which="psg")
@@ -275,9 +292,8 @@ class DatasetExplorer:
         else:
             channel_names = self.ch_names.keys() # Get just the channel names without frequencies
 
-        self.logger.info(
-            "Found %d channels to analyze across %d files", len(channel_names), len(self.psg_fnames)
-        )
+        self.logger.info("Found %d channels to analyze across %d files",
+                         len(channel_names), len(self.psg_fnames))
 
         channel_types = {"analog": [], "digital": []}
 
@@ -299,13 +315,15 @@ class DatasetExplorer:
         return channel_types
 
     def analyze_channel_types(self, remaining_fnames, channel_dict):
-        """
-        Classify channels as digital/analog by scanning files in a pool of worker processes.
+        """Classify channels by scanning PSG files in worker processes.
 
-        A channel only ever needs to be found analog ONCE, so submission of new files
-        stops (and any in-flight ones are cancelled) as soon as every channel has been
-        reclassified as analog. Each worker checks a file against the still-digital channel
-        set as of submission time.
+        Parameters:
+            remaining_fnames: PSG file paths that still need to be scanned.
+            channel_dict: Mapping from channel names to their current
+                ``"digital"`` or ``"analog"`` classification.
+
+        Returns:
+            The updated channel classification mapping.
         """
         console_level = self.logging_manager.console_level
         completed_fnames = set()
