@@ -24,6 +24,7 @@ output_dir: null
 output_format: edf
 
 # Overwrite existing output files
+# Options: true, false
 # if false, files that exist already in the output directory will be skipped
 overwrite: false
 
@@ -35,13 +36,16 @@ logging_level: WARNING
 # Options: process, get_channel_names, get_channel_types
 action: process
 
-# Number of workers in parallel processing (default: null, take all kernels)
+# Number of workers in parallel processing
+# Options: positive integer, null (use all available CPU cores)
 num_workers: null
 
-# Resample frequency in Hz (null = keep original sampling rate)
+# Resample frequency in Hz
+# Options: null (keep original sampling rate), positive integer (resample to this frequency)
 resample: null
 
 # Apply filtering after resampling
+# Options: true, false
 filter: false
 
 # Filter type to use when 'filter'=true
@@ -61,7 +65,7 @@ filter_freq:
   nasal_pressure: [0.03, null]  # Nasal pressure: 0.03+ Hz (high-pass)
   snoring: [10, null]  # Snoring: 10+ Hz (high-pass)
   default: [null, null]  # Default for all channels that do not belong to above groups: no filtering
-  
+
 # List of original channel names to process
 # Example: ["C3", "C4", "EOG-L", "EOG-R", "EMG", "ECG"]
 channels: []
@@ -71,11 +75,12 @@ channels: []
 mapped_channels: []
 # If both lists are empty, all available channels will be processed
 
-# Map channel names to standards names if possible (true = map names, false = use original names)
+# Map channel names to standards names if possible
+# Options: true, false (use original names)
 map_channel_names: true
 
-# Rescale signal amplitude depending on the signal group (null = keep original amplitude)
-# Options: uV, mV, V
+# Rescale signal amplitude depending on the signal group
+# Options: uV, mV, V, null (keep original amplitude)
 rescale_unit:
   eeg_eog: uV  # EEG and EOG channel
   emg: uV  # EMG channel
@@ -91,8 +96,9 @@ rescale_unit:
 epoch_duration: 30
 
 # Use annotations
+# Options: true, false
 # 'false' can be used if only signals are needed, e.g.,for unsupervised tasks -> save storage space
-# if 'true', but dataset contains PSG file without corresponding annotataion file, these PSG files will be skipped
+# if 'true', PSG files without corresponding annotation files will be skipped
 use_annot: true
 
 # How to align signal and annotation lengths (if 'use_annot' is true)
@@ -107,40 +113,42 @@ use_annot: true
 alignment: match_signal
 
 # Padding values for signal and labels when using alignment options that require padding
-# default signal padding 'null' will use np.nan (if you choose EDF as file output, NaN will be converted to the physical minimum)
-# pad value for labels must be an integer (already in use: {0:"Wake", 1:"N1", 2:"N2", 3:"N3", 4:"REM", 5:"MOVE", 6:"Unknown"}), recommended to choose -1 or 6 (Unknown)
-pad_values: 
+# default signal padding 'null' will use np.nan (for EDF output: NaN is converted to physical minimum)
+# pad value for labels must be an integer (already in use: {0:"Wake", 1:"N1", 2:"N2", 3:"N3", 4:"REM", 5:"MOVE", 6:"Unknown", 7:"SLEEP"}), recommended to choose -1 or 6 (Unknown)
+pad_values:
   signal: null
   label: -1
 
 # Remove Movement epochs during processing (only if 'use_annot' is true)
+# Options: true, false
 rm_move: false
 
 # Remove Unknown epochs during processing (only if 'use_annot' is true)
+# Options: true, false
 rm_unk: false
 
-# Selection of epochs based on Annotation
-# Used to remove extensive wake periods at the start and end of recordings while keeping some wake epochs for context (e.g., for sleep onset detection)
+# Selection of epochs based on Annotation and Lights markers
 # Options
-# - all: to keep all available epochs
-# - lights: to keep only epochs in between Lights off and on markers if available in this dataset
+# - all: keep all available epochs
+# - lights: keep only epochs in between Lights off and Lights On markers, if available in this dataset
 #   - if lights marker are only available inside annotation, "use_annot" must be set to true
-#   - set alignment to "match_longer" for best results
-# - integer number: to determine how many epochs of WAKE (Non-Sleep) to keep at start and end (e.g., 60 to keep 30 minutes with epoch duration of 30s). truncate_non_sleep_end must be set to false.
+#   - set 'alignment' to "match_longer" for best results
+# - integer number: remove the specified number of Wake epochs from the start and end of the recording (e.g., 60 to keep 30 minutes with epoch duration of 30s). truncate_non_sleep_end must be set to false.
 select_epochs: lights
 
 # Which epochs count as the "first"/"last" epoch when 'select_epochs' is an integer
 # (start_idx = first_edge - select_epochs, end_idx = last_edge + select_epochs), Movement/Unknown epochs are removed afterwards either way
 # Options:
 # - non-wake: anchor on the first/last epoch that is NOT Wake (includes Movement/Unknown epochs), as implemented in SleePyCo
-# - sleep: anchor on the first/last actual sleep-stage epoch (N1/N2/N3/REM only)
+# - sleep: anchor on the first/last actual sleep-stage epoch (N1/N2/N3/REM/SLEEP only)
 select_edges: non-wake
 
 # Truncate Non-Sleep epochs at end of recording if no Lights on marker is available (only if 'use_annot' is true and 'select_epochs' is set to "lights")
 # If true, all epochs after the last sleep epoch will be removed if no 'lights on' marker is available, otherwise these epochs will be kept
+# Options: true, false
 truncate_non_sleep_end: true
 
-# Minimum required sleep epochs (N1, N2, N3, REM) (only if 'use_annot' is true)
+# Minimum required sleep epochs (N1, N2, N3, REM, SLEEP) (only if 'use_annot' is true)
 # Recordings with fewer sleep epochs will be discarded
 # Default is 0 to include all files
 min_sleep_epochs: 0
