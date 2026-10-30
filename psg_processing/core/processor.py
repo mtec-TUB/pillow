@@ -29,13 +29,13 @@ logging.captureWarnings(True)
 class FileData:
     """Metadata shared while processing the channels of one PSG file."""
 
-    psg_fname: str
-    ann_fname: str | None
-    start_datetime: datetime | None = None
-    ann_start_datetime: datetime | int | float | Decimal | None = None
-    file_duration: float = 0.0
-    lights_off: datetime | time | int | float | None = None
-    lights_on: datetime | time | int | float | None = None
+    psg_fname: str   # path to the PSG file
+    ann_fname: str | None   # path to the annotation file (if available)
+    start_datetime: datetime | None = None  # start datetime of the PSG file
+    ann_start_datetime: datetime | int | float | Decimal | None = None # start datetime (or relative start) of the annotation file
+    file_duration: float = 0.0  # duration of the PSG file in seconds
+    lights_off: datetime | time | int | float | None = None # time of Lights Off marker
+    lights_on: datetime | time | int | float | None = None  # time of Lights On marker
     front_adjustment_sec: float = 0.0   # front alignment of the signal: < 0 padded, > 0 cropped
     selection_offset_sec: float = 0.0   # time from aligned start to the first selected epoch
     labels: np.ndarray | None = None
@@ -57,14 +57,12 @@ class FileData:
 
 @dataclass
 class ChannelData:
-    """Metadata and data for a single channel of a PSG file.
-    """
-
-    ch_name_orig: str
-    signal: np.ndarray
+    """Metadata and data for a single channel of a PSG file."""
+    ch_name_orig: str   # channel name as it was found in the PSG file
+    signal: np.ndarray  # the actual signal data
     sampling_rate: int | float
-    unit: str
-    file_output_path: str | None = None  # set at file level, after channel processing
+    unit: str   # physical unit of the signal (e.g., uV, mV, V)
+    file_output_path: str | None = None # path to the output file for this channel
 
 
 class DatasetProcessor:
